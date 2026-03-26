@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Roll Cookbook</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #13131a;
+      --gold: #c9a84c;
+      --gold-light: #e8c878;
+      --gold-dim: rgba(201,168,76,0.12);
+      --text: #f0f0f0;
+      --text-dim: #999;
+      --text-faint: #555;
+      --border: rgba(255,255,255,0.07);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--gold-dim);
+      border: 1.5px solid var(--gold);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4em;
+    }
+
+    .logo-text {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.4em;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: var(--gold); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, rgba(201,168,76,0.08) 0%, rgba(0,0,0,0) 60%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 40px 50px;
+      text-align: center;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      background: var(--gold-dim);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold);
+      font-size: 0.72em;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2em, 5vw, 3.2em);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--gold); }
+
+    .hero-date {
+      font-size: 0.85em;
+      color: var(--text-dim);
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 60px 24px 100px;
+    }
+
+    /* ── INTRO ── */
+    .intro {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 48px;
+      font-size: 0.95em;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-num {
+      width: 34px;
+      height: 34px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      font-weight: 700;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .section h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.25em;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .section p {
+      font-size: 0.93em;
+      color: #ccc;
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+
+    .section p:last-child { margin-bottom: 0; }
+
+    /* ── DATA ITEMS ── */
+    .data-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .data-item-icon {
+      font-size: 1.1em;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .data-item-label {
+      font-size: 0.82em;
+      font-weight: 600;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .data-item-desc {
+      font-size: 0.88em;
+      color: #aaa;
+      line-height: 1.6;
+    }
+
+    /* ── THIRD PARTY ── */
+    .third-party-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 10px;
+    }
+
+    .third-party-name {
+      font-size: 0.88em;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .third-party-desc {
+      font-size: 0.85em;
+      color: #999;
+      line-height: 1.6;
+    }
+
+    .third-party-desc a {
+      color: var(--gold);
+      text-decoration: none;
+    }
+
+    .third-party-desc a:hover { text-decoration: underline; }
+
+    /* ── LIST ── */
+    .styled-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 14px 0;
+    }
+
+    .styled-list li {
+      font-size: 0.93em;
+      color: #ccc;
+      line-height: 1.7;
+      padding: 6px 0 6px 22px;
+      position: relative;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .styled-list li:last-child { border-bottom: none; }
+
+    .styled-list li::before {
+      content: "·";
+      position: absolute;
+      left: 6px;
+      color: var(--gold);
+      font-size: 1.4em;
+      line-height: 1.2;
+    }
+
+    /* ── CONTACT CARD ── */
+    .contact-card {
+      background: linear-gradient(135deg, rgba(201,168,76,0.1), rgba(201,168,76,0.04));
+      border: 1px solid rgba(201,168,76,0.25);
+      border-radius: var(--radius);
+      padding: 24px 26px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.9em;
+    }
+
+    .contact-row:last-child { border-bottom: none; }
+
+    .contact-label {
+      color: var(--gold);
+      font-weight: 600;
+      font-size: 0.8em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .contact-value {
+      color: #ccc;
+    }
+
+    .contact-placeholder {
+      color: var(--text-faint);
+      font-style: italic;
+    }
+
+    /* ── WARNING BOX ── */
+    .warning-box {
+      background: rgba(201,168,76,0.07);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      font-size: 0.88em;
+      color: #bba060;
+      line-height: 1.6;
+    }
+
+    .warning-box strong { color: var(--gold); }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      text-align: center;
+      font-size: 0.82em;
+      color: var(--text-faint);
+    }
+
+    .site-footer span { color: var(--gold); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .site-header { padding: 20px; }
+      .hero { padding: 40px 20px 36px; }
+      .container { padding: 40px 16px 80px; }
+      .site-footer { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="logo-icon">📖</div>
+    <div class="logo-text">Roll <span>Cookbook</span></div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-tag">Legal</div>
+    <h1>Privacy <span>Policy</span></h1>
+    <div class="hero-date">Effective Date: March 25, 2026</div>
+  </div>
+
+  <div class="container">
+
+    <div class="intro">
+      This Privacy Policy explains how Roll Cookbook ("the App", "we", "us") collects, uses, and protects information when you use our recipe management application. By using Roll Cookbook, you agree to the practices described in this policy.
+    </div>
+
+    <!-- 1. Information We Collect -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <h2>Information We Collect</h2>
+      </div>
+
+      <div class="data-item">
+        <div class="data-item-icon">👤</div>
+        <div>
+          <div class="data-item-label">Username</div>
+          <div class="data-item-desc">Your chosen username identifies your account and associates your recipes with your profile. Usernames are visible to other users of the App.</div>
+        </div>
+      </div>
+
+      <div class="data-item">
+        <div class="data-item-icon">🍽️</div>
+        <div>
+          <div class="data-item-label">Recipe Data</div>
+          <div class="data-item-desc">Recipes you add, import, or create — including titles, ingredients, instructions, images, ratings, and notes.</div>
+        </div>
+      </div>
+
+      <div class="data-item">
+        <div class="data-item-icon">📊</div>
+        <div>
+          <div class="data-item-label">Usage Data</div>
+          <div class="data-item-desc">Information about how you interact with the App, including favourited recipes, collections, meal plans, shopping lists, and your friends list.</div>
+        </div>
+      </div>
+
+      <div class="data-item">
+        <div class="data-item-icon">🖼️</div>
+        <div>
+          <div class="data-item-label">Images</div>
+          <div class="data-item-desc">Photos you upload for recipes are stored in Google Drive associated with the App's Google account.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. How We Store Your Data -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <h2>How We Store Your Data</h2>
+      </div>
+      <p>Roll Cookbook stores all user data in Google Sheets and Google Drive, managed through Google Apps Script. Data is stored on Google's servers and is subject to Google's infrastructure security measures.</p>
+      <p>Your data is stored in a backend service accessible only to the App. We do not sell or rent your data to third parties.</p>
+    </div>
+
+    <!-- 3. How We Use Your Information -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <h2>How We Use Your Information</h2>
+      </div>
+      <p>We use the information we collect to:</p>
+      <ul class="styled-list">
+        <li>Provide and operate the App's core features (recipe storage, meal planning, shopping lists)</li>
+        <li>Enable social features such as following other users, sharing recipes, and notifications</li>
+        <li>Improve the App's performance and user experience</li>
+        <li>Allow you to share recipes publicly via shareable links at your discretion</li>
+        <li>Power recipe discovery search results</li>
+      </ul>
+    </div>
+
+    <!-- 4. Third-Party Services -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <h2>Third-Party Services</h2>
+      </div>
+      <p>Roll Cookbook uses the following third-party services to operate:</p>
+
+      <div class="third-party-item">
+        <div class="third-party-name">Google Apps Script &amp; Google Drive</div>
+        <div class="third-party-desc">Used for backend data storage and image hosting. Subject to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</div>
+      </div>
+
+      <div class="third-party-item">
+        <div class="third-party-name">SerpAPI</div>
+        <div class="third-party-desc">Used to power the recipe discovery search feature. Search queries you enter are sent to SerpAPI to retrieve results. Subject to <a href="https://serpapi.com/privacy" target="_blank">SerpAPI's Privacy Policy</a>.</div>
+      </div>
+
+      <div class="third-party-item">
+        <div class="third-party-name">Google Gemini API</div>
+        <div class="third-party-desc">Used to extract recipe data from web pages when importing recipes by URL. Page content may be sent to Google's Gemini API for processing. Subject to <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</div>
+      </div>
+    </div>
+
+    <!-- 5. Public Sharing -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <h2>Public Recipe Sharing</h2>
+      </div>
+      <p>If you choose to generate a public shareable link for a recipe, that recipe's content — including title, ingredients, instructions, and image — will be accessible to anyone with the link, without requiring a login.</p>
+      <p>You control whether to generate such links. We do not publicly index or publish your recipes without your explicit action.</p>
+    </div>
+
+    <!-- 6. Data Retention -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <h2>Data Retention</h2>
+      </div>
+      <p>Your data is retained for as long as your account is active. If you wish to have your account and associated data deleted, please contact us using the information below. We will process deletion requests within 30 days.</p>
+    </div>
+
+    <!-- 7. Children's Privacy -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <h2>Children's Privacy</h2>
+      </div>
+      <p>Roll Cookbook is not directed at children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided us with information, please contact us so we can remove it promptly.</p>
+    </div>
+
+    <!-- 8. Security -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">8</div>
+        <h2>Security</h2>
+      </div>
+      <div class="warning-box">
+        <strong>Note:</strong> Roll Cookbook currently uses a username-only authentication system without passwords. We recommend using a username that does not contain personal information, and only sharing your username with people you trust.
+      </div>
+      <p>We take reasonable measures to protect your information through Google's infrastructure security. However, no system is completely secure and we cannot guarantee absolute security of your data.</p>
+    </div>
+
+    <!-- 9. Changes -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">9</div>
+        <h2>Changes to This Policy</h2>
+      </div>
+      <p>We may update this Privacy Policy from time to time. We will notify users of significant changes by updating the effective date at the top of this document. Continued use of the App after changes constitutes acceptance of the updated policy.</p>
+    </div>
+
+    <!-- 10. Contact -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <h2>Contact Us</h2>
+      </div>
+      <p>If you have questions about this Privacy Policy or wish to request data deletion, please contact us:</p>
+      <div class="contact-card">
+        <div class="contact-row">
+          <div class="contact-label">App</div>
+          <div class="contact-value">Roll Cookbook</div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-label">Email</div>
+          <div class="contact-value contact-placeholder">[YOUR EMAIL ADDRESS]</div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-label">Website</div>
+          <div class="contact-value contact-placeholder">[YOUR APP URL]</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="site-footer">
+    <p>© 2026 <span>Roll Cookbook</span>. All rights reserved.</p>
+    <p style="margin-top:6px;">This policy was last updated on March 25, 2026.</p>
+  </footer>
+
+</body>
+</html>
