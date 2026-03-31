@@ -53,9 +53,8 @@
     /* ── HEADER ── */
     .app-header { position:fixed; top:0; left:0; right:0; background:#13131a; z-index:100; border-bottom:1px solid rgba(201,168,76,0.2); transition:top 0.35s cubic-bezier(0.4,0,0.2,1); }
     .header-statusbar { height:4px; background:#13131a; }
-    .global-timer-bar { position:fixed; top:0; left:0; right:0; z-index:101; background:linear-gradient(135deg, #2a1f00, #1a1300); border-bottom:2px solid var(--gold); overflow:hidden; max-height:0; transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1); }
-    .global-timer-bar.visible { max-height:120px; }
-    @media (orientation:landscape) { .global-timer-bar { top:0; } }
+    .global-timer-bar { display:none; background:linear-gradient(135deg, #2a1f00, #1a1300); border-bottom:2px solid var(--gold); overflow:hidden; width:100%; }
+    .global-timer-bar.visible { display:block; }
     .header-main { display:flex; align-items:center; justify-content:space-between; padding:8px 16px 8px; gap:8px; }
     .header-title { font-size:1.2em; font-weight:800; letter-spacing:-0.5px; white-space:nowrap; color:var(--text); flex-shrink:0; }
     .header-title span { color:var(--gold); }
@@ -248,6 +247,7 @@
     .glass-card { background:var(--surface); border-radius:var(--radius); overflow:hidden; border:1px solid var(--glass-border); display:flex; flex-direction:column; cursor:pointer; transition:transform 0.12s, border-color 0.12s; animation:fadeUp 0.25s ease both; position:relative; user-select:none; }
     .glass-card:active { transform:scale(0.97); border-color:rgba(201,168,76,0.4); }
     @keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+    @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
     .fav-badge { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:0.8em; z-index:2; }
     .card-img-wrap { width:100%; aspect-ratio:3/2; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
     .card-img-wrap img { width:100%; height:100%; object-fit:cover; transition:opacity 0.3s; }
@@ -500,9 +500,7 @@
     .global-timer-chip.alarm .global-timer-chip-time { color:var(--red); }
     .global-timer-chip-dismiss { background:rgba(224,85,85,0.15); border:1px solid rgba(224,85,85,0.4); color:var(--red); font-size:0.9em; cursor:pointer; padding:4px 8px; border-radius:7px; margin-left:4px; }
     .global-timer-icon { font-size:1.4em; flex-shrink:0; }
-    /* When timer bar is visible, push app-header down */
-    .global-timer-bar.visible ~ #appHeader,
-    body.timer-active #appHeader { top: var(--timer-bar-height, 0px); }
+    /* Timer bar is now inside the fixed header, no need to push */
 
     /* ── COOKING MODE ── */
     .cook-mode { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:800; background:#0a0a0c; flex-direction:column; }
@@ -599,13 +597,12 @@
   <!-- Pull to refresh indicator -->
   <div class="ptr-indicator" id="ptrIndicator"><div class="ptr-spinner"></div></div>
 
-  <!-- Global timer bar -->
-  <div class="global-timer-bar" id="globalTimerBar">
-    <div class="global-timer-inner" id="globalTimerInner"></div>
-  </div>
-
   <!-- Header -->
   <div class="app-header" id="appHeader">
+    <!-- Global timer bar lives inside the header so it expands it naturally -->
+    <div class="global-timer-bar" id="globalTimerBar">
+      <div class="global-timer-inner" id="globalTimerInner"></div>
+    </div>
     <div class="header-statusbar" id="headerStatusbar"></div>
     <div class="header-main">
       <div class="header-title" onclick="switchTab('recipes')" style="cursor:pointer;"><img src="https://rollert2.github.io/CookBook/roll_cookbook_icon.png" alt="Roll Cookbook" style="height:36px;width:36px;border-radius:10px;object-fit:cover;display:block;"></div>
@@ -1128,7 +1125,7 @@
           </div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:0 20px;">
             <span style="font-size:0.75em;color:var(--text-faint);">−</span>
-            <input type="range" id="cropZoom" min="50" max="300" value="100" style="flex:1;" oninput="updateCrop()">
+            <input type="range" id="cropZoom" min="10" max="200" value="30" style="flex:1;" oninput="updateCrop()">
             <span style="font-size:0.75em;color:var(--text-faint);">+</span>
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;padding:0 18px;">
@@ -1174,6 +1171,8 @@
         </div>
       </div>
       <button class="btn btn-secondary" style="margin-top:10px;" onclick="previewCurrentTone()">🔊 Preview tone</button>
+      <button class="btn btn-primary" style="margin-top:8px;" onclick="saveAdminTone()">💾 Save Tone</button>
+      <div id="adminToneSaveStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
     </div>
     <div class="admin-section">
       <div class="admin-section-title">📢 Broadcast Message</div>
@@ -1421,6 +1420,12 @@
     shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('userBadgeName').textContent = currentUser;
+    // Load avatar into header badge
+    getUserAvatar(currentUser).then(url => {
+      const el = document.getElementById('userBadgeAvatar');
+      if (url) { el.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'; }
+      else { el.textContent = currentUser.charAt(0).toUpperCase(); }
+    });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     initPullToRefresh();
@@ -1683,7 +1688,8 @@
   // ═══ DETAIL ═══
   function openDetails(idx) {
     activeRecipeIndex = idx;
-    currentScale = 1;
+    // Apply default scale from user settings
+    currentScale = parseFloat(userSettings.default_scale) || 1;
     // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
     if (timerStates._recipeIdx !== idx) {
       Object.values(timerStates).forEach(t => { if (t.interval) clearInterval(t.interval); });
@@ -1692,9 +1698,6 @@
     renderDetailContent();
     openModalAnimated('detailModal');
     document.getElementById('detailModal').scrollTop = 0;
-    // Hide global timer bar while in detail view
-    document.getElementById('globalTimerBar').style.visibility = 'hidden';
-    document.getElementById('appHeader').style.top = '0px';
     adjustHeaderPadding();
   }
   function swipeRecipe(dir) { const newIdx = activeRecipeIndex + dir; if (newIdx < 0 || newIdx >= allRecipes.length) return; Object.values(timerStates).forEach(t => clearInterval(t.interval)); timerStates = {}; activeRecipeIndex = newIdx; currentScale = 1; renderDetailContent(); document.getElementById('detailModal').scrollTop = 0; }
@@ -1850,16 +1853,11 @@
   function renderGlobalTimerBar() {
     const bar = document.getElementById('globalTimerBar');
     const inner = document.getElementById('globalTimerInner');
-    const header = document.getElementById('appHeader');
-    // Include running, alarm AND paused timers
     const activeTimers = Object.entries(timerStates).filter(([k,t]) => k !== '_recipeIdx' && (t.state === 'running' || t.state === 'alarm' || t.state === 'paused'));
-    const wasVisible = bar.classList.contains('visible');
 
     if (activeTimers.length === 0) {
       bar.classList.remove('visible');
       inner.innerHTML = '';
-      if (header) header.style.top = '0px';
-      if (wasVisible) setTimeout(adjustHeaderPadding, 400);
       return;
     }
 
@@ -1885,11 +1883,6 @@
     }).join('');
 
     bar.classList.add('visible');
-    setTimeout(() => {
-      const barH = bar.getBoundingClientRect().height;
-      if (header) header.style.top = barH + 'px';
-      adjustHeaderPadding();
-    }, 380);
   }
 
   function globalDismissTimer(key) {
@@ -2647,22 +2640,99 @@
   function openPreview(idx) {
     const r = window._discoverResults[idx];
     previewUrl = r.url;
-    document.getElementById('previewSite').textContent = r.site;
-    document.getElementById('previewTitle').textContent = r.title;
-    document.getElementById('previewResult').style.display = 'none';
-    const btn = document.getElementById('previewAddBtn');
-    btn.disabled = false; btn.innerHTML = '✨ Add';
-    // Load mobile version of site in iframe
-    const mobileUrl = r.url.includes('?') ? r.url + '&mobile=1' : r.url;
-    document.getElementById('previewIframe').src = mobileUrl;
-    document.getElementById('previewPanel').style.display = 'block';
-    document.getElementById('previewPanel').classList.add('active');
-    history.pushState({ modal: 'previewPanel' }, '');
+
+    // Try Median native browser first — opens real site without iframe restrictions
+    if (typeof median !== 'undefined' && median.openExternalUrl) {
+      // Show a bottom sheet to confirm before opening
+      showPreviewSheet(r);
+    } else {
+      // Fallback: try iframe (works on some sites)
+      document.getElementById('previewSite').textContent = r.site;
+      document.getElementById('previewTitle').textContent = r.title;
+      document.getElementById('previewResult').style.display = 'none';
+      const btn = document.getElementById('previewAddBtn');
+      btn.disabled = false; btn.innerHTML = '✨ Add';
+      document.getElementById('previewIframe').src = r.url;
+      document.getElementById('previewPanel').style.display = 'block';
+      document.getElementById('previewPanel').classList.add('active');
+      history.pushState({ modal: 'previewPanel' }, '');
+    }
   }
+
+  function showPreviewSheet(r) {
+    // Show a slide-up panel with site info + open/add buttons
+    const existing = document.getElementById('discoverPreviewSheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'discoverPreviewSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--glass-border);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    sheet.innerHTML = `
+      <div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;"></div>
+      <div style="font-size:0.65em;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${escapeHtml(r.site)}</div>
+      <div style="font-size:1em;font-weight:700;margin-bottom:8px;line-height:1.3;">${escapeHtml(r.title)}</div>
+      <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:18px;line-height:1.5;">${escapeHtml(r.snippet)}</div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="openPreviewInBrowser('${escapeHtml(r.url)}')" style="flex:1;padding:13px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">🌐 Browse Site</button>
+        <button onclick="addFromPreviewUrl('${escapeHtml(r.url)}')" id="sheetAddBtn" style="flex:1;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:0.88em;font-weight:700;cursor:pointer;font-family:inherit;">✨ Add to Cookbook</button>
+      </div>
+      <button onclick="document.getElementById('discoverPreviewSheet').remove()" style="width:100%;margin-top:10px;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>
+    `;
+    document.body.appendChild(sheet);
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'discoverSheetOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+  }
+
+  function openPreviewInBrowser(url) {
+    document.getElementById('discoverPreviewSheet')?.remove();
+    document.getElementById('discoverSheetOverlay')?.remove();
+    // Open in Median's native in-app browser
+    if (typeof median !== 'undefined' && median.openExternalUrl) {
+      median.openExternalUrl({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  }
+
+  async function addFromPreviewUrl(url) {
+    previewUrl = url;
+    const btn = document.getElementById('sheetAddBtn');
+    if (btn) { btn.innerHTML = 'Importing...'; btn.disabled = true; }
+    const domain = getDomainFromUrl(url);
+    scrapeRecipeWithAI(url, currentUser).then(async res => {
+      if (res.status === 'Success' && res.recipe) {
+        const saveRes = await addRecipe(currentUser, res.recipe);
+        if (saveRes.status === 'Success') {
+          document.getElementById('discoverPreviewSheet')?.remove();
+          document.getElementById('discoverSheetOverlay')?.remove();
+          // Show toast
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:rgba(76,175,125,0.15);border:1px solid var(--green);color:var(--green);padding:12px 16px;border-radius:12px;font-size:0.85em;font-weight:600;z-index:9999;text-align:center;';
+          toast.textContent = '✅ ' + saveRes.message;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+          init();
+        } else {
+          if (btn) { btn.innerHTML = '❌ ' + saveRes.message; btn.disabled = false; }
+        }
+      } else {
+        addToBlacklist(domain, currentUser).then(() => { globalBlacklist.push(domain); showBlacklistToast(domain); runDiscoverSearch(); });
+        if (btn) { btn.innerHTML = '❌ ' + (res.message || 'Import failed'); btn.disabled = false; }
+      }
+    }).catch(err => {
+      if (btn) { btn.innerHTML = '❌ Error'; btn.disabled = false; }
+    });
+  }
+
   function closePreview() {
-    document.getElementById('previewPanel').classList.remove('active');
-    document.getElementById('previewPanel').style.display = 'none';
-    document.getElementById('previewIframe').src = '';
+    document.getElementById('previewPanel')?.classList.remove('active');
+    const el = document.getElementById('previewPanel');
+    if (el) el.style.display = 'none';
+    const iframe = document.getElementById('previewIframe');
+    if (iframe) iframe.src = '';
     previewUrl = '';
   }
 
@@ -3028,8 +3098,8 @@
       const img = document.getElementById('cropImg');
       img.src = e.target.result;
       img.onload = () => {
-        cropState = { x:0, y:0, scale:1, dragging:false, startX:0, startY:0, imgW:img.naturalWidth, imgH:img.naturalHeight };
-        document.getElementById('cropZoom').value = 100;
+        cropState = { x:0, y:0, scale:0.3, dragging:false, startX:0, startY:0, imgW:img.naturalWidth, imgH:img.naturalHeight };
+        document.getElementById('cropZoom').value = 30;
         updateCrop();
       };
     };
@@ -3077,8 +3147,12 @@
       const res = await uploadProfilePicture(dataUrl, 'avatar.jpg', currentUser);
       if (res.status === 'Success') {
         statusEl.textContent = '✅ Profile picture updated!'; statusEl.style.color = 'var(--green)';
+        // Update settings preview
         const el = document.getElementById('settingsAvatarPreview');
         if (el) el.innerHTML = '<img src="' + res.url + '">';
+        // Update header badge
+        const badge = document.getElementById('userBadgeAvatar');
+        if (badge) badge.innerHTML = '<img src="' + res.url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
         document.getElementById('avatarCropWrap').style.display = 'none';
       } else { statusEl.textContent = '❌ ' + res.message; statusEl.style.color = 'var(--red)'; }
     } catch(e) { statusEl.textContent = '❌ Upload failed'; statusEl.style.color = 'var(--red)'; }
@@ -3114,8 +3188,16 @@
     document.querySelectorAll('.admin-tone-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tone === tone));
     cachedAdminTone = tone;
     adminSettings.timer_tone = tone;
-    updateAdminSettings({ timer_tone: tone });
     playAlarmTone(tone); // preview on select
+  }
+  function saveAdminTone() {
+    const statusEl = document.getElementById('adminToneSaveStatus');
+    if (statusEl) { statusEl.textContent = 'Saving...'; statusEl.style.color = 'var(--gold)'; }
+    updateAdminSettings({ timer_tone: cachedAdminTone }).then(res => {
+      if (statusEl) { statusEl.textContent = '✅ Saved!'; statusEl.style.color = 'var(--green)'; setTimeout(() => { statusEl.textContent = ''; }, 2000); }
+    }).catch(() => {
+      if (statusEl) { statusEl.textContent = '❌ Save failed'; statusEl.style.color = 'var(--red)'; }
+    });
   }
   function previewCurrentTone() { playAlarmTone(cachedAdminTone); }
   function toggleAdminBroadcastBtn() {
