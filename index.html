@@ -1437,11 +1437,10 @@
   function adjustHeaderPadding() {
     const apply = () => {
       const header = document.getElementById('appHeader');
-      const bar = document.getElementById('globalTimerBar');
       if (!header) return;
-      const barH = (bar && bar.classList.contains('visible')) ? bar.getBoundingClientRect().height : 0;
+      // Timer bar is inside the header now, so headerH already includes it
       const headerH = Math.ceil(header.getBoundingClientRect().height);
-      const pad = Math.min(barH + headerH + 8, 420) + 'px';
+      const pad = (headerH + 8) + 'px';
       ['mainContent','discoverContent','plannerContent','featuredContent'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.paddingTop = pad;
@@ -1858,6 +1857,7 @@
     if (activeTimers.length === 0) {
       bar.classList.remove('visible');
       inner.innerHTML = '';
+      setTimeout(adjustHeaderPadding, 50);
       return;
     }
 
@@ -1883,6 +1883,8 @@
     }).join('');
 
     bar.classList.add('visible');
+    // Adjust content padding since header height changed
+    setTimeout(adjustHeaderPadding, 50);
   }
 
   function globalDismissTimer(key) {
@@ -3136,26 +3138,40 @@
     const statusEl = document.getElementById('avatarUploadStatus');
     statusEl.textContent = 'Uploading...'; statusEl.style.color = 'var(--gold)';
     try {
-      // Draw cropped circle to canvas
       const canvas = document.createElement('canvas');
       canvas.width = 300; canvas.height = 300;
       const ctx = canvas.getContext('2d');
-      ctx.beginPath(); ctx.arc(150,150,150,0,Math.PI*2); ctx.clip();
+      // Clip to circle
+      ctx.beginPath(); ctx.arc(150, 150, 150, 0, Math.PI * 2); ctx.clip();
       const img = document.getElementById('cropImg');
-      ctx.drawImage(img, cropState.x, cropState.y, cropState.imgW * cropState.scale, cropState.imgH * cropState.scale);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      // cropState.x/y are the CSS left/top of the image inside the 180px circle container
+      // We need to figure out what portion of the original image is visible in the circle
+      const containerSize = 180; // circle container px
+      const displayW = cropState.imgW * cropState.scale;
+      const displayH = cropState.imgH * cropState.scale;
+      // Source coordinates: what part of the original image maps to the circle
+      const scaleRatio = cropState.imgW / displayW; // original px per display px
+      const sx = Math.max(0, -cropState.x) * scaleRatio;
+      const sy = Math.max(0, -cropState.y) * scaleRatio;
+      const sw = Math.min(containerSize, displayW + cropState.x) * scaleRatio - Math.max(0, -cropState.x) * scaleRatio;
+      const sh = Math.min(containerSize, displayH + cropState.y) * scaleRatio - Math.max(0, -cropState.y) * scaleRatio;
+      // Destination on 300x300 canvas
+      const dx = Math.max(0, cropState.x) * (300 / containerSize);
+      const dy = Math.max(0, cropState.y) * (300 / containerSize);
+      const dw = sw / scaleRatio * (300 / containerSize);
+      const dh = sh / scaleRatio * (300 / containerSize);
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       const res = await uploadProfilePicture(dataUrl, 'avatar.jpg', currentUser);
       if (res.status === 'Success') {
         statusEl.textContent = '✅ Profile picture updated!'; statusEl.style.color = 'var(--green)';
-        // Update settings preview
         const el = document.getElementById('settingsAvatarPreview');
         if (el) el.innerHTML = '<img src="' + res.url + '">';
-        // Update header badge
         const badge = document.getElementById('userBadgeAvatar');
         if (badge) badge.innerHTML = '<img src="' + res.url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
         document.getElementById('avatarCropWrap').style.display = 'none';
       } else { statusEl.textContent = '❌ ' + res.message; statusEl.style.color = 'var(--red)'; }
-    } catch(e) { statusEl.textContent = '❌ Upload failed'; statusEl.style.color = 'var(--red)'; }
+    } catch(e) { statusEl.textContent = '❌ ' + e.message; statusEl.style.color = 'var(--red)'; }
   }
   function cancelAvatarCrop() {
     document.getElementById('avatarCropWrap').style.display = 'none';
