@@ -98,13 +98,141 @@
     .rotd-cook-btn { background:var(--gold); color:var(--bg); border:none; border-radius:var(--radius-sm); padding:9px 14px; font-weight:700; font-size:0.75em; cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; }
     .rotd-dismiss { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.5); border:none; color:var(--text-dim); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:0.75em; display:flex; align-items:center; justify-content:center; z-index:3; }
 
-    .sort-bar { display:flex; gap:7px; overflow-x:auto; padding:8px 12px 10px; scrollbar-width:none; }
-    .sort-bar::-webkit-scrollbar { display:none; }
+    /* ── SORT FILTER BUTTON ── */
+    .sort-filter-wrap { position:relative; }
+    .sort-filter-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.75em; color:var(--text-dim); cursor:pointer; white-space:nowrap; flex-shrink:0; }
+    .sort-filter-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); font-weight:600; }
+    .sort-dropdown { display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); z-index:200; min-width:160px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.5); animation:fadeUp 0.15s ease; }
+    .sort-dropdown.open { display:block; }
+    .sort-option { padding:12px 16px; font-size:0.85em; color:var(--text-dim); cursor:pointer; border-bottom:1px solid var(--glass-border); display:flex; align-items:center; gap:8px; }
+    .sort-option:last-child { border-bottom:none; }
+    .sort-option:active { background:var(--glass); }
+    .sort-option.active { color:var(--gold); font-weight:600; }
+    .sort-option.active::after { content:'✓'; margin-left:auto; }
+    .category-filter-row { display:flex; gap:7px; overflow-x:auto; padding:8px 12px 10px; scrollbar-width:none; align-items:center; }
+    .category-filter-row::-webkit-scrollbar { display:none; }
     .sort-chip { padding:6px 13px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.75em; white-space:nowrap; color:var(--text-dim); cursor:pointer; }
     .sort-chip.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); font-weight:600; }
-    .recipe-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 12px; }
 
-    /* ── SKELETON LOADER ── */
+    /* ── STYLE B DETAIL VIEW ── */
+    .detail-hero-b { width:100%; height:220px; background:var(--surface2); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    .detail-hero-b img { width:100%; height:100%; object-fit:cover; }
+    .detail-hero-b-placeholder { font-size:5em; opacity:0.2; color:var(--gold); }
+    .detail-hero-b-overlay { position:absolute; bottom:0; left:0; right:0; padding:20px 18px 16px; background:linear-gradient(transparent, rgba(0,0,0,0.92)); }
+    .detail-hero-b-cat { color:var(--gold); font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:5px; }
+    .detail-hero-b-title { color:#fff; font-size:1.4em; font-weight:800; line-height:1.15; letter-spacing:-0.3px; font-family:'DM Sans',system-ui,sans-serif; }
+    .detail-hero-b-meta { display:flex; gap:12px; margin-top:7px; flex-wrap:wrap; align-items:center; }
+    .detail-hero-b-meta span { color:rgba(255,255,255,0.72); font-size:0.75em; display:flex; align-items:center; gap:4px; }
+    .detail-hero-back { position:absolute; top:10px; left:12px; background:rgba(0,0,0,0.55); backdrop-filter:blur(8px); border-radius:20px; padding:6px 13px; color:#fff; font-size:0.82em; font-weight:600; cursor:pointer; border:none; z-index:5; }
+    .detail-hero-weigh { position:absolute; top:10px; right:12px; background:rgba(0,0,0,0.55); backdrop-filter:blur(8px); border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; z-index:5; font-size:1em; }
+    .detail-actions-b { display:flex; justify-content:space-around; padding:14px 10px 10px; border-bottom:1px solid var(--glass-border); }
+    .detail-action-b { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+    .detail-action-b-icon { width:42px; height:42px; border-radius:50%; background:var(--glass); border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; font-size:1.1em; transition:all 0.15s; }
+    .detail-action-b-icon:active { transform:scale(0.92); }
+    .detail-action-b-icon.gold { background:var(--gold-dim); border-color:rgba(201,168,76,0.4); }
+    .detail-action-b-icon.fav-active { background:var(--gold-dim); border-color:var(--gold); }
+    .detail-action-b-label { color:var(--text-faint); font-size:0.6em; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+    .detail-rating-b { padding:12px 18px 4px; }
+    .detail-rating-b-track { display:flex; gap:3px; }
+    .detail-rating-b-pip { flex:1; height:4px; border-radius:2px; background:var(--glass-border); cursor:pointer; transition:all 0.1s; }
+    .detail-rating-b-pip.filled { background:var(--gold); }
+    .detail-rating-b-label { font-size:0.65em; color:var(--text-faint); margin-top:5px; text-align:right; }
+    .detail-scale-b { display:flex; gap:6px; padding:10px 18px; }
+    .detail-scale-b-btn { flex:1; padding:8px; border-radius:20px; border:1px solid var(--glass-border); background:transparent; color:var(--text-dim); font-size:0.85em; font-weight:700; cursor:pointer; text-align:center; transition:all 0.15s; }
+    .detail-scale-b-btn.active { background:var(--gold); color:var(--bg); border-color:var(--gold); }
+    .detail-section-title { font-size:0.65em; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--gold); padding:16px 18px 8px; border-bottom:1px solid var(--glass-border); margin:0 18px; }
+    .detail-section-body { padding:12px 18px 0; }
+    .ingredient-line { padding:8px 0; border-bottom:0.5px solid rgba(255,255,255,0.05); font-size:0.95em; line-height:1.4; display:flex; align-items:flex-start; gap:10px; }
+    .ingredient-line-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); flex-shrink:0; margin-top:6px; }
+    .step-item { display:flex; gap:14px; margin-bottom:18px; align-items:flex-start; }
+    .step-num { width:26px; height:26px; flex-shrink:0; background:var(--glass); border:1px solid var(--glass-border); border-radius:8px; font-size:0.7em; font-weight:700; display:flex; align-items:center; justify-content:center; color:var(--text-dim); margin-top:2px; }
+    .step-checkbox { display:none; }
+    .step-content { flex:1; transition:opacity 0.3s; line-height:1.6; font-size:0.95em; }
+    .step-content.done { opacity:0.3; text-decoration:line-through; }
+    .step-item:has(.step-checkbox:checked) .step-num { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+    .timer-container { display:flex; gap:8px; margin-top:10px; }
+    .timer-btn { flex:3; background:var(--gold-dim); border:1px solid var(--gold); color:var(--gold); padding:9px; border-radius:9px; font-weight:600; font-size:0.82em; cursor:pointer; }
+    .timer-btn.running { background:#1e3a8a; border-color:#3b82f6; color:white; }
+    .timer-btn.alarm { background:rgba(224,85,85,0.2); border-color:var(--red); color:var(--red); animation:pulse 1s infinite; }
+    .timer-reset { flex:1; background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); border-radius:9px; cursor:pointer; font-weight:bold; }
+    .swipe-nav { display:flex; justify-content:space-between; padding:16px 18px 0; }
+    .swipe-btn { background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); border-radius:var(--radius-sm); padding:9px 16px; font-size:0.85em; font-weight:600; cursor:pointer; }
+    .swipe-btn:disabled { opacity:0.2; pointer-events:none; }
+    .detail-delete-b { margin:16px 18px 4px; padding:11px; border-radius:var(--radius-sm); border:1px solid rgba(224,85,85,0.3); background:rgba(224,85,85,0.08); color:var(--red); font-size:0.85em; font-weight:600; text-align:center; cursor:pointer; width:calc(100% - 36px); }
+
+    /* ── COOK MODE ── */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap');
+    .cook-mode-content { font-family:'Noto Sans',system-ui,sans-serif; }
+    .cook-step-scroll { flex:1; overflow-y:auto; padding:16px 18px; }
+    .cook-nav-bar { display:flex; gap:10px; padding:12px 18px; border-top:1px solid var(--glass-border); background:var(--surface); }
+    .cook-nav-btn { flex:1; padding:16px; border-radius:var(--radius-sm); font-size:1em; font-weight:700; cursor:pointer; text-align:center; border:none; font-family:inherit; }
+    .cook-nav-prev { background:var(--glass); border:1px solid var(--glass-border) !important; color:var(--text-dim); }
+    .cook-nav-next { background:var(--gold); color:var(--bg); }
+
+    /* ── MESSAGING ── */
+    .msg-conv-item { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:0.5px solid var(--glass-border); cursor:pointer; }
+    .msg-conv-item:active { background:var(--glass); }
+    .msg-conv-avatar { width:42px; height:42px; border-radius:50%; background:var(--gold-dim); border:1px solid rgba(201,168,76,0.3); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1em; color:var(--gold); flex-shrink:0; overflow:hidden; }
+    .msg-conv-avatar img { width:100%; height:100%; object-fit:cover; }
+    .msg-conv-info { flex:1; min-width:0; }
+    .msg-conv-name { font-weight:700; font-size:0.9em; }
+    .msg-conv-preview { font-size:0.78em; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    .msg-conv-time { font-size:0.65em; color:var(--text-faint); }
+    .msg-unread-badge { background:var(--gold); color:var(--bg); border-radius:50%; width:18px; height:18px; font-size:0.65em; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .msg-bubble { max-width:78%; padding:10px 14px; border-radius:18px; font-size:0.9em; line-height:1.5; word-break:break-word; }
+    .msg-bubble.mine { background:var(--gold); color:var(--bg); border-bottom-right-radius:4px; align-self:flex-end; }
+    .msg-bubble.theirs { background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-bottom-left-radius:4px; align-self:flex-start; }
+    .msg-bubble-time { font-size:0.6em; color:var(--text-faint); margin-top:3px; }
+    .msg-input { flex:1; background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-radius:20px; padding:10px 16px; font-size:0.9em; font-family:inherit; resize:none; }
+    .msg-input:focus { outline:none; border-color:var(--gold); }
+    .msg-send-btn { background:var(--gold); color:var(--bg); border:none; border-radius:50%; width:38px; height:38px; font-size:1.1em; cursor:pointer; flex-shrink:0; }
+
+    /* ── PROFILE PICTURE ── */
+    .profile-avatar-large { width:80px; height:80px; border-radius:50%; background:var(--gold-dim); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:2em; font-weight:700; color:var(--gold); overflow:hidden; margin:0 auto 10px; cursor:pointer; position:relative; }
+    .profile-avatar-large img { width:100%; height:100%; object-fit:cover; }
+
+    /* ── SETTINGS ── */
+    .settings-section { padding:16px 18px; border-bottom:1px solid var(--glass-border); }
+    .settings-section-title { font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold); margin-bottom:12px; }
+    .settings-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:0.5px solid rgba(255,255,255,0.04); gap:12px; }
+    .settings-row:last-child { border-bottom:none; }
+    .settings-row-info { flex:1; }
+    .settings-row-label { font-size:0.88em; color:var(--text); }
+    .settings-row-sub { font-size:0.72em; color:var(--text-faint); margin-top:2px; }
+    .settings-toggle { width:44px; height:24px; border-radius:12px; background:var(--glass-border); border:none; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0; }
+    .settings-toggle.on { background:var(--gold); }
+    .settings-toggle::after { content:''; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:3px; left:3px; transition:left 0.2s; }
+    .settings-toggle.on::after { left:23px; }
+    .settings-select { background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-radius:8px; padding:6px 10px; font-size:0.82em; flex-shrink:0; }
+
+    /* ── ADMIN ── */
+    .admin-section { padding:14px 18px; border-bottom:1px solid var(--glass-border); }
+    .admin-section-title { font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--red); margin-bottom:12px; }
+    .admin-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:0.5px solid rgba(255,255,255,0.04); gap:12px; }
+    .admin-row:last-child { border-bottom:none; }
+    .admin-row-info { flex:1; }
+    .admin-row-label { font-size:0.88em; color:var(--text); }
+    .admin-row-sub { font-size:0.7em; color:var(--text-faint); margin-top:2px; }
+    .admin-tone-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .admin-tone-btn { padding:10px 8px; border-radius:var(--radius-sm); border:1px solid var(--glass-border); background:var(--glass); color:var(--text-dim); font-size:0.75em; font-weight:600; cursor:pointer; text-align:center; }
+    .admin-tone-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+    .admin-tone-date { font-size:0.65em; color:var(--text-faint); margin-top:3px; }
+    .admin-textarea { width:100%; background:var(--glass); border:1px solid var(--glass-border); color:var(--text); padding:10px 12px; border-radius:var(--radius-sm); font-size:0.88em; font-family:inherit; resize:vertical; min-height:70px; }
+    .admin-textarea:focus { outline:none; border-color:var(--gold); }
+
+    /* ── BROADCAST BANNER ── */
+    .broadcast-banner { display:none; margin:8px 12px 0; padding:12px 14px; background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.35); border-radius:var(--radius-sm); position:relative; }
+    .broadcast-banner.visible { display:block; }
+    .broadcast-banner-text { font-size:0.85em; color:var(--text); line-height:1.5; padding-right:24px; }
+    .broadcast-banner-close { position:absolute; top:10px; right:12px; background:none; border:none; color:var(--text-faint); font-size:1.1em; cursor:pointer; }
+    .broadcast-banner-btn { margin-top:8px; padding:7px 14px; background:var(--gold); color:var(--bg); border-radius:8px; font-size:0.8em; font-weight:700; cursor:pointer; border:none; }
+
+    /* ── FRIEND OPTIONS ── */
+    .friend-options-menu { background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); overflow:hidden; margin-top:4px; animation:fadeUp 0.15s ease; }
+    .friend-option { padding:12px 16px; font-size:0.88em; color:var(--text-dim); cursor:pointer; border-bottom:0.5px solid var(--glass-border); display:flex; align-items:center; gap:10px; }
+    .friend-option:last-child { border-bottom:none; }
+    .friend-option:active { background:var(--glass); }
+    .friend-option.danger { color:var(--red); }
     @keyframes pulse { 0%,100%{opacity:0.4;} 50%{opacity:0.9;} }
     .skeleton-card { background:var(--surface); border-radius:var(--radius); overflow:hidden; border:1px solid var(--glass-border); animation:pulse 1.4s ease-in-out infinite; }
     .skeleton-img { width:100%; aspect-ratio:3/2; background:var(--surface2); }
@@ -141,7 +269,7 @@
 
     /* ── BOTTOM NAV ── */
     .bottom-nav { position:fixed; bottom:0; left:0; right:0; display:flex; background:rgba(13,13,15,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--glass-border); z-index:100; }
-    .nav-tab { flex:1; padding:10px 0 12px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.58em; color:var(--text-faint); border:none; background:none; cursor:pointer; transition:color 0.15s; }
+    .nav-tab { flex:1; padding:10px 0 12px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.68em; color:var(--text-faint); border:none; background:none; cursor:pointer; transition:color 0.15s; }
     .nav-tab .nav-icon { font-size:1.5em; line-height:1; }
     .nav-tab.active { color:var(--gold); }
 
@@ -477,7 +605,7 @@
   <div class="app-header" id="appHeader">
     <div class="header-statusbar" id="headerStatusbar"></div>
     <div class="header-main">
-      <div class="header-title"><img src="https://rollert2.github.io/CookBook/roll_cookbook_icon.png" alt="Roll Cookbook" style="height:36px;width:36px;border-radius:10px;object-fit:cover;display:block;"></div>
+      <div class="header-title" onclick="switchTab('recipes')" style="cursor:pointer;"><img src="https://rollert2.github.io/CookBook/roll_cookbook_icon.png" alt="Roll Cookbook" style="height:36px;width:36px;border-radius:10px;object-fit:cover;display:block;"></div>
       <div class="header-actions">
         <div class="user-badge" id="userBadge" onclick="openProfile()">
           <div class="user-badge-avatar" id="userBadgeAvatar"></div>
@@ -501,8 +629,24 @@
 
   <!-- Recipes tab -->
   <div class="main-content" id="mainContent">
+    <div id="broadcastBanner" class="broadcast-banner"></div>
     <div id="rotdCard"></div>
-    <div class="sort-bar" id="sortBar"></div>
+    <div class="category-filter-row">
+      <div class="sort-filter-wrap">
+        <div class="sort-filter-btn" id="sortFilterBtn" onclick="toggleSortDropdown()">
+          <span>⇅</span><span id="sortFilterLabel">Newest</span>
+        </div>
+        <div class="sort-dropdown" id="sortDropdown">
+          <div class="sort-option active" id="sortOpt_newest" onclick="setSort('newest')">🕐 Newest</div>
+          <div class="sort-option" id="sortOpt_oldest" onclick="setSort('oldest')">🕓 Oldest</div>
+          <div class="sort-option" id="sortOpt_az" onclick="setSort('az')">A → Z</div>
+          <div class="sort-option" id="sortOpt_za" onclick="setSort('za')">Z → A</div>
+          <div class="sort-option" id="sortOpt_top" onclick="setSort('top')">⭐ Top Rated</div>
+          <div class="sort-option" id="sortOpt_fav" onclick="setSort('fav')">❤️ Favourites</div>
+        </div>
+      </div>
+      <div id="categoryFiltersInline" style="display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;flex:1;"></div>
+    </div>
     <div id="recipeContainer" class="recipe-grid"></div>
   </div>
 
@@ -637,15 +781,19 @@
 
   <!-- Preview Panel -->
   <div class="preview-overlay" id="previewOverlay" onclick="closePreview()"></div>
-  <div class="preview-panel" id="previewPanel">
-    <div class="preview-handle"></div>
-    <div class="preview-site" id="previewSite"></div>
-    <div class="preview-title" id="previewTitle"></div>
-    <div class="preview-url" id="previewUrl"></div>
-    <div class="preview-snippet" id="previewSnippet"></div>
-    <div class="ai-result" id="previewResult"></div>
-    <button class="btn btn-primary" id="previewAddBtn" onclick="addFromPreview()">✨ Add to Cookbook</button>
-    <button class="btn btn-secondary" style="margin-top:10px;" onclick="closePreview()">Cancel</button>
+  <!-- Discover WebView Preview -->
+  <div class="panel-overlay" id="previewOverlay" onclick="closePreview()"></div>
+  <div class="modal-overlay" id="previewPanel" style="z-index:450;">
+    <div style="position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--glass-border);padding:10px 14px;display:flex;align-items:center;gap:10px;">
+      <button class="modal-back" onclick="closePreview()">← Back</button>
+      <div style="flex:1;min-width:0;">
+        <div id="previewSite" style="font-size:0.65em;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+        <div id="previewTitle" style="font-size:0.88em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      </div>
+      <button class="btn btn-primary" id="previewAddBtn" onclick="addFromPreview()" style="width:auto;padding:9px 14px;font-size:0.8em;flex-shrink:0;">✨ Add</button>
+    </div>
+    <div class="ai-result" id="previewResult" style="margin:10px 14px 0;"></div>
+    <iframe id="previewIframe" style="width:100%;height:calc(100vh - 80px);border:none;" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy"></iframe>
   </div>
 
   <!-- Planner recipe picker -->
@@ -659,37 +807,63 @@
 
   <!-- DETAIL MODAL -->
   <div id="detailModal" class="modal-overlay">
-    <div class="modal-header">
-      <button class="modal-back" onclick="closeDetailsAnimated()">← Back</button>
-      <h2 id="detailModalTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></h2>
-      <button class="icon-btn" id="converterBtn" onclick="toggleConverter()">⚖️</button>
-    </div>
     <div id="viewMode">
-      <div class="detail-hero" id="detailHero"></div>
-      <div class="detail-meta-row">
-        <span class="detail-category" id="detailCategory"></span>
-        <span class="detail-time" id="detailTime"></span>
-        <span class="detail-rating-badge" id="detailRatingBadge" style="display:none;"></span>
+      <!-- Style B Hero -->
+      <div class="detail-hero-b" id="detailHeroB">
+        <div class="detail-hero-b-placeholder" id="detailHeroPlaceholder"></div>
+        <img id="detailHeroImg" style="display:none;" onload="this.style.display='block';document.getElementById('detailHeroPlaceholder').style.display='none';">
+        <button class="detail-hero-back" onclick="closeDetailsAnimated()">← Back</button>
+        <button class="detail-hero-weigh" onclick="toggleConverter()">⚖️</button>
+        <div class="detail-hero-b-overlay">
+          <div class="detail-hero-b-cat" id="detailCategoryB"></div>
+          <div class="detail-hero-b-title" id="detailTitleB"></div>
+          <div class="detail-hero-b-meta">
+            <span id="detailTimeB" style="display:none;"></span>
+            <span id="detailServingsB" style="display:none;"></span>
+            <span id="detailRatingB" style="display:none;"></span>
+          </div>
+        </div>
       </div>
-      <div class="detail-title" id="detailTitle"></div>
-      <div class="detail-actions">
-        <button class="action-btn" id="favBtn" onclick="handleFav()">⭐ Fav</button>
-        <button class="action-btn" onclick="addRecipeToShop()">🛒 Shop</button>
-        <button class="action-btn" onclick="openSharePanel()">📤 Share</button>
-        <button class="action-btn" onclick="openAddToColFromDetail()">📁 Col</button>
-        <button class="action-btn" onclick="enterEditMode()">✏️ Edit</button>
-        <button class="action-btn" style="background:var(--gold-dim);border-color:var(--gold);color:var(--gold);" onclick="startCookMode()">👨‍🍳 Cook</button>
+      <!-- Actions row -->
+      <div class="detail-actions-b">
+        <div class="detail-action-b" onclick="handleFav()">
+          <div class="detail-action-b-icon" id="favBtnB">⭐</div>
+          <div class="detail-action-b-label">Fav</div>
+        </div>
+        <div class="detail-action-b" onclick="addRecipeToShop()">
+          <div class="detail-action-b-icon">🛒</div>
+          <div class="detail-action-b-label">Shop</div>
+        </div>
+        <div class="detail-action-b" onclick="openSharePanel()">
+          <div class="detail-action-b-icon">📤</div>
+          <div class="detail-action-b-label">Share</div>
+        </div>
+        <div class="detail-action-b" onclick="openAddToColFromDetail()">
+          <div class="detail-action-b-icon">📁</div>
+          <div class="detail-action-b-label">Col</div>
+        </div>
+        <div class="detail-action-b" onclick="enterEditMode()">
+          <div class="detail-action-b-icon">✏️</div>
+          <div class="detail-action-b-label">Edit</div>
+        </div>
+        <div class="detail-action-b" onclick="startCookMode()">
+          <div class="detail-action-b-icon gold">👨‍🍳</div>
+          <div class="detail-action-b-label">Cook</div>
+        </div>
       </div>
-      <div style="padding:8px 18px 0;">
-        <button class="action-btn danger" style="width:100%;padding:10px;" onclick="executeDelete()">🗑 Delete Recipe</button>
+      <!-- Rating track -->
+      <div class="detail-rating-b">
+        <div class="detail-rating-b-track" id="ratingTrackB"></div>
+        <div class="detail-rating-b-label" id="ratingLabelB">Not rated</div>
       </div>
-      <div class="rating-row"><div id="ratingPips"></div></div>
-      <div class="scale-bar">
-        <button class="scale-btn" data-scale="0.5" onclick="changeScale(0.5)">½×</button>
-        <button class="scale-btn active" data-scale="1" onclick="changeScale(1)">1×</button>
-        <button class="scale-btn" data-scale="2" onclick="changeScale(2)">2×</button>
-        <button class="scale-btn" data-scale="3" onclick="changeScale(3)">3×</button>
+      <!-- Scale -->
+      <div class="detail-scale-b">
+        <div class="detail-scale-b-btn" data-scale="0.5" onclick="changeScale(0.5)">½×</div>
+        <div class="detail-scale-b-btn active" data-scale="1" onclick="changeScale(1)">1×</div>
+        <div class="detail-scale-b-btn" data-scale="2" onclick="changeScale(2)">2×</div>
+        <div class="detail-scale-b-btn" data-scale="3" onclick="changeScale(3)">3×</div>
       </div>
+      <!-- Converter -->
       <div class="converter-wrap" id="converterWrap">
         <div class="converter-row">
           <input type="number" id="convInput" style="width:70px" placeholder="1" oninput="runConverter()">
@@ -707,32 +881,42 @@
         </div>
         <div class="converter-result" id="convResult"></div>
       </div>
+      <!-- Ingredients -->
       <div class="detail-section-title">Ingredients</div>
       <div class="detail-section-body" id="ingredientsList"></div>
+      <!-- Instructions -->
       <div class="detail-section-title">Instructions</div>
       <div class="detail-section-body" id="stepsList"></div>
+      <!-- Notes -->
       <div id="notesSection" style="display:none;">
         <div class="detail-section-title">Notes</div>
         <div class="detail-section-body" style="color:var(--text-dim);font-style:italic;font-size:0.9em;line-height:1.7;" id="notesBody"></div>
       </div>
+      <!-- Swipe nav -->
       <div class="swipe-nav">
         <button class="swipe-btn" id="prevBtn" onclick="swipeRecipe(-1)">← Prev</button>
         <button class="swipe-btn" id="nextBtn" onclick="swipeRecipe(1)">Next →</button>
       </div>
-      <div style="height:20px;"></div>
+      <!-- Delete -->
+      <button class="detail-delete-b" onclick="executeDelete()">🗑 Delete Recipe</button>
+      <div style="height:30px;"></div>
     </div>
+    <!-- Edit mode -->
     <div id="editMode" style="display:none;" class="modal-body">
-      <h2 style="margin:0 0 18px;">Edit Recipe</h2>
+      <div class="modal-header" style="position:sticky;top:0;z-index:10;margin:-20px -18px 18px;">
+        <button class="modal-back" onclick="exitEditMode()">← Cancel</button>
+        <h2>Edit Recipe</h2>
+      </div>
       <input type="hidden" id="editId">
       <label class="edit-label">Title</label><input type="text" id="editTitle" class="edit-field">
       <label class="edit-label">Category</label><input type="text" id="editCategory" class="edit-field">
       <label class="edit-label">Cook Time</label><input type="text" id="editCookTime" class="edit-field">
+      <label class="edit-label">Servings</label><input type="text" id="editServings" class="edit-field" placeholder="e.g. 4 servings">
       <label class="edit-label">New Image</label><input type="file" id="imageInput" class="edit-field" accept="image/*">
       <label class="edit-label">Ingredients (one per line)</label><textarea id="editIngredients" class="edit-field" rows="5"></textarea>
       <label class="edit-label">Instructions (one step per line)</label><textarea id="editInstructions" class="edit-field" style="height:200px;"></textarea>
       <label class="edit-label">Notes</label><textarea id="editNotes" class="edit-field" rows="3"></textarea>
       <button id="saveEditBtn" class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
-      <button class="btn btn-secondary" onclick="exitEditMode()">Cancel</button>
     </div>
   </div>
 
@@ -741,8 +925,10 @@
     <div class="modal-header">
       <button class="modal-back" onclick="closeProfileAnimated()">← Back</button>
       <h2>Profile</h2>
-      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="margin-right:6px;">❓</button>
-      <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;" onclick="logout()">Log out</button>
+      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;">❓ Tutorial</button>
+      <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
+      <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
+      <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div id="profileHero" class="profile-hero"></div>
     <div class="profile-section" id="profileNotifSection" style="display:none;">
@@ -801,6 +987,7 @@
         <label class="edit-label">Title</label><input type="text" id="manualTitle" class="edit-field" placeholder="Recipe name">
         <label class="edit-label">Category</label><input type="text" id="manualCategory" class="edit-field" placeholder="e.g. Dinner, Dessert">
         <label class="edit-label">Cook Time</label><input type="text" id="manualCookTime" class="edit-field" placeholder="e.g. 30 min">
+        <label class="edit-label">Servings</label><input type="text" id="manualServings" class="edit-field" placeholder="e.g. 4 servings">
         <label class="edit-label">Ingredients (one per line)</label><textarea id="manualIngredients" class="edit-field" rows="5" placeholder="2 cups flour&#10;1 tsp salt&#10;..."></textarea>
         <label class="edit-label">Instructions (one step per line)</label><textarea id="manualInstructions" class="edit-field" style="height:180px;" placeholder="Preheat oven to 375F&#10;Mix dry ingredients&#10;..."></textarea>
         <label class="edit-label">Notes (optional)</label><textarea id="manualNotes" class="edit-field" rows="2" placeholder="Tips, substitutions..."></textarea>
@@ -833,19 +1020,17 @@
     <div class="cook-header">
       <button class="cook-close" onclick="closeCookMode()" style="margin-right:4px;">✕</button>
       <div class="cook-recipe-title" id="cookRecipeTitle"></div>
+      <div class="cook-step-counter" id="cookStepCounter" style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-left:auto;"></div>
     </div>
     <div class="cook-progress-bar"><div class="cook-progress-fill" id="cookProgressFill"></div></div>
     <div class="cook-timers" id="cookTimers"></div>
-    <div class="cook-step-area" id="cookStepArea">
-      <div class="cook-tap-zone cook-tap-left" onclick="cookStepNav(-1)"></div>
-      <div class="cook-tap-zone cook-tap-right" onclick="cookStepNav(1)"></div>
+    <div class="cook-step-scroll cook-mode-content" id="cookStepArea">
       <div class="cook-step-num" id="cookStepNum"></div>
-      <div class="cook-step-text" id="cookStepText"></div>
-      <div class="cook-tap-hint"><span>← Prev</span><span>Next →</span></div>
+      <div class="cook-step-text" id="cookStepText" style="font-size:1.05em;line-height:1.65;color:rgba(255,255,255,0.9);"></div>
     </div>
-    <div class="cook-footer">
-      <div class="cook-step-counter" id="cookStepCounter"></div>
-      <button class="cook-close" onclick="closeCookMode()">Done</button>
+    <div class="cook-nav-bar">
+      <button class="cook-nav-btn cook-nav-prev" id="cookPrevBtn" onclick="cookStepNav(-1)">← Previous</button>
+      <button class="cook-nav-btn cook-nav-next" id="cookNextBtn" onclick="cookStepNav(1)">Next →</button>
     </div>
   </div>
 
@@ -868,6 +1053,210 @@
   </div>
 
   <!-- TOUR -->
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal-overlay" style="z-index:300;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('settingsModal')">← Back</button>
+      <h2>Settings</h2>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Display</div>
+      <div class="settings-row">
+        <div class="settings-row-info"><div class="settings-row-label">Default sort</div></div>
+        <select class="settings-select" id="settingDefaultSort" onchange="saveSetting('default_sort',this.value)">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+          <option value="top">Top rated</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info"><div class="settings-row-label">Default serving scale</div></div>
+        <select class="settings-select" id="settingDefaultScale" onchange="saveSetting('default_scale',this.value)">
+          <option value="0.5">½×</option>
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="3">3×</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info"><div class="settings-row-label">Show cook time on cards</div></div>
+        <button class="settings-toggle" id="toggleShowCookTime" onclick="toggleSetting('show_cook_time','toggleShowCookTime')"></button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info"><div class="settings-row-label">Show rating on cards</div></div>
+        <button class="settings-toggle" id="toggleShowRating" onclick="toggleSetting('show_rating','toggleShowRating')"></button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Card size</div>
+        </div>
+        <select class="settings-select" id="settingCardSize" onchange="saveSetting('card_size',this.value);applyCardSize(this.value)">
+          <option value="compact">Compact</option>
+          <option value="normal">Normal</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Planner</div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Auto-add to shopping list</div>
+          <div class="settings-row-sub">When you assign a recipe to the planner</div>
+        </div>
+        <button class="settings-toggle" id="toggleAutoShop" onclick="toggleSetting('auto_shop_planner','toggleAutoShop')"></button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Profile Picture</div>
+      <div style="text-align:center;padding:10px 0 16px;">
+        <div class="profile-avatar-large" id="settingsAvatarPreview" onclick="document.getElementById('avatarFileInput').click()">
+          <span id="settingsAvatarInitial"></span>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)">
+        <div style="font-size:0.78em;color:var(--text-faint);margin-top:4px;">Tap to change profile picture</div>
+        <div id="avatarCropWrap" style="display:none;margin-top:16px;">
+          <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;">Drag to reposition · Pinch or use slider to zoom</div>
+          <div style="position:relative;width:180px;height:180px;border-radius:50%;overflow:hidden;margin:0 auto;border:2px solid var(--gold);background:var(--surface2);cursor:move;" id="cropCircle">
+            <img id="cropImg" style="position:absolute;transform-origin:0 0;" draggable="false">
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:0 20px;">
+            <span style="font-size:0.75em;color:var(--text-faint);">−</span>
+            <input type="range" id="cropZoom" min="50" max="300" value="100" style="flex:1;" oninput="updateCrop()">
+            <span style="font-size:0.75em;color:var(--text-faint);">+</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;padding:0 18px;">
+            <button class="btn btn-primary" onclick="saveCroppedAvatar()" style="flex:1;">Save Picture</button>
+            <button class="btn btn-secondary" onclick="cancelAvatarCrop()" style="flex:1;">Cancel</button>
+          </div>
+        </div>
+        <div id="avatarUploadStatus" style="margin-top:8px;font-size:0.82em;"></div>
+      </div>
+    </div>
+    <div style="height:30px;"></div>
+  </div>
+
+  <!-- ADMIN MODAL -->
+  <div id="adminModal" class="modal-overlay" style="z-index:300;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('adminModal')">← Back</button>
+      <h2 style="color:var(--red);">🛡️ Admin</h2>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">🔊 Timer Tone</div>
+      <div class="admin-tone-grid" id="adminToneGrid">
+        <div class="admin-tone-btn active" data-tone="default" onclick="setAdminTone('default')">
+          <div>🔔 Default</div><div class="admin-tone-date">Always</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="christmas" onclick="setAdminTone('christmas')">
+          <div>🎄 Christmas</div><div class="admin-tone-date">Dec 1–25</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="halloween" onclick="setAdminTone('halloween')">
+          <div>🎃 Halloween</div><div class="admin-tone-date">Oct 1–31</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="spring" onclick="setAdminTone('spring')">
+          <div>🌸 Spring</div><div class="admin-tone-date">Mar 20–Jun 20</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="newyear" onclick="setAdminTone('newyear')">
+          <div>🎆 New Year</div><div class="admin-tone-date">Dec 26–Jan 5</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="summer" onclick="setAdminTone('summer')">
+          <div>🌊 Summer</div><div class="admin-tone-date">Jun 21–Sep 22</div>
+        </div>
+        <div class="admin-tone-btn" data-tone="autumn" onclick="setAdminTone('autumn')">
+          <div>🍂 Autumn</div><div class="admin-tone-date">Sep 23–Nov 30</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="previewCurrentTone()">🔊 Preview tone</button>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">📢 Broadcast Message</div>
+      <textarea class="admin-textarea" id="adminBroadcastText" placeholder="Message shown to all users..."></textarea>
+      <div class="settings-row" style="padding:6px 0;">
+        <div class="settings-row-info"><div class="settings-row-label">Show action button</div></div>
+        <button class="settings-toggle" id="toggleBroadcastBtn" onclick="toggleAdminBroadcastBtn()"></button>
+      </div>
+      <div id="broadcastBtnOptions" style="display:none;">
+        <input type="text" class="admin-textarea" id="adminBroadcastBtnLabel" placeholder="Button label..." style="min-height:auto;padding:9px 12px;margin-bottom:8px;">
+        <select class="settings-select" id="adminBroadcastBtnAction" style="width:100%;margin-bottom:8px;" onchange="updateBroadcastActionFields()">
+          <option value="url_browser">Open URL in browser</option>
+          <option value="url_app">Open URL in app</option>
+          <option value="tab_recipes">Go to Recipes tab</option>
+          <option value="tab_featured">Go to Featured tab</option>
+          <option value="tab_discover">Go to Discover tab</option>
+          <option value="tab_planner">Go to Planner tab</option>
+          <option value="add_recipe">Open Add Recipe</option>
+          <option value="dismiss">Dismiss only</option>
+        </select>
+        <input type="text" class="admin-textarea" id="adminBroadcastBtnUrl" placeholder="URL (if applicable)..." style="min-height:auto;padding:9px 12px;display:none;">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="publishBroadcast()" style="flex:1;">📢 Publish</button>
+        <button class="btn btn-danger" onclick="clearBroadcast()" style="flex:1;">🗑 Clear</button>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">👥 Users</div>
+      <button class="btn btn-secondary" onclick="loadAdminUsers()">View all users</button>
+      <div id="adminUserList" style="margin-top:10px;"></div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">🚫 Blacklist</div>
+      <button class="btn btn-secondary" onclick="loadAdminBlacklist()">View blocked domains</button>
+      <div id="adminBlacklistList" style="margin-top:10px;"></div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">🔧 Maintenance</div>
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-label">Maintenance mode</div>
+          <div class="admin-row-sub">Shows a banner to all users</div>
+        </div>
+        <button class="settings-toggle" id="toggleMaintenance" onclick="toggleAdminSetting('maintenance_mode','toggleMaintenance')"></button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-label">Recipe of the Day override</div>
+          <div class="admin-row-sub">Pin a specific recipe as ROTD</div>
+        </div>
+        <button class="btn btn-secondary" style="width:auto;padding:7px 12px;font-size:0.78em;" onclick="openRotdOverride()">Set</button>
+      </div>
+    </div>
+    <div style="height:30px;"></div>
+  </div>
+
+  <!-- MESSAGING MODAL -->
+  <div id="messagingModal" class="modal-overlay" style="z-index:300;">
+    <div id="msgConvView">
+      <div class="modal-header">
+        <button class="modal-back" onclick="closeModalAnimated('messagingModal')">← Back</button>
+        <h2>Messages</h2>
+        <div id="msgRequestsBadge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:3px 9px;font-size:0.72em;font-weight:700;cursor:pointer;" onclick="showMsgRequests()">Requests</div>
+      </div>
+      <div id="msgRequestsSection" style="display:none;">
+        <div style="padding:10px 18px;font-size:0.72em;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--glass-border);">Message Requests</div>
+        <div id="msgRequestsList"></div>
+      </div>
+      <div id="msgConvList"></div>
+    </div>
+    <div id="msgThreadView" style="display:none;height:100vh;display:none;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--glass-border);background:var(--surface);position:sticky;top:0;z-index:5;">
+        <button onclick="showMsgConvList()" style="background:none;border:none;color:var(--gold);font-size:0.85em;font-weight:600;cursor:pointer;">← Back</button>
+        <div id="msgThreadAvatar" class="msg-conv-avatar" style="width:34px;height:34px;font-size:0.85em;"></div>
+        <div id="msgThreadName" style="font-weight:700;font-size:0.95em;flex:1;"></div>
+        <button onclick="blockCurrentMsgUser()" style="background:none;border:none;color:var(--red);font-size:0.75em;cursor:pointer;">Block</button>
+      </div>
+      <div id="msgBubbles" style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-height:0;"></div>
+      <div style="font-size:0.65em;color:var(--text-faint);text-align:right;padding:0 18px 4px;" id="msgCharCount">0 / 300</div>
+      <div style="display:flex;gap:8px;padding:10px 18px;border-top:1px solid var(--glass-border);background:var(--surface);">
+        <textarea class="msg-input" id="msgInput" placeholder="Message..." rows="1" maxlength="300" oninput="updateMsgCharCount()"></textarea>
+        <button class="msg-send-btn" onclick="sendCurrentMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
   <div class="tour-overlay" id="tourOverlay">
     <div class="tour-cutout" id="tourCutout"></div>
     <div class="tour-tooltip" id="tourTooltip">
@@ -1058,23 +1447,15 @@
     localStorage.removeItem('currentUser');
     currentUser = null; allRecipes = []; shopItems = [];
     activeCategories = new Set(['All']); currentSort = 'newest'; showFavsOnly = false;
+    // Close all open modals and panels
+    document.querySelectorAll('.modal-overlay').forEach(m => { m.style.display = 'none'; m.classList.remove('active'); });
+    document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.panel-overlay').forEach(p => p.classList.remove('open'));
+    switchTab('recipes');
     showLoginScreen();
   }
 
   // ═══ INIT ═══
-  async function init() {
-    if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch(e){} }
-    showSkeletonLoader();
-    try {
-      allRecipes = await getRecipes(currentUser);
-      renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
-      renderRotd();
-      checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
-      checkFeaturedBadge(); loadBlacklist();
-      setTimeout(adjustHeaderPadding, 100);
-    } catch(e) { console.error('Init error:', e); }
-  }
-
   function showSkeletonLoader() {
     const container = document.getElementById('recipeContainer');
     container.innerHTML = Array.from({length:6}, () =>
@@ -1174,34 +1555,60 @@
 
   // ═══ CATEGORIES ═══
   function renderCategories() {
-    const cats = ['All', '⭐ Fav', ...new Set(allRecipes.map(r => r.category))];
-    document.getElementById('categoryFilters').innerHTML =
-      '<div class="chip" onclick="openSurpriseMe()" style="background:var(--gold-dim);border-color:var(--gold);color:var(--gold);">🎲</div>' +
-      cats.map(c => '<div class="chip ' + (activeCategories.has(c) || (c === 'All' && activeCategories.has('All')) ? 'active' : '') + '" onclick="toggleCategory(\'' + c + '\')">' + c + '</div>').join('');
+    const cats = ['All', '⭐ Fav', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
+    const container = document.getElementById('categoryFiltersInline');
+    if (!container) return;
+    container.innerHTML = cats.map(c =>
+      '<div class="sort-chip ' + (activeCategories.has(c) || (c === 'All' && activeCategories.has('All')) ? 'active' : '') + '" onclick="toggleCategory(\'' + c + '\')">' + c + '</div>'
+    ).join('');
   }
 
   function toggleCategory(cat) {
-    if (cat === 'All') { activeCategories = new Set(['All']); showFavsOnly = false; document.getElementById('favFilterBtn').classList.remove('active'); }
+    if (cat === 'All') { activeCategories = new Set(['All']); showFavsOnly = false; }
     else if (cat === '⭐ Fav') { showFavsOnly = !showFavsOnly; activeCategories.delete('All'); if (!showFavsOnly && activeCategories.size === 0) activeCategories.add('All'); }
     else { activeCategories.delete('All'); if (activeCategories.has(cat)) { activeCategories.delete(cat); if (activeCategories.size === 0) activeCategories.add('All'); } else { activeCategories.add(cat); } }
     renderCategories(); renderRecipes();
   }
-  function toggleFavFilter() { showFavsOnly = !showFavsOnly; document.getElementById('favFilterBtn').classList.toggle('active', showFavsOnly); renderRecipes(); }
+  function toggleFavFilter() { showFavsOnly = !showFavsOnly; renderCategories(); renderRecipes(); }
 
-  // ═══ SORT ═══
+  // ═══ SORT DROPDOWN ═══
+  const sortLabels = { newest:'Newest', oldest:'Oldest', az:'A → Z', za:'Z → A', top:'Top Rated', fav:'Favourites', rating:'Top Rated', favs:'Favourites' };
   function renderSortBar() {
-    const sorts = [{key:'newest',label:'Newest'},{key:'oldest',label:'Oldest'},{key:'az',label:'A → Z'},{key:'za',label:'Z → A'},{key:'rating',label:'Top Rated'},{key:'favs',label:'Favourites'}];
-    document.getElementById('sortBar').innerHTML = sorts.map(s => '<div class="sort-chip ' + (currentSort === s.key ? 'active' : '') + '" onclick="setSort(\'' + s.key + '\')">' + s.label + '</div>').join('');
+    const label = document.getElementById('sortFilterLabel');
+    const btn = document.getElementById('sortFilterBtn');
+    if (label) label.textContent = sortLabels[currentSort] || 'Newest';
+    if (btn) btn.classList.toggle('active', currentSort !== 'newest');
+    document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
+    const activeOpt = document.getElementById('sortOpt_' + currentSort);
+    if (activeOpt) activeOpt.classList.add('active');
   }
-  function setSort(s) { currentSort = s; renderSortBar(); renderRecipes(); }
-  function openSortModal() { document.getElementById('sortBar').scrollIntoView({behavior:'smooth'}); }
+  function toggleSortDropdown() {
+    const dd = document.getElementById('sortDropdown');
+    dd.classList.toggle('open');
+    if (dd.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', closeSortDropdownOutside), 10);
+    }
+  }
+  function closeSortDropdownOutside(e) {
+    const wrap = document.querySelector('.sort-filter-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('sortDropdown').classList.remove('open');
+      document.removeEventListener('click', closeSortDropdownOutside);
+    }
+  }
+  function setSort(s) {
+    currentSort = s;
+    document.getElementById('sortDropdown').classList.remove('open');
+    document.removeEventListener('click', closeSortDropdownOutside);
+    renderSortBar(); renderRecipes();
+  }
   function sortRecipes(arr) {
     const copy = [...arr];
     switch(currentSort) {
       case 'az': return copy.sort((a,b) => a.title.localeCompare(b.title));
       case 'za': return copy.sort((a,b) => b.title.localeCompare(a.title));
-      case 'rating': return copy.sort((a,b) => (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0));
-      case 'favs': return copy.sort((a,b) => (b.favourite?1:0)-(a.favourite?1:0));
+      case 'top': case 'rating': return copy.sort((a,b) => (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0));
+      case 'fav': case 'favs': return copy.sort((a,b) => (b.favourite?1:0)-(a.favourite?1:0));
       case 'oldest': return copy.reverse();
       default: return copy;
     }
@@ -1285,33 +1692,75 @@
 
   function renderDetailContent() {
     const r = allRecipes[activeRecipeIndex];
-    document.getElementById('detailModalTitle').textContent = r.title;
-    document.getElementById('detailTitle').textContent = r.title;
-    document.getElementById('detailCategory').textContent = r.category;
-    document.getElementById('detailTime').textContent = r.cookTime ? '⏱ ' + r.cookTime : '';
-    const hero = document.getElementById('detailHero');
-    hero.innerHTML = (r.image && r.image.trim()) ? '<img src="' + r.image + '">' : r.title.charAt(0);
-    const badge = document.getElementById('detailRatingBadge');
-    if (r.rating) { badge.style.display = ''; badge.textContent = '★ ' + r.rating + '/10'; } else badge.style.display = 'none';
-    const favBtn = document.getElementById('favBtn');
-    favBtn.classList.toggle('fav-active', r.favourite); favBtn.textContent = r.favourite ? '★ Fav' : '⭐ Fav';
+
+    // Style B hero
+    const heroImg = document.getElementById('detailHeroImg');
+    const heroPlaceholder = document.getElementById('detailHeroPlaceholder');
+    if (r.image && r.image.trim()) {
+      heroImg.src = r.image;
+      heroImg.style.display = 'none'; // shown on load
+      heroPlaceholder.style.display = 'flex';
+    } else {
+      heroImg.style.display = 'none';
+      heroPlaceholder.style.display = 'flex';
+      heroPlaceholder.textContent = r.title.charAt(0);
+    }
+
+    // Overlay info
+    document.getElementById('detailCategoryB').textContent = r.category || '';
+    document.getElementById('detailTitleB').textContent = r.title;
+
+    const timeEl = document.getElementById('detailTimeB');
+    if (r.cookTime) { timeEl.style.display = ''; timeEl.textContent = '⏱ ' + r.cookTime; } else timeEl.style.display = 'none';
+
+    const servingsEl = document.getElementById('detailServingsB');
+    if (r.servings) { servingsEl.style.display = ''; servingsEl.textContent = '👤 ' + r.servings; } else servingsEl.style.display = 'none';
+
+    const ratingEl = document.getElementById('detailRatingB');
+    if (r.rating) { ratingEl.style.display = ''; ratingEl.textContent = '★ ' + r.rating + '/10'; } else ratingEl.style.display = 'none';
+
+    // Fav button
+    const favIcon = document.getElementById('favBtnB');
+    favIcon.classList.toggle('fav-active', r.favourite);
+    favIcon.textContent = r.favourite ? '★' : '⭐';
+
+    // Rating track
     const cur = parseInt(r.rating) || 0;
-    document.getElementById('ratingPips').innerHTML = Array.from({length:10},(_,i) => '<div class="rating-pip ' + (i < cur ? 'filled' : '') + '" onclick="handleRating(' + (i+1) + ')">' + (i+1) + '</div>').join('');
-    document.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
+    document.getElementById('ratingTrackB').innerHTML = Array.from({length:10},(_,i) =>
+      '<div class="detail-rating-b-pip ' + (i < cur ? 'filled' : '') + '" onclick="handleRating(' + (i+1) + ')"></div>'
+    ).join('');
+    document.getElementById('ratingLabelB').textContent = cur ? cur + '/10' : 'Not rated';
+
+    // Scale buttons
+    document.querySelectorAll('.detail-scale-b-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
+
+    // Ingredients
     const ings = parseIngredients(r.ingredients);
-    document.getElementById('ingredientsList').innerHTML = ings.map(ing => '<div class="ingredient-line">' + scaleIngredientLine(ing, currentScale) + '</div>').join('');
+    document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
+      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + scaleIngredientLine(ing, currentScale) + '</div>'
+    ).join('');
+
+    // Steps
     const steps = r.instructions.split('\n').filter(s => s.trim());
     document.getElementById('stepsList').innerHTML = steps.map((step, i) => {
       let html = '<div class="step-item"><input type="checkbox" class="step-checkbox" id="sc-' + i + '" onchange="toggleStep(' + i + ')"><label for="sc-' + i + '" class="step-num">' + (i+1) + '</label><div id="step-c-' + i + '" class="step-content">' + step;
       const time = step.match(/(\d+)\s*(min|sec|minute|second)/i);
-      if (time) { const sec = time[2].toLowerCase().includes('min') ? parseInt(time[1])*60 : parseInt(time[1]); html += '<div class="timer-container"><button id="t-btn-' + i + '" class="timer-btn" onclick="handleTimer(' + i + ',' + sec + ')">⏱ Start ' + time[1] + ' ' + time[2] + '</button><button class="timer-reset" onclick="resetTimer(' + i + ',' + sec + ')">↺</button></div>'; }
+      if (time) {
+        const sec = time[2].toLowerCase().includes('min') ? parseInt(time[1])*60 : parseInt(time[1]);
+        html += '<div class="timer-container"><button id="t-btn-' + i + '" class="timer-btn" onclick="handleTimer(' + i + ',' + sec + ')">⏱ Start ' + time[1] + ' ' + time[2] + '</button><button class="timer-reset" onclick="resetTimer(' + i + ',' + sec + ')">↺</button></div>';
+      }
       html += '</div></div>'; return html;
     }).join('');
+
+    // Notes
     const ns = document.getElementById('notesSection');
     if (r.notes && r.notes.trim()) { ns.style.display = 'block'; document.getElementById('notesBody').textContent = r.notes; } else ns.style.display = 'none';
+
+    // Prev/next
     document.getElementById('prevBtn').disabled = activeRecipeIndex <= 0;
     document.getElementById('nextBtn').disabled = activeRecipeIndex >= allRecipes.length - 1;
-    // Sync timer button states for any already-running timers on this recipe
+
+    // Sync active timers
     requestAnimationFrame(() => {
       Object.entries(timerStates).forEach(([key, t]) => {
         if (key === '_recipeIdx') return;
@@ -1320,23 +1769,22 @@
         if (t.state === 'running') {
           btn.className = 'timer-btn running';
           btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
-          // Re-hook interval to update this button
           clearInterval(t.interval);
           t.interval = setInterval(() => {
             t.rem--;
             btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
+            renderGlobalTimerBar();
             if (t.rem <= 0) {
               clearInterval(t.interval); t.state = 'alarm';
               btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
-              playAlarm();
+              playAlarm(); renderGlobalTimerBar();
             }
           }, 1000);
         } else if (t.state === 'paused') {
           btn.className = 'timer-btn';
           btn.innerHTML = 'Resume: ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
         } else if (t.state === 'alarm') {
-          btn.className = 'timer-btn alarm';
-          btn.innerHTML = '🔊 TIME UP!';
+          btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
         }
       });
     });
@@ -1548,6 +1996,7 @@
     document.getElementById('viewMode').style.display = 'none'; document.getElementById('editMode').style.display = 'block';
     document.getElementById('editId').value = r.id; document.getElementById('editTitle').value = r.title;
     document.getElementById('editCategory').value = r.category; document.getElementById('editCookTime').value = r.cookTime||'';
+    document.getElementById('editServings').value = r.servings||'';
     document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
     document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
   }
@@ -1555,7 +2004,7 @@
   function saveEdit() {
     const rId = document.getElementById('editId').value; const fileIn = document.getElementById('imageInput'); const sBtn = document.getElementById('saveEditBtn');
     sBtn.innerHTML = 'Saving...'; sBtn.disabled = true;
-    const item = {id:rId,title:document.getElementById('editTitle').value,category:document.getElementById('editCategory').value,cookTime:document.getElementById('editCookTime').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
+    const item = {id:rId,title:document.getElementById('editTitle').value,category:document.getElementById('editCategory').value,cookTime:document.getElementById('editCookTime').value,servings:document.getElementById('editServings').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
     const r = allRecipes.find(x => x.id === rId); if (r) Object.assign(r, item);
     const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; exitEditMode(); renderDetailContent(); renderRecipes(); }); };
     if (fileIn.files.length > 0) { const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, fileIn.files[0].name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
@@ -1863,6 +2312,9 @@
       if (n.type === 'follow') {
         return '<div class="friend-item"><div class="friend-avatar">' + n.fromUser.charAt(0) + '</div><div style="flex:1;"><div style="font-weight:600;font-size:0.9em;">' + n.fromUser + '</div><div style="font-size:0.72em;color:var(--text-dim);">Started following you</div></div><button class="inbox-accept" style="flex:0;padding:7px 12px;font-size:0.75em;" onclick="followBackUser(\'' + n.fromUser + '\',\'' + n.notifId + '\')">Follow Back</button><button class="inbox-decline" style="flex:0;padding:7px 10px;font-size:0.75em;margin-left:6px;" onclick="dismissNotif(\'' + n.notifId + '\')">✕</button></div>';
       }
+      if (n.type === 'follow_back') {
+        return '<div class="friend-item"><div class="friend-avatar">' + n.fromUser.charAt(0) + '</div><div style="flex:1;"><div style="font-weight:600;font-size:0.9em;">' + n.fromUser + '</div><div style="font-size:0.72em;color:var(--gold);">Followed you back ✓</div></div><button class="inbox-decline" style="flex:0;padding:7px 10px;font-size:0.75em;" onclick="dismissNotif(\'' + n.notifId + '\')">✕</button></div>';
+      }
       return '';
     }).join('');
   }
@@ -1884,11 +2336,35 @@
 
   // ═══ PROFILE ═══
   function openProfile() {
-    Promise.all([getProfileStats(currentUser), getFriends(currentUser)]).then(([stats, friendsRes]) => {
+    // Show admin button for rollert2
+    const adminBtn = document.getElementById('adminPanelBtnWrap');
+    if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
+
+    Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount]) => {
       if (stats.status !== 'Success') return;
       const following = friendsRes.following || [];
+      // Build hero with avatar
+      const avatarHtml = avatarUrl
+        ? '<div class="profile-avatar-large" onclick="openSettingsModal()" style="cursor:pointer;"><img src="' + avatarUrl + '" alt="avatar"></div>'
+        : '<div class="profile-avatar-large" onclick="openSettingsModal()" style="cursor:pointer;">' + currentUser.charAt(0).toUpperCase() + '</div>';
       const hero = document.getElementById('profileHero');
-      hero.innerHTML = '<div class="profile-avatar">' + currentUser.charAt(0).toUpperCase() + '</div><div class="profile-username">' + currentUser + '</div><div class="profile-stats"><div class="profile-stat"><div class="profile-stat-num">' + stats.recipeCount + '</div><div class="profile-stat-label">Recipes</div></div><div class="profile-stat"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div><div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div></div>';
+      hero.innerHTML = avatarHtml +
+        '<div class="profile-username">' + currentUser + '</div>' +
+        '<div class="profile-stats">' +
+          '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.recipeCount + '</div><div class="profile-stat-label">Recipes</div></div>' +
+          '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');showFavsOnly=true;renderRecipes();},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div>' +
+          '<div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div>' +
+        '</div>';
+      // Update settings avatar preview
+      const settingsAvatar = document.getElementById('settingsAvatarPreview');
+      if (settingsAvatar) {
+        settingsAvatar.innerHTML = avatarUrl ? '<img src="' + avatarUrl + '">' : currentUser.charAt(0).toUpperCase();
+        const init = document.getElementById('settingsAvatarInitial');
+        if (init) init.textContent = '';
+      }
+      // Message bell badge
+      const msgBadgeEl = document.getElementById('msgBellBadge');
+      if (msgBadgeEl) { msgBadgeEl.style.display = unreadCount > 0 ? 'flex' : 'none'; msgBadgeEl.textContent = unreadCount; }
       renderFriendsList(following);
       renderProfileNotifications();
       document.getElementById('friendRecipesSection').style.display = 'none';
@@ -1897,24 +2373,61 @@
     });
   }
 
+  let activeFriendOptionsUser = null;
   function renderFriendsList(following) {
     const list = document.getElementById('friendsList');
     if (following.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Not following anyone yet.<br>Add a friend by username above.</div>'; return; }
-    list.innerHTML = following.map(u => '<div class="friend-item"><div class="friend-avatar">'+u.charAt(0)+'</div><div class="friend-name" onclick="viewFriendRecipes(\''+u+'\')">'+u+'</div><button class="friend-unfollow" onclick="doUnfollow(\''+u+'\')">Unfollow</button></div>').join('');
+    list.innerHTML = following.map(u => {
+      return '<div class="friend-item" id="friend-item-' + u + '">' +
+        '<div class="friend-avatar" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;">' + u.charAt(0) + '</div>' +
+        '<div class="friend-name" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;">' + u + '</div>' +
+        '<div id="friend-opts-' + u + '"></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function toggleFriendOptions(username) {
+    const el = document.getElementById('friend-opts-' + username);
+    if (!el) return;
+    if (activeFriendOptionsUser === username) {
+      el.innerHTML = '';
+      activeFriendOptionsUser = null;
+      return;
+    }
+    // Close previous
+    if (activeFriendOptionsUser) { const prev = document.getElementById('friend-opts-' + activeFriendOptionsUser); if (prev) prev.innerHTML = ''; }
+    activeFriendOptionsUser = username;
+    el.innerHTML = '<div class="friend-options-menu">' +
+      '<div class="friend-option" onclick="viewFriendRecipes(\'' + username + '\')">🍳 View Recipes</div>' +
+      '<div class="friend-option" onclick="viewFriendCollections(\'' + username + '\')">📁 View Collections</div>' +
+      '<div class="friend-option" onclick="openMessaging(\'' + username + '\')">💬 Message</div>' +
+      '<div class="friend-option danger" onclick="doUnfollow(\'' + username + '\')">✕ Unfollow</div>' +
+    '</div>';
   }
 
   function doFollowUser() {
     const target = document.getElementById('followInput').value.trim().toLowerCase();
-    if (!target) return;
+    if (!target || target === currentUser) return;
     const el = document.getElementById('followResult'); el.style.display = 'block'; el.className = 'ai-result'; el.innerHTML = 'Following...';
     followUser(currentUser, target).then(res => {
       el.className = res.status==='Success'?'ai-result success':'ai-result error';
       el.innerHTML = res.status==='Success'?'✅ Now following '+target:'❌ '+res.message;
-      if (res.status==='Success') { sendFollowNotification(currentUser, target); document.getElementById('followInput').value = ''; openProfile(); }
+      if (res.status==='Success') {
+        // Check if they already follow us back — if so send follow-back notification to us
+        getFriends(target).then(fr => {
+          if ((fr.following||[]).includes(currentUser)) sendFollowBackNotification(target, currentUser);
+          else sendFollowNotification(currentUser, target);
+        });
+        document.getElementById('followInput').value = '';
+        openProfile();
+      }
     });
   }
 
-  function doUnfollow(target) { if (!confirm('Unfollow '+target+'?')) return; unfollowUser(currentUser, target).then(res => { if (res.status==='Success') openProfile(); }); }
+  function doUnfollow(target) {
+    if (!confirm('Unfollow ' + target + '?')) return;
+    unfollowUser(currentUser, target).then(res => { if (res.status==='Success') openProfile(); });
+  }
 
   function viewFriendRecipes(username) {
     getFriendRecipes(username).then(res => {
@@ -2127,8 +2640,27 @@
       .catch(err => { document.getElementById('discoverStatus').style.display = 'none'; document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">❌ ' + err.message + '</div>'; });
   }
 
-  function openPreview(idx) { const r = window._discoverResults[idx]; previewUrl = r.url; document.getElementById('previewSite').textContent = r.site; document.getElementById('previewTitle').textContent = r.title; document.getElementById('previewUrl').textContent = r.url; document.getElementById('previewSnippet').textContent = r.snippet; document.getElementById('previewResult').style.display = 'none'; const btn = document.getElementById('previewAddBtn'); btn.disabled = false; btn.innerHTML = '✨ Add to Cookbook'; document.getElementById('previewPanel').classList.add('open'); document.getElementById('previewOverlay').classList.add('open'); }
-  function closePreview() { document.getElementById('previewPanel').classList.remove('open'); document.getElementById('previewOverlay').classList.remove('open'); previewUrl = ''; }
+  function openPreview(idx) {
+    const r = window._discoverResults[idx];
+    previewUrl = r.url;
+    document.getElementById('previewSite').textContent = r.site;
+    document.getElementById('previewTitle').textContent = r.title;
+    document.getElementById('previewResult').style.display = 'none';
+    const btn = document.getElementById('previewAddBtn');
+    btn.disabled = false; btn.innerHTML = '✨ Add';
+    // Load mobile version of site in iframe
+    const mobileUrl = r.url.includes('?') ? r.url + '&mobile=1' : r.url;
+    document.getElementById('previewIframe').src = mobileUrl;
+    document.getElementById('previewPanel').style.display = 'block';
+    document.getElementById('previewPanel').classList.add('active');
+    history.pushState({ modal: 'previewPanel' }, '');
+  }
+  function closePreview() {
+    document.getElementById('previewPanel').classList.remove('active');
+    document.getElementById('previewPanel').style.display = 'none';
+    document.getElementById('previewIframe').src = '';
+    previewUrl = '';
+  }
 
   function addFromPreview() {
     if (!previewUrl) return;
@@ -2193,13 +2725,13 @@
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
   function performManualAdd() {
-    const title = document.getElementById('manualTitle').value.trim(); const category = document.getElementById('manualCategory').value.trim(); const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim();
+    const title = document.getElementById('manualTitle').value.trim(); const category = document.getElementById('manualCategory').value.trim(); const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : '';
     const el = document.getElementById('manualResult'); const btn = document.getElementById('manualSaveBtn');
     if (!title) { alert('Please enter a recipe title.'); return; } if (!ingredients) { alert('Please enter at least one ingredient.'); return; } if (!instructions) { alert('Please enter at least one instruction step.'); return; }
     btn.disabled = true; btn.innerHTML = 'Saving...';
-    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime}).then(res => {
+    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,servings}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
-      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+title+' added!'; ['manualTitle','manualCategory','manualCookTime','manualIngredients','manualInstructions','manualNotes'].forEach(id => document.getElementById(id).value=''); init(); }
+      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+title+' added!'; ['manualTitle','manualCategory','manualCookTime','manualServings','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); init(); }
       else { el.className='ai-result error'; el.innerHTML='❌ '+res.message; }
     });
   }
@@ -2213,29 +2745,60 @@
   let cookStepIndex = 0;
   let cookTimers = {};
   let cookTimerInterval = null;
+  let cookRecipeIndex = -1;
 
   function startCookMode() {
     const r = allRecipes[activeRecipeIndex];
+    cookRecipeIndex = activeRecipeIndex;
     cookSteps = r.instructions.split('\n').filter(s => s.trim());
     cookStepIndex = 0;
-    cookTimers = {};
+    // Don't reset cookTimers — preserve any already-running ones for this recipe
     document.getElementById('cookRecipeTitle').textContent = r.title;
     document.getElementById('cookMode').classList.add('active');
     renderCookStep();
-    cookTimerInterval = setInterval(tickCookTimers, 1000);
+    if (!cookTimerInterval) cookTimerInterval = setInterval(tickCookTimers, 1000);
+    history.pushState({ modal: 'cookMode' }, '');
   }
 
   function closeCookMode() {
     document.getElementById('cookMode').classList.remove('active');
-    clearInterval(cookTimerInterval);
-    cookTimerInterval = null;
+    // Transfer cook timers to global timerStates so they keep running
+    for (const key in cookTimers) {
+      const ct = cookTimers[key];
+      if (ct.state === 'running' || ct.state === 'paused') {
+        const globalKey = 'cook_' + key;
+        timerStates[globalKey] = {
+          rem: ct.rem,
+          origSec: ct.origSec || ct.rem,
+          label: ct.label,
+          state: ct.state,
+          interval: null
+        };
+        // Start interval for running timers
+        if (ct.state === 'running') {
+          timerStates[globalKey].interval = setInterval(() => {
+            timerStates[globalKey].rem--;
+            renderGlobalTimerBar();
+            if (timerStates[globalKey].rem <= 0) {
+              clearInterval(timerStates[globalKey].interval);
+              timerStates[globalKey].state = 'alarm';
+              playAlarm(); renderGlobalTimerBar();
+            }
+          }, 1000);
+        }
+      }
+    }
     cookTimers = {};
-    renderCookTimerBar();
+    clearInterval(cookTimerInterval); cookTimerInterval = null;
+    renderGlobalTimerBar();
   }
 
   function cookStepNav(dir) {
     const next = cookStepIndex + dir;
-    if (next < 0 || next >= cookSteps.length) return;
+    if (next < 0 || next >= cookSteps.length) {
+      if (next >= cookSteps.length) closeCookMode();
+      return;
+    }
     cookStepIndex = next;
     renderCookStep();
   }
@@ -2244,24 +2807,45 @@
     const step = cookSteps[cookStepIndex];
     const total = cookSteps.length;
     document.getElementById('cookStepNum').textContent = 'Step ' + (cookStepIndex + 1) + ' of ' + total;
-    document.getElementById('cookStepText').textContent = step.replace(/^\d+\.\s*/, '');
     document.getElementById('cookStepCounter').textContent = (cookStepIndex + 1) + ' / ' + total;
     document.getElementById('cookProgressFill').style.width = ((cookStepIndex + 1) / total * 100) + '%';
-    // Auto-detect timer in this step
+    // Disable prev on first step
+    const prevBtn = document.getElementById('cookPrevBtn');
+    const nextBtn = document.getElementById('cookNextBtn');
+    if (prevBtn) prevBtn.style.opacity = cookStepIndex === 0 ? '0.3' : '1';
+    if (nextBtn) nextBtn.textContent = cookStepIndex === total - 1 ? '✓ Done' : 'Next →';
+    // Render step text with timer button if time detected
+    const stepText = step.replace(/^\d+\.\s*/, '');
     const timeMatch = step.match(/(\d+)\s*(min|sec|minute|second)/i);
-    if (timeMatch && !cookTimers['step_' + cookStepIndex]) {
+    const stepKey = 'step_' + cookStepIndex;
+    const existing = cookTimers[stepKey];
+    let timerHtml = '';
+    if (timeMatch) {
       const sec = timeMatch[2].toLowerCase().includes('min') ? parseInt(timeMatch[1]) * 60 : parseInt(timeMatch[1]);
-      const label = 'Step ' + (cookStepIndex + 1);
-      // Don't auto-start, just make it available — show a start button in step area
-      document.getElementById('cookStepText').innerHTML = step.replace(/^\d+\.\s*/, '') +
-        '<div style="margin-top:20px;position:relative;z-index:3;"><button onclick="startCookTimer(\'step_' + cookStepIndex + '\',' + sec + ',\'Step ' + (cookStepIndex+1) + '\')" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:10px;font-weight:700;font-size:0.75em;cursor:pointer;position:relative;z-index:3;">⏱ Start ' + timeMatch[1] + ' ' + timeMatch[2] + ' Timer</button></div>';
+      if (!existing || existing.state === 'idle') {
+        timerHtml = '<div style="margin-top:20px;"><button onclick="startCookTimer(\'' + stepKey + '\',' + sec + ',\'Step ' + (cookStepIndex+1) + '\')" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">⏱ Start ' + timeMatch[1] + ' ' + timeMatch[2] + ' timer</button></div>';
+      } else if (existing.state === 'running') {
+        const m = Math.floor(existing.rem/60); const s = (existing.rem%60).toString().padStart(2,'0');
+        timerHtml = '<div style="margin-top:20px;display:flex;gap:8px;"><div style="background:#1e3a8a;border:1px solid #3b82f6;color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85em;">⏱ ' + m + ':' + s + '</div><button onclick="pauseCookTimer(\'' + stepKey + '\')" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:12px 16px;border-radius:10px;font-size:0.85em;cursor:pointer;font-family:inherit;">⏸</button></div>';
+      } else if (existing.state === 'alarm') {
+        timerHtml = '<div style="margin-top:20px;background:rgba(224,85,85,0.2);border:1px solid var(--red);color:var(--red);padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85em;">🔊 TIME UP! <button onclick="dismissCookTimer(\'' + stepKey + '\')" style="margin-left:10px;background:none;border:none;color:var(--red);cursor:pointer;font-weight:700;">✕</button></div>';
+      }
     }
+    document.getElementById('cookStepText').innerHTML = '<div class="cook-mode-content">' + stepText + '</div>' + timerHtml;
+    // Scroll to top of step area
+    const area = document.getElementById('cookStepArea');
+    if (area) area.scrollTop = 0;
   }
 
   function startCookTimer(key, seconds, label) {
-    if (cookTimers[key]) return;
-    cookTimers[key] = { rem: seconds, label, state: 'running', alarm: false };
+    cookTimers[key] = { rem: seconds, origSec: seconds, label, state: 'running', alarm: false };
+    renderCookStep();
     renderCookTimerBar();
+  }
+
+  function pauseCookTimer(key) {
+    if (cookTimers[key]) cookTimers[key].state = 'paused';
+    renderCookStep();
   }
 
   function tickCookTimers() {
@@ -2271,11 +2855,12 @@
       if (t.state === 'running' && t.rem > 0) { t.rem--; changed = true; }
       else if (t.state === 'running' && t.rem <= 0) { t.state = 'alarm'; t.alarm = true; changed = true; playAlarm(); }
     }
-    if (changed) renderCookTimerBar();
+    if (changed) { renderCookTimerBar(); if (cookSteps[cookStepIndex]) renderCookStep(); }
   }
 
   function dismissCookTimer(key) {
     delete cookTimers[key];
+    renderCookStep();
     renderCookTimerBar();
   }
 
@@ -2353,7 +2938,13 @@
     {targetId:'userBadge',title:'Your Profile',desc:'Tap your username to open your profile — see your stats, follow friends, and browse their cookbooks.',position:'below'},
   ];
 
-  function checkTour() { if (localStorage.getItem("tourDone_"+currentUser+"_v3")) return; getTourStatus(currentUser).then(res => { if (res.status!=="Success") return; if (!res.complete||res.version!==TOUR_VERSION) setTimeout(startTour,800); else localStorage.setItem("tourDone_"+currentUser+"_v3","1"); }); }
+  function checkTour() {
+    getUserSettings(currentUser).then(res => {
+      if (res.settings && res.settings.tutorial_complete) return;
+      if (localStorage.getItem("tourDone_"+currentUser+"_v3")) return;
+      setTimeout(startTour, 800);
+    });
+  }
   function startTour() { tourStepIndex=0; document.getElementById('tourOverlay').classList.add('active'); showTourStep(0); }
   function showTourStep(idx) {
     const step = tourSteps[idx]; const el = document.getElementById(step.targetId);
@@ -2373,7 +2964,464 @@
     document.getElementById('tourNextBtn').textContent=idx===tourSteps.length-1?'Finish ✓':'Next →';
   }
   function tourStep(dir) { tourStepIndex+=dir; if (tourStepIndex>=tourSteps.length) { endTour(); return; } if (tourStepIndex<0) tourStepIndex=0; showTourStep(tourStepIndex); }
-  function endTour() { document.getElementById("tourOverlay").classList.remove("active"); localStorage.setItem("tourDone_"+currentUser+"_v3","1"); completeTour(currentUser); }
+  function endTour() { document.getElementById("tourOverlay").classList.remove("active"); localStorage.setItem("tourDone_"+currentUser+"_v3","1"); updateUserSettings(currentUser, { tutorial_complete: true }); }
+
+  // ═══ SETTINGS ═══
+  let userSettings = {};
+  function openSettingsModal() {
+    getUserSettings(currentUser).then(res => {
+      userSettings = res.settings || {};
+      // Apply to UI
+      const ds = document.getElementById('settingDefaultSort');
+      if (ds) ds.value = userSettings.default_sort || 'newest';
+      const dsc = document.getElementById('settingDefaultScale');
+      if (dsc) dsc.value = userSettings.default_scale || '1';
+      const cs = document.getElementById('settingCardSize');
+      if (cs) cs.value = userSettings.card_size || 'normal';
+      setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
+      setToggle('toggleShowRating', userSettings.show_rating !== false);
+      setToggle('toggleAutoShop', userSettings.auto_shop_planner === true);
+      // Avatar
+      getUserAvatar(currentUser).then(url => {
+        const el = document.getElementById('settingsAvatarPreview');
+        if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
+      });
+      openModalAnimated('settingsModal');
+    });
+  }
+  function setToggle(id, on) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('on', on);
+  }
+  function saveSetting(key, value) {
+    userSettings[key] = value;
+    updateUserSettings(currentUser, { [key]: value });
+    if (key === 'default_sort') { currentSort = value; renderSortBar(); renderRecipes(); }
+  }
+  function toggleSetting(key, toggleId) {
+    const el = document.getElementById(toggleId);
+    const current = el.classList.contains('on');
+    el.classList.toggle('on', !current);
+    userSettings[key] = !current;
+    updateUserSettings(currentUser, { [key]: !current });
+    renderRecipes();
+  }
+  function applyCardSize(size) {
+    const grid = document.getElementById('recipeContainer');
+    if (!grid) return;
+    if (size === 'compact') grid.style.gridTemplateColumns = 'repeat(3,1fr)';
+    else if (size === 'large') grid.style.gridTemplateColumns = '1fr';
+    else grid.style.gridTemplateColumns = '1fr 1fr';
+  }
+
+  // ═══ AVATAR UPLOAD ═══
+  let cropState = { x:0, y:0, scale:1, dragging:false, startX:0, startY:0, imgW:0, imgH:0 };
+  function handleAvatarUpload(input) {
+    if (!input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('avatarCropWrap').style.display = 'block';
+      const img = document.getElementById('cropImg');
+      img.src = e.target.result;
+      img.onload = () => {
+        cropState = { x:0, y:0, scale:1, dragging:false, startX:0, startY:0, imgW:img.naturalWidth, imgH:img.naturalHeight };
+        document.getElementById('cropZoom').value = 100;
+        updateCrop();
+      };
+    };
+    reader.readAsDataURL(input.files[0]);
+    setupCropDrag();
+  }
+  function setupCropDrag() {
+    const circle = document.getElementById('cropCircle');
+    circle.onmousedown = circle.ontouchstart = e => {
+      cropState.dragging = true;
+      const pt = e.touches ? e.touches[0] : e;
+      cropState.startX = pt.clientX - cropState.x;
+      cropState.startY = pt.clientY - cropState.y;
+    };
+    document.onmousemove = document.ontouchmove = e => {
+      if (!cropState.dragging) return;
+      const pt = e.touches ? e.touches[0] : e;
+      cropState.x = pt.clientX - cropState.startX;
+      cropState.y = pt.clientY - cropState.startY;
+      updateCrop();
+    };
+    document.onmouseup = document.ontouchend = () => { cropState.dragging = false; };
+  }
+  function updateCrop() {
+    const zoom = parseInt(document.getElementById('cropZoom').value) / 100;
+    cropState.scale = zoom;
+    const img = document.getElementById('cropImg');
+    img.style.width = (cropState.imgW * zoom) + 'px';
+    img.style.height = (cropState.imgH * zoom) + 'px';
+    img.style.left = cropState.x + 'px';
+    img.style.top = cropState.y + 'px';
+  }
+  async function saveCroppedAvatar() {
+    const statusEl = document.getElementById('avatarUploadStatus');
+    statusEl.textContent = 'Uploading...'; statusEl.style.color = 'var(--gold)';
+    try {
+      // Draw cropped circle to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 300; canvas.height = 300;
+      const ctx = canvas.getContext('2d');
+      ctx.beginPath(); ctx.arc(150,150,150,0,Math.PI*2); ctx.clip();
+      const img = document.getElementById('cropImg');
+      ctx.drawImage(img, cropState.x, cropState.y, cropState.imgW * cropState.scale, cropState.imgH * cropState.scale);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const res = await uploadProfilePicture(dataUrl, 'avatar.jpg', currentUser);
+      if (res.status === 'Success') {
+        statusEl.textContent = '✅ Profile picture updated!'; statusEl.style.color = 'var(--green)';
+        const el = document.getElementById('settingsAvatarPreview');
+        if (el) el.innerHTML = '<img src="' + res.url + '">';
+        document.getElementById('avatarCropWrap').style.display = 'none';
+      } else { statusEl.textContent = '❌ ' + res.message; statusEl.style.color = 'var(--red)'; }
+    } catch(e) { statusEl.textContent = '❌ Upload failed'; statusEl.style.color = 'var(--red)'; }
+  }
+  function cancelAvatarCrop() {
+    document.getElementById('avatarCropWrap').style.display = 'none';
+    document.getElementById('avatarFileInput').value = '';
+  }
+
+  // ═══ ADMIN PANEL ═══
+  let adminSettings = {};
+  function openAdminModal() {
+    getAdminSettings().then(res => {
+      adminSettings = res.settings || {};
+      // Set active tone
+      document.querySelectorAll('.admin-tone-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tone === (adminSettings.timer_tone || 'default'));
+      });
+      // Broadcast
+      const broadcastText = document.getElementById('adminBroadcastText');
+      if (broadcastText) broadcastText.value = adminSettings.broadcast_message || '';
+      setToggle('toggleBroadcastBtn', adminSettings.broadcast_button_enabled || false);
+      const btnOpts = document.getElementById('broadcastBtnOptions');
+      if (btnOpts) btnOpts.style.display = adminSettings.broadcast_button_enabled ? 'block' : 'none';
+      if (adminSettings.broadcast_button_label) document.getElementById('adminBroadcastBtnLabel').value = adminSettings.broadcast_button_label;
+      if (adminSettings.broadcast_button_action) document.getElementById('adminBroadcastBtnAction').value = adminSettings.broadcast_button_action;
+      if (adminSettings.broadcast_button_url) document.getElementById('adminBroadcastBtnUrl').value = adminSettings.broadcast_button_url;
+      openModalAnimated('adminModal');
+    });
+  }
+  function setAdminTone(tone) {
+    document.querySelectorAll('.admin-tone-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tone === tone));
+    adminSettings.timer_tone = tone;
+    updateAdminSettings({ timer_tone: tone });
+  }
+  function previewCurrentTone() {
+    const tone = adminSettings.timer_tone || 'default';
+    playAlarmTone(tone);
+  }
+  function toggleAdminBroadcastBtn() {
+    const el = document.getElementById('toggleBroadcastBtn');
+    const on = !el.classList.contains('on');
+    el.classList.toggle('on', on);
+    document.getElementById('broadcastBtnOptions').style.display = on ? 'block' : 'none';
+    adminSettings.broadcast_button_enabled = on;
+  }
+  function updateBroadcastActionFields() {
+    const action = document.getElementById('adminBroadcastBtnAction').value;
+    const urlField = document.getElementById('adminBroadcastBtnUrl');
+    urlField.style.display = (action === 'url_browser' || action === 'url_app') ? 'block' : 'none';
+  }
+  function publishBroadcast() {
+    const message = document.getElementById('adminBroadcastText').value.trim();
+    if (!message) { alert('Enter a message first.'); return; }
+    const btnEnabled = document.getElementById('toggleBroadcastBtn').classList.contains('on');
+    const btnLabel = document.getElementById('adminBroadcastBtnLabel').value.trim();
+    const btnAction = document.getElementById('adminBroadcastBtnAction').value;
+    const btnUrl = document.getElementById('adminBroadcastBtnUrl').value.trim();
+    updateAdminSettings({
+      broadcast_message: message,
+      broadcast_active: true,
+      broadcast_button_enabled: btnEnabled,
+      broadcast_button_label: btnLabel,
+      broadcast_button_url: btnUrl,
+      broadcast_button_action: btnAction
+    }).then(() => { alert('✅ Broadcast published!'); loadBroadcast(); });
+  }
+  function clearBroadcast() {
+    if (!confirm('Remove the broadcast for all users?')) return;
+    updateAdminSettings({ broadcast_active: false, broadcast_message: null }).then(() => {
+      document.getElementById('adminBroadcastText').value = '';
+      loadBroadcast();
+      alert('Broadcast cleared.');
+    });
+  }
+  function loadBroadcast() {
+    getAdminSettings().then(res => {
+      const s = res.settings || {};
+      const banner = document.getElementById('broadcastBanner');
+      if (!banner) return;
+      if (!s.broadcast_active || !s.broadcast_message) { banner.classList.remove('visible'); return; }
+      const dismissed = localStorage.getItem('broadcastDismissed_' + (s.updated_at || ''));
+      if (dismissed) { banner.classList.remove('visible'); return; }
+      let html = '<button class="broadcast-banner-close" onclick="dismissBroadcast(\'' + (s.updated_at||'') + '\')">✕</button>';
+      html += '<div class="broadcast-banner-text">' + s.broadcast_message + '</div>';
+      if (s.broadcast_button_enabled && s.broadcast_button_label) {
+        html += '<button class="broadcast-banner-btn" onclick="handleBroadcastAction(\'' + s.broadcast_button_action + '\',\'' + (s.broadcast_button_url||'') + '\')">' + s.broadcast_button_label + '</button>';
+      }
+      banner.innerHTML = html;
+      banner.classList.add('visible');
+    });
+  }
+  function dismissBroadcast(key) {
+    localStorage.setItem('broadcastDismissed_' + key, '1');
+    document.getElementById('broadcastBanner').classList.remove('visible');
+  }
+  function handleBroadcastAction(action, url) {
+    if (action === 'url_browser') { window.open(url, '_blank'); }
+    else if (action === 'url_app') { window.location.href = url; }
+    else if (action === 'tab_recipes') { switchTab('recipes'); }
+    else if (action === 'tab_featured') { switchTab('featured'); }
+    else if (action === 'tab_discover') { switchTab('discover'); }
+    else if (action === 'tab_planner') { switchTab('planner'); }
+    else if (action === 'add_recipe') { openAddModal(); }
+  }
+  async function loadAdminUsers() {
+    const el = document.getElementById('adminUserList');
+    el.innerHTML = 'Loading...';
+    const data = await sbFetch('GET', 'users', null, 'select=username,created_at&order=created_at.desc');
+    el.innerHTML = (data||[]).map(u => '<div style="padding:8px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.85em;display:flex;justify-content:space-between;"><span>' + u.username + '</span><span style="color:var(--text-faint);font-size:0.78em;">' + new Date(u.created_at).toLocaleDateString() + '</span></div>').join('');
+  }
+  async function loadAdminBlacklist() {
+    const el = document.getElementById('adminBlacklistList');
+    el.innerHTML = 'Loading...';
+    const data = await sbFetch('GET', 'blacklist', null, 'select=domain,id&order=created_at.desc');
+    el.innerHTML = (data||[]).map(b => '<div style="padding:8px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.85em;display:flex;justify-content:space-between;align-items:center;"><span>' + b.domain + '</span><button onclick="adminRemoveBlacklist(\'' + b.id + '\',this)" style="background:none;border:none;color:var(--red);font-size:0.8em;cursor:pointer;">Remove</button></div>').join('');
+  }
+  async function adminRemoveBlacklist(id, btn) {
+    btn.textContent = '...';
+    await sbFetch('DELETE', 'blacklist?id=eq.' + id, null);
+    btn.closest('div').remove();
+    globalBlacklist = globalBlacklist.filter(d => d !== btn.previousSibling.textContent);
+  }
+  function toggleAdminSetting(key, toggleId) {
+    const el = document.getElementById(toggleId);
+    const on = !el.classList.contains('on');
+    el.classList.toggle('on', on);
+    updateAdminSettings({ [key]: on });
+  }
+  function openRotdOverride() { alert('Recipe of the Day override coming soon!'); }
+
+  // ═══ SEASONAL TIMER TONES ═══
+  function playAlarmTone(tone) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const patterns = {
+        default:   { freqs:[1040,1040,1040,1040,1040,1040,1040,1040,1040], times:[0,0.18,0.36,0.7,0.88,1.06,1.4,1.58,1.76], type:'square', dur:0.15 },
+        christmas: { freqs:[523,659,784,659,523,784,1047,784,659],         times:[0,0.2,0.4,0.6,0.85,1.05,1.25,1.5,1.7],   type:'triangle', dur:0.18 },
+        halloween: { freqs:[233,220,207,233,220,207,196,233,220],           times:[0,0.25,0.5,0.8,1.05,1.3,1.6,1.85,2.1],   type:'sawtooth', dur:0.22 },
+        spring:    { freqs:[880,1047,1319,1047,880,1319,1568,1319,1047],    times:[0,0.15,0.3,0.5,0.65,0.8,1.0,1.15,1.3],   type:'sine', dur:0.13 },
+        newyear:   { freqs:[784,988,1175,988,784,1175,1568,1175,988],       times:[0,0.12,0.24,0.4,0.52,0.64,0.8,0.92,1.04], type:'sine', dur:0.10 },
+        summer:    { freqs:[659,784,880,784,659,880,1047,880,784],          times:[0,0.14,0.28,0.46,0.60,0.74,0.92,1.06,1.2], type:'sine', dur:0.12 },
+        autumn:    { freqs:[349,440,523,440,349,523,698,523,440],           times:[0,0.22,0.44,0.72,0.94,1.16,1.44,1.66,1.88], type:'triangle', dur:0.20 }
+      };
+      const p = patterns[tone] || patterns.default;
+      p.freqs.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq; osc.type = p.type;
+        gain.gain.setValueAtTime(0, ctx.currentTime + p.times[i]);
+        gain.gain.linearRampToValueAtTime(0.9, ctx.currentTime + p.times[i] + 0.01);
+        gain.gain.setValueAtTime(0.9, ctx.currentTime + p.times[i] + p.dur - 0.02);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + p.times[i] + p.dur);
+        osc.start(ctx.currentTime + p.times[i]);
+        osc.stop(ctx.currentTime + p.times[i] + p.dur + 0.01);
+      });
+    } catch(e) { playAlarm(); }
+  }
+  function playAlarm() {
+    getAdminSettings().then(res => {
+      const tone = (res.settings && res.settings.timer_tone) || 'default';
+      playAlarmTone(tone);
+    }).catch(() => playAlarmTone('default'));
+  }
+
+  // ═══ MESSAGING ═══
+  let currentMsgPartner = null;
+  function openMessaging(partner) {
+    currentMsgPartner = partner;
+    // Close friend options
+    if (activeFriendOptionsUser) { const prev = document.getElementById('friend-opts-' + activeFriendOptionsUser); if (prev) prev.innerHTML = ''; activeFriendOptionsUser = null; }
+    if (partner) { openMsgThread(partner); }
+    else { loadConversations(); }
+    openModalAnimated('messagingModal');
+  }
+  function loadConversations() {
+    document.getElementById('msgConvView').style.display = 'block';
+    document.getElementById('msgThreadView').style.display = 'none';
+    document.getElementById('msgConvList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
+    Promise.all([getConversations(currentUser), getMessageRequests(currentUser)]).then(([convRes, reqRes]) => {
+      const convs = convRes.conversations || [];
+      const reqs = reqRes.requests || [];
+      // Requests badge
+      const badge = document.getElementById('msgRequestsBadge');
+      if (badge) { badge.style.display = reqs.length > 0 ? 'block' : 'none'; badge.textContent = reqs.length + ' Request' + (reqs.length > 1 ? 's' : ''); }
+      // Requests section
+      if (reqs.length > 0) {
+        document.getElementById('msgRequestsSection').style.display = 'block';
+        document.getElementById('msgRequestsList').innerHTML = reqs.map(r => {
+          const av = r.from_user.avatar_url ? '<img src="' + r.from_user.avatar_url + '">' : r.from_user.username.charAt(0);
+          return '<div class="msg-conv-item"><div class="msg-conv-avatar">' + av + '</div><div class="msg-conv-info"><div class="msg-conv-name">' + r.from_user.username + '</div><div class="msg-conv-preview">' + r.content + '</div></div><div style="display:flex;gap:6px;"><button class="inbox-accept" style="padding:7px 12px;font-size:0.78em;" onclick="acceptMsgRequest(\'' + r.id + '\',\'' + r.from_user.username + '\')">Accept</button><button class="inbox-decline" style="padding:7px 10px;font-size:0.78em;" onclick="declineMsgRequest(\'' + r.id + '\')">✕</button></div></div>';
+        }).join('');
+      } else { document.getElementById('msgRequestsSection').style.display = 'none'; }
+      // Conversations
+      if (convs.length === 0) {
+        document.getElementById('msgConvList').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:0.85em;">No messages yet.<br>Message a friend from your friends list.</div>';
+        return;
+      }
+      document.getElementById('msgConvList').innerHTML = convs.map(c => {
+        const av = c.partnerAvatar ? '<img src="' + c.partnerAvatar + '">' : c.partner.charAt(0);
+        const lastMsg = c.lastMsg;
+        const preview = lastMsg ? (lastMsg.from_user_id === currentUser ? 'You: ' : '') + lastMsg.content : '';
+        const time = lastMsg ? formatMsgTime(lastMsg.created_at) : '';
+        const unreadBadge = c.unread > 0 ? '<div class="msg-unread-badge">' + c.unread + '</div>' : '';
+        return '<div class="msg-conv-item" onclick="openMsgThread(\'' + c.partner + '\')"><div class="msg-conv-avatar">' + av + '</div><div class="msg-conv-info"><div class="msg-conv-name">' + c.partner + '</div><div class="msg-conv-preview">' + preview + '</div></div><div class="msg-conv-meta"><div class="msg-conv-time">' + time + '</div>' + unreadBadge + '</div></div>';
+      }).join('');
+    });
+  }
+  function showMsgRequests() { document.getElementById('msgRequestsSection').scrollIntoView({ behavior: 'smooth' }); }
+  function showMsgConvList() { document.getElementById('msgConvView').style.display = 'block'; document.getElementById('msgThreadView').style.display = 'none'; currentMsgPartner = null; loadConversations(); }
+  function openMsgThread(partner) {
+    currentMsgPartner = partner;
+    document.getElementById('msgConvView').style.display = 'none';
+    const threadView = document.getElementById('msgThreadView');
+    threadView.style.display = 'flex';
+    document.getElementById('msgThreadName').textContent = partner;
+    const av = document.getElementById('msgThreadAvatar');
+    av.textContent = partner.charAt(0);
+    document.getElementById('msgInput').value = '';
+    document.getElementById('msgCharCount').textContent = '0 / 300';
+    loadMessages(partner);
+  }
+  function loadMessages(partner) {
+    getMessages(currentUser, partner).then(res => {
+      const msgs = res.messages || [];
+      const bubbles = document.getElementById('msgBubbles');
+      // Check if first message is pending (request)
+      const firstMsg = msgs[0];
+      const isRequest = firstMsg && firstMsg.status === 'pending' && firstMsg.to_user_id !== currentUser;
+      if (msgs.length === 0) { bubbles.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-faint);font-size:0.85em;">Say hello 👋</div>'; return; }
+      bubbles.innerHTML = msgs.map(m => {
+        const isMine = m.from_user_id !== undefined && msgs.findIndex(x => x.id === m.id && x.from_user_id === m.from_user_id) >= 0;
+        // Determine mine by checking against currentUser
+        const mine = m.status === 'pending' ? true : (m.from_user_id === m.from_user_id); // will fix with real check below
+        return '';
+      }).join('');
+      // Proper mine check — need userId. Use a workaround via username lookup
+      getUserId(currentUser).then(myId => {
+        bubbles.innerHTML = msgs.map(m => {
+          const mine = m.from_user_id === myId;
+          const side = mine ? 'mine' : 'theirs';
+          const time = formatMsgTime(m.created_at);
+          const pending = m.status === 'pending' && !mine ? '<div style="font-size:0.65em;color:var(--gold);margin-top:2px;">Message request</div>' : '';
+          return '<div style="display:flex;flex-direction:column;align-items:' + (mine?'flex-end':'flex-start') + '"><div class="msg-bubble ' + side + '">' + escapeHtml(m.content) + '</div><div class="msg-bubble-time" style="text-align:' + (mine?'right':'left') + '">' + time + pending + '</div></div>';
+        }).join('');
+        bubbles.scrollTop = bubbles.scrollHeight;
+      });
+    });
+  }
+  function sendCurrentMessage() {
+    const input = document.getElementById('msgInput');
+    const content = input.value.trim();
+    if (!content || !currentMsgPartner) return;
+    sendMessage(currentUser, currentMsgPartner, content).then(res => {
+      if (res.status === 'Success') { input.value = ''; document.getElementById('msgCharCount').textContent = '0 / 300'; loadMessages(currentMsgPartner); }
+    });
+  }
+  function updateMsgCharCount() {
+    const len = document.getElementById('msgInput').value.length;
+    document.getElementById('msgCharCount').textContent = len + ' / 300';
+  }
+  function acceptMsgRequest(msgId, fromUser) {
+    respondToMessage(msgId, true).then(() => { openMsgThread(fromUser); });
+  }
+  function declineMsgRequest(msgId) {
+    respondToMessage(msgId, false).then(() => loadConversations());
+  }
+  function blockCurrentMsgUser() {
+    if (!currentMsgPartner) return;
+    if (!confirm('Block ' + currentMsgPartner + '? They will not be able to message you.')) return;
+    blockUser(currentUser, currentMsgPartner).then(() => { alert(currentMsgPartner + ' has been blocked.'); showMsgConvList(); });
+  }
+  function formatMsgTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso); const now = new Date();
+    const diff = now - d;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+    return d.toLocaleDateString();
+  }
+  function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ═══ FRIEND COLLECTIONS ═══
+  function viewFriendCollections(username) {
+    if (activeFriendOptionsUser) { const prev = document.getElementById('friend-opts-' + activeFriendOptionsUser); if (prev) prev.innerHTML = ''; activeFriendOptionsUser = null; }
+    getPublicCollections(username).then(res => {
+      const cols = res.collections || [];
+      const section = document.getElementById('friendRecipesSection');
+      const title = document.getElementById('friendRecipesTitle');
+      const grid = document.getElementById('friendRecipesGrid');
+      title.textContent = username + "'s Collections";
+      section.style.display = 'block';
+      document.getElementById('friendsList').style.display = 'none';
+      if (cols.length === 0) { grid.innerHTML = '<div style="text-align:center;color:var(--text-faint);padding:20px;font-size:0.9em;">No public collections.</div>'; return; }
+      grid.innerHTML = cols.map((col, i) => '<div class="glass-card" style="cursor:pointer;padding:14px;" onclick="viewFriendCollectionRecipes(\'' + col.id + '\',\'' + col.name + '\',\'' + username + '\')"><div style="font-weight:700;font-size:0.95em;margin-bottom:4px;">📁 ' + col.name + '</div><div style="font-size:0.78em;color:var(--text-faint);">' + col.recipeIds.length + ' recipes</div></div>').join('');
+    });
+  }
+  function viewFriendCollectionRecipes(colId, colName, username) {
+    getFriendCollectionRecipes(colId).then(res => {
+      const recipes = res.recipes || [];
+      const grid = document.getElementById('friendRecipesGrid');
+      document.getElementById('friendRecipesTitle').textContent = username + ' · ' + colName + ' (' + recipes.length + ')';
+      window._friendRecipes = recipes;
+      if (recipes.length === 0) { grid.innerHTML = '<div style="text-align:center;color:var(--text-faint);padding:20px;font-size:0.9em;">No recipes in this collection.</div>'; return; }
+      grid.innerHTML = recipes.map((r, i) => {
+        const hasImg = r.image_url && r.image_url.trim();
+        const alreadyHave = allRecipes.some(ur => ur.title === r.title);
+        const addBtn = alreadyHave ? '<button style="width:100%;padding:7px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);border-radius:8px;font-size:0.72em;cursor:default;">✓ In your cookbook</button>' : '<button onclick="addFriendRecipe(' + i + ',this)" style="width:100%;padding:7px;background:var(--gold);color:var(--bg);border:none;border-radius:8px;font-size:0.72em;font-weight:700;cursor:pointer;">+ Add to Cookbook</button>';
+        return '<div class="glass-card" style="cursor:default;"><div class="card-img-wrap">' + (hasImg ? '<img src="' + r.image_url + '" loading="lazy">' : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>') + '</div><div class="card-info"><div class="card-title">' + r.title + '</div>' + addBtn + '</div></div>';
+      }).join('');
+    });
+  }
+
+  // ═══ COLLECTIONS PUBLIC/PRIVATE TOGGLE ═══
+  // Extend createNewCollection to support public toggle
+  function createNewCollectionWithVisibility() {
+    const input = document.getElementById('newCollectionInput');
+    const name = input.value.trim(); if (!name) return;
+    const isPublic = document.getElementById('collectionPublicToggle') ? document.getElementById('collectionPublicToggle').classList.contains('on') : false;
+    createCollectionWithVisibility(currentUser, name, isPublic).then(res => {
+      if (res.status === 'Success') { input.value = ''; loadCollections(); setTimeout(() => renderCollectionsList(), 500); }
+    });
+  }
+
+  // ═══ BROADCAST ON INIT ═══
+  function checkBroadcast() { loadBroadcast(); }
+
+  // Main init — loads settings, recipes, and broadcast
+  async function init() {
+    if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch(e){} }
+    showSkeletonLoader();
+    try {
+      // Load user settings first to apply preferences
+      const settingsRes = await getUserSettings(currentUser);
+      userSettings = settingsRes.settings || {};
+      if (userSettings.default_sort) { currentSort = userSettings.default_sort; }
+      if (userSettings.card_size) { applyCardSize(userSettings.card_size); }
+      allRecipes = await getRecipes(currentUser);
+      renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
+      renderRotd();
+      checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
+      checkFeaturedBadge(); loadBlacklist(); checkBroadcast();
+      setTimeout(adjustHeaderPadding, 100);
+    } catch(e) { console.error('Init error:', e); }
+  }
 </script>
 </body>
 </html>
