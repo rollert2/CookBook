@@ -88,7 +88,6 @@ async function getRecipes(username) {
   const data = await sbFetch('GET', 'recipes', null,
     `user_id=eq.${userId}&select=*&order=created_at.desc`);
 
-  // Map Supabase columns back to the format the app expects
   return data.map(r => ({
     id:           r.id,
     category:     r.category || 'General',
@@ -101,6 +100,7 @@ async function getRecipes(username) {
     favourite:    r.favourite || false,
     rating:       r.rating ? r.rating.toString() : '',
     cookTime:     r.cook_time || '',
+    servings:     r.servings || '',
     lastCooked:   r.last_cooked || ''
   }));
 }
@@ -124,8 +124,9 @@ async function addRecipe(username, recipe) {
     ingredients:  recipe.ingredients || '',
     instructions: recipe.instructions || '',
     notes:        recipe.notes || '',
-    image_url:    recipe.image || '',
-    cook_time:    recipe.cookTime || '',
+    image_url:    recipe.image_url || recipe.image || '',
+    cook_time:    recipe.cookTime || recipe.cook_time || '',
+    servings:     recipe.servings || '',
     favourite:    false,
     rating:       null
   });
@@ -141,10 +142,10 @@ async function updateRecipe(recipeId, updates) {
     ingredients:  updates.ingredients,
     instructions: updates.instructions,
     notes:        updates.notes,
-    image_url:    updates.image,
-    cook_time:    updates.cookTime
+    image_url:    updates.image || updates.image_url,
+    cook_time:    updates.cookTime || updates.cook_time,
+    servings:     updates.servings
   };
-  // Remove undefined keys
   Object.keys(mapped).forEach(k => mapped[k] === undefined && delete mapped[k]);
   await sbFetch('PATCH', `recipes?id=eq.${recipeId}`, mapped);
   return { status: 'Success' };
@@ -544,3 +545,198 @@ async function getProfileStats(username) {
     followingCount: following.length
   };
 }
+
+// ── USER SETTINGS ─────────────────────────────────────────────
+
+async function getUserSettings(username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Success', settings: {} };
+  const data = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=*`);
+  if (!data || data.length === 0) {
+    await sbFetch('POST', 'user_settings', { user_id: userId });
+    return { status: 'Success', settings: {} };
+  }
+  return { status: 'Success', settings: data[0] };
+}
+
+async function updateUserSettings(username, settings) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error', message: 'User not found' };
+  await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, settings);
+  return { status: 'Success' };
+}
+
+// ── ADMIN SETTINGS ────────────────────────────────────────────
+
+async function getAdminSettings() {
+  const data = await sbFetch('GET', 'admin_settings', null, 'select=*&limit=1');
+  if (!data || data.length === 0) return { status: 'Success', settings: {} };
+  return { status: 'Success', settings: data[0] };
+}
+
+async function updateAdminSettings(settings) {
+  const data = await sbFetch('GET', 'admin_settings', null, 'select=id&limit=1');
+  if (!data || data.length === 0) return { status: 'Error', message: 'No admin settings row' };
+  await sbFetch('PATCH', `admin_settings?id=eq.${data[0].id}`, { ...settings, updated_at: new Date().toISOString() });
+  return { status: 'Success' };
+}
+
+// ── PROFILE PICTURE ───────────────────────────────────────────
+
+async function uploadProfilePicture(base64Data, fileName, username) {
+  try {
+    const byteString = atob(base64Data.split(',')[1]);
+    const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mimeString });
+    const ext = fileName.split('.').pop() || 'jpg';
+    const path = `avatars/${username}.${ext}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/profile-pictures/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': mimeString, 'x-upsert': 'true' },
+      body: blob
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/profile-pictures/${path}`;
+    const userId = await getUserId(username);
+    if (userId) await sbFetch('PATCH', `users?id=eq.${userId}`, { avatar_url: publicUrl });
+    return { status: 'Success', url: publicUrl };
+  } catch(e) { return { status: 'Error', message: e.message }; }
+}
+
+async function getUserAvatar(username) {
+  const data = await sbFetch('GET', 'users', null, `username=eq.${username}&select=avatar_url`);
+  if (!data || !data[0]) return null;
+  return data[0].avatar_url || null;
+}
+
+// ── MESSAGING ─────────────────────────────────────────────────
+
+async function getConversations(username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Success', conversations: [] };
+  const data = await sbFetch('GET', 'messages', null,
+    `or=(from_user_id.eq.${userId},to_user_id.eq.${userId})&status=neq.declined&select=*,from_user:users!messages_from_user_id_fkey(username,avatar_url),to_user:users!messages_to_user_id_fkey(username,avatar_url)&order=created_at.desc`);
+  // Group by conversation partner
+  const convMap = {};
+  (data || []).forEach(msg => {
+    const partner = msg.from_user.username === username ? msg.to_user.username : msg.from_user.username;
+    const partnerAvatar = msg.from_user.username === username ? msg.to_user.avatar_url : msg.from_user.avatar_url;
+    if (!convMap[partner]) convMap[partner] = { partner, partnerAvatar, messages: [], unread: 0, lastMsg: null, status: msg.status };
+    convMap[partner].messages.push(msg);
+    if (!convMap[partner].lastMsg) convMap[partner].lastMsg = msg;
+    if (msg.to_user.username === username && msg.status === 'delivered') convMap[partner].unread++;
+  });
+  return { status: 'Success', conversations: Object.values(convMap) };
+}
+
+async function getMessages(username, partnerUsername) {
+  const userId = await getUserId(username);
+  const partnerId = await getUserId(partnerUsername);
+  if (!userId || !partnerId) return { status: 'Success', messages: [] };
+  const data = await sbFetch('GET', 'messages', null,
+    `or=(and(from_user_id.eq.${userId},to_user_id.eq.${partnerId}),and(from_user_id.eq.${partnerId},to_user_id.eq.${userId}))&status=neq.declined&order=created_at.asc&select=*`);
+  // Mark delivered messages as read
+  const unreadIds = (data || []).filter(m => m.to_user_id === userId && m.status === 'delivered').map(m => m.id);
+  if (unreadIds.length > 0) {
+    await sbFetch('PATCH', `messages?id=in.(${unreadIds.join(',')})`, { status: 'read' });
+  }
+  return { status: 'Success', messages: data || [] };
+}
+
+async function sendMessage(fromUsername, toUsername, content) {
+  const fromId = await getUserId(fromUsername);
+  const toId = await getUserId(toUsername);
+  if (!fromId || !toId) return { status: 'Error', message: 'User not found' };
+  // Check if blocked
+  const blocked = await sbFetch('GET', 'blocked_users', null,
+    `or=(and(blocker_id.eq.${toId},blocked_id.eq.${fromId}),and(blocker_id.eq.${fromId},blocked_id.eq.${toId}))&select=id`);
+  if (blocked && blocked.length > 0) return { status: 'Error', message: 'Cannot send message' };
+  // Check if mutual follows — if not, send as request
+  const mutualFollow = await sbFetch('GET', 'follows', null,
+    `follower_id=eq.${toId}&followee_id=eq.${fromId}&select=follower_id`);
+  const status = (mutualFollow && mutualFollow.length > 0) ? 'delivered' : 'pending';
+  await sbFetch('POST', 'messages', { from_user_id: fromId, to_user_id: toId, content, status });
+  return { status: 'Success', messageStatus: status };
+}
+
+async function respondToMessage(messageId, accept) {
+  if (accept) {
+    await sbFetch('PATCH', `messages?id=eq.${messageId}`, { status: 'delivered' });
+  } else {
+    await sbFetch('PATCH', `messages?id=eq.${messageId}`, { status: 'declined' });
+  }
+  return { status: 'Success' };
+}
+
+async function getMessageRequests(username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Success', requests: [] };
+  const data = await sbFetch('GET', 'messages', null,
+    `to_user_id=eq.${userId}&status=eq.pending&select=*,from_user:users!messages_from_user_id_fkey(username,avatar_url)&order=created_at.desc`);
+  return { status: 'Success', requests: data || [] };
+}
+
+async function blockUser(blockerUsername, blockedUsername) {
+  const blockerId = await getUserId(blockerUsername);
+  const blockedId = await getUserId(blockedUsername);
+  if (!blockerId || !blockedId) return { status: 'Error', message: 'User not found' };
+  try { await sbFetch('POST', 'blocked_users', { blocker_id: blockerId, blocked_id: blockedId }); }
+  catch(e) {}
+  return { status: 'Success' };
+}
+
+async function getUnreadMessageCount(username) {
+  const userId = await getUserId(username);
+  if (!userId) return 0;
+  const data = await sbFetch('GET', 'messages', null,
+    `to_user_id=eq.${userId}&status=eq.delivered&select=id`);
+  return (data || []).length;
+}
+
+// ── COLLECTION SHARING ────────────────────────────────────────
+
+async function getPublicCollections(username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Success', collections: [] };
+  const cols = await sbFetch('GET', 'collections', null,
+    `user_id=eq.${userId}&is_public=eq.true&select=id,name,collection_recipes(recipe_id)`);
+  return {
+    status: 'Success',
+    collections: cols.map(c => ({
+      id: c.id,
+      name: c.name,
+      recipeIds: (c.collection_recipes || []).map(r => r.recipe_id)
+    }))
+  };
+}
+
+async function getFriendCollectionRecipes(collectionId) {
+  const data = await sbFetch('GET', 'collection_recipes', null,
+    `collection_id=eq.${collectionId}&select=recipe_id,recipes(id,title,category,ingredients,instructions,notes,cook_time,image_url,servings)`);
+  const recipes = (data || []).map(r => r.recipes).filter(Boolean);
+  return { status: 'Success', recipes };
+}
+
+// ── FOLLOW-BACK NOTIFICATION ──────────────────────────────────
+
+async function sendFollowBackNotification(fromUsername, toUsername) {
+  const fromId = await getUserId(fromUsername);
+  const toId = await getUserId(toUsername);
+  if (!fromId || !toId) return;
+  await sbFetch('POST', 'notifications', { to_user_id: toId, from_user_id: fromId, type: 'follow_back' });
+}
+
+// ── COLLECTION WITH VISIBILITY ────────────────────────────────
+
+async function createCollectionWithVisibility(username, name, isPublic) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error', message: 'User not found' };
+  await sbFetch('POST', 'collections', { user_id: userId, name, is_public: isPublic });
+  return { status: 'Success' };
+}
+
+// Make sbFetch available globally for admin panel direct queries
+window._sbFetch = sbFetch;
