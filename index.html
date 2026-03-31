@@ -2051,11 +2051,18 @@
     const btn = document.getElementById('previewAddBtn'); btn.disabled = true; btn.innerHTML = 'Importing...';
     const el = document.getElementById('previewResult'); el.style.display = 'none';
     const domain = getDomainFromUrl(previewUrl);
-    scrapeRecipeWithAI(previewUrl, currentUser).then(res => {
+    scrapeRecipeWithAI(previewUrl, currentUser).then(async res => {
       btn.disabled = false; el.style.display = 'block';
-      if (res.status === 'Success') {
-        el.className = 'ai-result success'; el.innerHTML = '✅ ' + res.message;
-        btn.innerHTML = '✅ Added!'; init(); setTimeout(closePreview, 1500);
+      if (res.status === 'Success' && res.recipe) {
+        // Scrape succeeded — now save to Supabase
+        const saveRes = await addRecipe(currentUser, res.recipe);
+        if (saveRes.status === 'Success') {
+          el.className = 'ai-result success'; el.innerHTML = '✅ ' + saveRes.message;
+          btn.innerHTML = '✅ Added!'; init(); setTimeout(closePreview, 1500);
+        } else {
+          el.className = 'ai-result error'; el.innerHTML = '❌ ' + saveRes.message;
+          btn.innerHTML = '✨ Try Again';
+        }
       } else {
         addToBlacklist(domain, currentUser).then(() => { globalBlacklist.push(domain); showBlacklistToast(domain); runDiscoverSearch(); });
         el.className = 'ai-result error'; el.innerHTML = '❌ ' + res.message;
@@ -2082,11 +2089,23 @@
     document.getElementById('aiStatus').style.display = 'block'; document.getElementById('aiResult').style.display = 'none';
     const msgs = ['Fetching page...','Reading content...','Extracting recipe...','Almost done...']; let si = 0; const statusEl = document.getElementById('aiStatusText'); statusEl.textContent = msgs[0];
     const interval = setInterval(() => { si = Math.min(si+1,msgs.length-1); statusEl.textContent = msgs[si]; }, 4000);
-    scrapeRecipeWithAI(url, currentUser).then(res => {
+    scrapeRecipeWithAI(url, currentUser).then(async res => {
       clearInterval(interval); document.getElementById('aiStatus').style.display = 'none';
       const el = document.getElementById('aiResult'); el.style.display = 'block';
-      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+res.message; btn.innerHTML='Import Another'; btn.disabled=false; document.getElementById('urlInput').value=''; init(); }
-      else { el.className='ai-result error'; el.innerHTML='❌ '+res.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; }
+      if (res.status==='Success' && res.recipe) {
+        const saveRes = await addRecipe(currentUser, res.recipe);
+        if (saveRes.status === 'Success') {
+          el.className='ai-result success'; el.innerHTML='✅ '+saveRes.message;
+          btn.innerHTML='Import Another'; btn.disabled=false;
+          document.getElementById('urlInput').value=''; init();
+        } else {
+          el.className='ai-result error'; el.innerHTML='❌ '+saveRes.message;
+          btn.innerHTML='✨ Try Again'; btn.disabled=false;
+        }
+      } else {
+        el.className='ai-result error'; el.innerHTML='❌ '+res.message;
+        btn.innerHTML='✨ Try Again'; btn.disabled=false;
+      }
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
   function performManualAdd() {
