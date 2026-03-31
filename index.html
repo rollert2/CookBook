@@ -916,6 +916,12 @@
     if (typeof median !== 'undefined' && median.android && median.android.swipeGestures) {
       median.android.swipeGestures.enable();
     }
+    // Request notification permission via Median JS bridge
+    if (typeof median !== 'undefined' && median.permissions) {
+      median.permissions.request(['Notifications']).then(res => {
+        console.log('Notification permission:', res);
+      }).catch(e => {});
+    }
     // Push initial state so back gesture has somewhere to go
     history.replaceState({ root: true }, '');
     const saved = localStorage.getItem('currentUser');
