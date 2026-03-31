@@ -1328,7 +1328,7 @@
             if (t.rem <= 0) {
               clearInterval(t.interval); t.state = 'alarm';
               btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
-              try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e) {}
+              playAlarm();
             }
           }, 1000);
         } else if (t.state === 'paused') {
@@ -1367,24 +1367,58 @@
   function handleRating(val) { const r = allRecipes[activeRecipeIndex]; const nv = parseInt(r.rating) === val ? '' : val; setRating(r.id, nv).then(res => { if (res.status === 'Success') { r.rating = nv.toString(); renderDetailContent(); renderRecipes(); } }); }
   function handleDuplicate() { addRecipe(currentUser, allRecipes[activeRecipeIndex]).then(res => { if (res.status === 'Success') { closeDetailsAnimated(); init(); } }); }
 
-  // ── MEDIAN LOCAL NOTIFICATIONS ──
+  // ── ALARM SOUND ──
+  function playAlarm() {
+    try {
+      // beep beep beep, pause, beep beep beep pattern
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const pattern = [0, 0.2, 0.4, 0.9, 1.1, 1.3]; // beep start times in seconds
+      pattern.forEach(time => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0, ctx.currentTime + time);
+        gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + time + 0.02);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.18);
+        osc.start(ctx.currentTime + time);
+        osc.stop(ctx.currentTime + time + 0.2);
+      });
+    } catch(e) {
+      // Fallback to single beep if AudioContext not available
+      try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e2) {}
+    }
+  }
   function scheduleTimerNotification(key, label, seconds) {
     if (typeof median === 'undefined') return;
+    // Try both Median notification API formats
     try {
-      median.android.localNotification.scheduleAt({
-        id: 'timer_' + key,
+      median.localNotification.schedule({
+        id: String(key),
         title: '⏱ Timer Done!',
-        message: label + ' is finished.',
-        time: Date.now() + (seconds * 1000)
+        body: (label || 'Your timer') + ' has finished!',
+        fireDate: new Date(Date.now() + seconds * 1000).toISOString(),
+        badge: 1
       });
-    } catch(e) {}
+    } catch(e) {
+      try {
+        median.android.localNotification.scheduleAt({
+          id: 'timer_' + key,
+          title: '⏱ Timer Done!',
+          message: (label || 'Your timer') + ' has finished!',
+          time: Date.now() + (seconds * 1000)
+        });
+      } catch(e2) {}
+    }
   }
 
   function cancelTimerNotification(key) {
     if (typeof median === 'undefined') return;
-    try {
-      median.android.localNotification.cancel({ id: 'timer_' + key });
-    } catch(e) {}
+    try { median.localNotification.cancel({ id: String(key) }); } catch(e) {
+      try { median.android.localNotification.cancel({ id: 'timer_' + key }); } catch(e2) {}
+    }
   }
 
   function hasActiveTimers() {
@@ -1471,7 +1505,7 @@
       if (t.rem <= 0) {
         clearInterval(t.interval); t.state = 'alarm';
         if (btn) { btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!'; }
-        try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e) {}
+        playAlarm();
         renderGlobalTimerBar();
       }
     }, 1000);
@@ -1510,7 +1544,7 @@
         if (t.rem <= 0) {
           clearInterval(t.interval); t.state = 'alarm';
           btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
-          try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e) {}
+          playAlarm();
           renderGlobalTimerBar();
         }
       }, 1000);
@@ -2262,7 +2296,7 @@
     for (const key in cookTimers) {
       const t = cookTimers[key];
       if (t.state === 'running' && t.rem > 0) { t.rem--; changed = true; }
-      else if (t.state === 'running' && t.rem <= 0) { t.state = 'alarm'; t.alarm = true; changed = true; try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){} }
+      else if (t.state === 'running' && t.rem <= 0) { t.state = 'alarm'; t.alarm = true; changed = true; playAlarm(); }
     }
     if (changed) renderCookTimerBar();
   }
