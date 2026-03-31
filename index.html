@@ -18,6 +18,14 @@
       --header-pad: 16px;
       --header-height: 180px;
     }
+    body.light-mode {
+      --bg:#f5f4f0; --surface:#ffffff; --surface2:#eeede9;
+      --glass:rgba(0,0,0,0.04); --glass-border:rgba(0,0,0,0.1);
+      --gold:#9a7530; --gold-dim:rgba(154,117,48,0.12);
+      --text:#1a1a1a; --text-dim:#555; --text-faint:#999;
+      --red:#d03030; --green:#2e8a57;
+    }
+    body { transition: background 0.2s ease, color 0.2s ease; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body { font-family:'DM Sans',system-ui,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:0 0 70px 0; min-height:100vh; overflow-x:hidden; }
 
@@ -1063,6 +1071,17 @@
     <div class="settings-section">
       <div class="settings-section-title">Display</div>
       <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Theme</div>
+          <div class="settings-row-sub">Dark, light, or follow system</div>
+        </div>
+        <select class="settings-select" id="settingTheme" onchange="applyTheme(this.value);saveSetting('theme',this.value)">
+          <option value="dark">🌙 Dark</option>
+          <option value="light">☀️ Light</option>
+          <option value="system">⚙️ System</option>
+        </select>
+      </div>
+      <div class="settings-row">
         <div class="settings-row-info"><div class="settings-row-label">Default sort</div></div>
         <select class="settings-select" id="settingDefaultSort" onchange="saveSetting('default_sort',this.value)">
           <option value="newest">Newest first</option>
@@ -1304,6 +1323,10 @@
   let currentFriendView = null;
 
   window.onload = function() {
+    // Apply theme instantly to avoid flash
+    const savedTheme = localStorage.getItem('rc_theme') || 'dark';
+    if (savedTheme === 'light') document.body.classList.add('light-mode');
+    else if (savedTheme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('light-mode');
     // Enable swipe gestures via Median JavaScript Bridge
     if (typeof median !== 'undefined' && median.android && median.android.swipeGestures) {
       median.android.swipeGestures.enable();
@@ -1439,6 +1462,7 @@
     });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
+    loadTheme(); // sync theme from Supabase settings
     initPullToRefresh();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
@@ -3050,20 +3074,53 @@
 
   // ═══ SETTINGS ═══
   let userSettings = {};
+  // ═══ THEME ═══
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+    } else if (theme === 'dark') {
+      document.body.classList.remove('light-mode');
+    } else {
+      // System default
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.toggle('light-mode', !prefersDark);
+    }
+    localStorage.setItem('rc_theme', theme);
+  }
+  function loadTheme() {
+    // Load from localStorage first (instant, no flicker)
+    const saved = localStorage.getItem('rc_theme') || 'dark';
+    applyTheme(saved);
+    // Then sync from Supabase settings if available
+    if (currentUser) {
+      getUserSettings(currentUser).then(res => {
+        const t = (res.settings && res.settings.theme) || saved;
+        if (t !== saved) applyTheme(t);
+        const sel = document.getElementById('settingTheme');
+        if (sel) sel.value = t;
+      });
+    }
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if ((localStorage.getItem('rc_theme') || 'dark') === 'system') applyTheme('system');
+    });
+  }
+
   function openSettingsModal() {
     getUserSettings(currentUser).then(res => {
       userSettings = res.settings || {};
-      // Apply to UI
       const ds = document.getElementById('settingDefaultSort');
       if (ds) ds.value = userSettings.default_sort || 'newest';
       const dsc = document.getElementById('settingDefaultScale');
       if (dsc) dsc.value = userSettings.default_scale || '1';
       const cs = document.getElementById('settingCardSize');
       if (cs) cs.value = userSettings.card_size || 'normal';
+      // Theme
+      const th = document.getElementById('settingTheme');
+      if (th) th.value = userSettings.theme || localStorage.getItem('rc_theme') || 'dark';
       setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
       setToggle('toggleShowRating', userSettings.show_rating !== false);
       setToggle('toggleAutoShop', userSettings.auto_shop_planner === true);
-      // Avatar
       getUserAvatar(currentUser).then(url => {
         const el = document.getElementById('settingsAvatarPreview');
         if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
