@@ -2021,13 +2021,17 @@
     const q = document.getElementById('discoverInput').value.trim(); if (!q) return;
     document.getElementById('discoverEmpty').style.display = 'none'; document.getElementById('discoverResults').innerHTML = ''; document.getElementById('discoverStatus').style.display = 'block';
     const blacklist = globalBlacklist;
-    // Discover search still uses Apps Script SerpAPI for now
-    // TODO: Move to a Vercel API route
-    fetch('https://serpapi.com/search.json?engine=google&q=' + encodeURIComponent(q + ' recipe') + '&num=15&api_key=35785596c2c9afc33e6ab08dd9ff2f88ce818589fbdc6b593696e70ffa0eeb49')
+    // Call our Vercel API route which keeps the SerpAPI key server-side
+    fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q })
+    })
       .then(r => r.json())
-      .then(data => {
+      .then(res => {
         document.getElementById('discoverStatus').style.display = 'none';
-        const results = (data.organic_results || []).map(r => ({ title: r.title||'', url: r.link||'', site: r.displayed_link||'', snippet: r.snippet||'', thumbnail: r.thumbnail||'' }));
+        if (res.status === 'Error') { document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">❌ '+res.message+'</div>'; return; }
+        const results = res.results || [];
         if (results.length === 0) { document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">No results found.</div>'; return; }
         const filtered = results.filter(r => !blacklist.includes(getDomainFromUrl(r.url)));
         if (filtered.length === 0) { document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">No results found (some sites were filtered).</div>'; return; }
