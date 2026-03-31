@@ -1365,13 +1365,24 @@
     document.getElementById('loginWarning').style.display = 'none';
   }
 
-  function renderSavedUsers() {
+  async function renderSavedUsers() {
     const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
     const section = document.getElementById('savedUsersSection');
     const list = document.getElementById('savedUsersList');
     if (allSaved.length === 0) { section.style.display = 'none'; return; }
     section.style.display = 'block';
-    list.innerHTML = allSaved.map(u => '<div class="saved-user-btn"><div class="saved-user-avatar">' + u.charAt(0) + '</div><div style="flex:1;cursor:pointer;" onclick="loginAsExisting(\'' + u + '\')"><div class="saved-user-name">' + u + '</div><div class="saved-user-hint">Tap to continue</div></div><button onclick="deleteUser(\'' + u + '\')" style="background:none;border:none;color:var(--text-faint);font-size:1.1em;cursor:pointer;padding:4px 6px;">✕</button></div>').join('');
+    // Render with initials first
+    list.innerHTML = allSaved.map(u =>
+      '<div class="saved-user-btn"><div class="saved-user-avatar" id="login-avatar-' + u + '">' + u.charAt(0).toUpperCase() + '</div><div style="flex:1;cursor:pointer;" onclick="loginAsExisting(\'' + u + '\')"><div class="saved-user-name">' + u + '</div><div class="saved-user-hint">Tap to continue</div></div><button onclick="deleteUser(\'' + u + '\')" style="background:none;border:none;color:var(--text-faint);font-size:1.1em;cursor:pointer;padding:4px 6px;">✕</button></div>'
+    ).join('');
+    // Load avatars async
+    for (const u of allSaved) {
+      getUserAvatar(u).then(url => {
+        if (!url) return;
+        const el = document.getElementById('login-avatar-' + u);
+        if (el) el.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
+      });
+    }
   }
 
   function loginAsExisting(u) { enterApp(u); }
@@ -2381,11 +2392,19 @@
     if (following.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Not following anyone yet.<br>Add a friend by username above.</div>'; return; }
     list.innerHTML = following.map(u => {
       return '<div class="friend-item" id="friend-item-' + u + '">' +
-        '<div class="friend-avatar" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;">' + u.charAt(0) + '</div>' +
+        '<div class="friend-avatar" id="friend-av-' + u + '" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;overflow:hidden;">' + u.charAt(0).toUpperCase() + '</div>' +
         '<div class="friend-name" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;">' + u + '</div>' +
         '<div id="friend-opts-' + u + '"></div>' +
       '</div>';
     }).join('');
+    // Load avatars async
+    following.forEach(u => {
+      getUserAvatar(u).then(url => {
+        if (!url) return;
+        const el = document.getElementById('friend-av-' + u);
+        if (el) el.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">';
+      });
+    });
   }
 
   function toggleFriendOptions(username) {
@@ -2645,23 +2664,7 @@
   function openPreview(idx) {
     const r = window._discoverResults[idx];
     previewUrl = r.url;
-
-    // Try Median native browser first — opens real site without iframe restrictions
-    if (typeof median !== 'undefined' && median.openExternalUrl) {
-      // Show a bottom sheet to confirm before opening
-      showPreviewSheet(r);
-    } else {
-      // Fallback: try iframe (works on some sites)
-      document.getElementById('previewSite').textContent = r.site;
-      document.getElementById('previewTitle').textContent = r.title;
-      document.getElementById('previewResult').style.display = 'none';
-      const btn = document.getElementById('previewAddBtn');
-      btn.disabled = false; btn.innerHTML = '✨ Add';
-      document.getElementById('previewIframe').src = r.url;
-      document.getElementById('previewPanel').style.display = 'block';
-      document.getElementById('previewPanel').classList.add('active');
-      history.pushState({ modal: 'previewPanel' }, '');
-    }
+    showPreviewSheet(r);
   }
 
   function showPreviewSheet(r) {
@@ -2670,15 +2673,17 @@
     if (existing) existing.remove();
     const sheet = document.createElement('div');
     sheet.id = 'discoverPreviewSheet';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--glass-border);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--glass-border);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;display:flex;flex-direction:column;';
     sheet.innerHTML = `
-      <div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;"></div>
-      <div style="font-size:0.65em;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">${escapeHtml(r.site)}</div>
-      <div style="font-size:1em;font-weight:700;margin-bottom:8px;line-height:1.3;">${escapeHtml(r.title)}</div>
-      <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:18px;line-height:1.5;">${escapeHtml(r.snippet)}</div>
-      <button onclick="addFromPreviewUrl('${escapeHtml(r.url)}')" id="sheetAddBtn" style="width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:1em;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:-0.2px;">✨ Add to Cookbook</button>
-      <button onclick="openPreviewInBrowser('${escapeHtml(r.url)}')" style="width:100%;margin-top:10px;padding:13px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">🌐 Browse Site First</button>
-      <button onclick="document.getElementById('discoverPreviewSheet').remove();document.getElementById('discoverSheetOverlay').remove();" style="width:100%;margin-top:8px;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>
+      <div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;flex-shrink:0;"></div>
+      <div style="font-size:0.65em;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;flex-shrink:0;">${escapeHtml(r.site)}</div>
+      <div style="font-size:1em;font-weight:700;margin-bottom:8px;line-height:1.3;flex-shrink:0;">${escapeHtml(r.title)}</div>
+      <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:20px;line-height:1.5;flex:1;">${escapeHtml(r.snippet)}</div>
+      <div style="flex-shrink:0;">
+        <button onclick="addFromPreviewUrl('${escapeHtml(r.url)}')" id="sheetAddBtn" style="width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:1em;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:-0.2px;">✨ Add to Cookbook</button>
+        <button onclick="openPreviewInBrowser('${escapeHtml(r.url)}')" style="width:100%;margin-top:10px;padding:13px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">🌐 Browse Site First</button>
+        <button onclick="document.getElementById('discoverPreviewSheet').remove();document.getElementById('discoverSheetOverlay').remove();" style="width:100%;margin-top:8px;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>
+      </div>
     `;
     document.body.appendChild(sheet);
     // Overlay
