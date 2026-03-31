@@ -63,6 +63,7 @@
     .header-search { padding:0 16px 8px; }
     .header-chips { padding:0 16px 10px; display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; }
     .header-chips::-webkit-scrollbar { display:none; }
+    .recipe-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 12px; }
     @media (orientation:landscape) { .header-statusbar{height:38px;} .recipe-grid{grid-template-columns:1fr 1fr 1fr;} }
     @media (orientation:landscape) { .app-header{padding:8px 18px 10px;} .modal-header{padding-top:8px!important;} .main-content{padding-top:140px;} .recipe-grid{grid-template-columns:1fr 1fr 1fr;} }
     .icon-btn { width:32px; height:32px; border-radius:9px; background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); font-size:0.9em; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; flex-shrink:0; }
@@ -99,19 +100,21 @@
     .rotd-dismiss { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.5); border:none; color:var(--text-dim); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:0.75em; display:flex; align-items:center; justify-content:center; z-index:3; }
 
     /* ── SORT FILTER BUTTON ── */
-    .sort-filter-wrap { position:relative; }
+    .sort-filter-wrap { position:relative; z-index:300; }
     .sort-filter-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.75em; color:var(--text-dim); cursor:pointer; white-space:nowrap; flex-shrink:0; }
     .sort-filter-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); font-weight:600; }
-    .sort-dropdown { display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); z-index:200; min-width:160px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.5); animation:fadeUp 0.15s ease; }
+    .sort-dropdown { display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); z-index:500; min-width:160px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.8); animation:fadeUp 0.15s ease; }
     .sort-dropdown.open { display:block; }
     .sort-option { padding:12px 16px; font-size:0.85em; color:var(--text-dim); cursor:pointer; border-bottom:1px solid var(--glass-border); display:flex; align-items:center; gap:8px; }
     .sort-option:last-child { border-bottom:none; }
     .sort-option:active { background:var(--glass); }
     .sort-option.active { color:var(--gold); font-weight:600; }
     .sort-option.active::after { content:'✓'; margin-left:auto; }
-    .category-filter-row { display:flex; gap:7px; overflow-x:auto; padding:8px 12px 10px; scrollbar-width:none; align-items:center; }
+    .category-filter-row { display:flex; gap:7px; padding:8px 12px 10px; scrollbar-width:none; align-items:center; overflow:visible; position:relative; z-index:200; }
     .category-filter-row::-webkit-scrollbar { display:none; }
-    .sort-chip { padding:6px 13px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.75em; white-space:nowrap; color:var(--text-dim); cursor:pointer; }
+    .category-filter-inner { display:flex; gap:7px; overflow-x:auto; flex:1; scrollbar-width:none; }
+    .category-filter-inner::-webkit-scrollbar { display:none; }
+    .sort-chip { padding:6px 13px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.75em; white-space:nowrap; color:var(--text-dim); cursor:pointer; flex-shrink:0; }
     .sort-chip.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); font-weight:600; }
 
     /* ── STYLE B DETAIL VIEW ── */
@@ -613,6 +616,7 @@
           <span id="notifBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;margin-left:2px;flex-shrink:0;"></span>
         </div>
         <button class="icon-btn" id="inboxBtn" onclick="openInbox()">🔔<span class="notif-badge" id="inboxBadge" style="display:none;"></span></button>
+        <button class="icon-btn" onclick="openMessaging(null)" style="position:relative;">💬<span id="msgBellBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:14px;height:14px;font-size:0.5em;font-weight:900;align-items:center;justify-content:center;position:absolute;top:-2px;right:-2px;"></span></button>
         <button class="icon-btn" id="favFilterBtn" onclick="toggleFavFilter()">⭐</button>
         <button class="icon-btn" onclick="openCollectionsPanel()">📁</button>
         <button class="icon-btn" onclick="openShopPanel()" id="shopHeaderBtn">🛒<span id="shopBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;position:absolute;top:-4px;right:-4px;"></span></button>
@@ -645,7 +649,7 @@
           <div class="sort-option" id="sortOpt_fav" onclick="setSort('fav')">❤️ Favourites</div>
         </div>
       </div>
-      <div id="categoryFiltersInline" style="display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;flex:1;"></div>
+      <div id="categoryFiltersInline" class="category-filter-inner"></div>
     </div>
     <div id="recipeContainer" class="recipe-grid"></div>
   </div>
@@ -793,7 +797,7 @@
       <button class="btn btn-primary" id="previewAddBtn" onclick="addFromPreview()" style="width:auto;padding:9px 14px;font-size:0.8em;flex-shrink:0;">✨ Add</button>
     </div>
     <div class="ai-result" id="previewResult" style="margin:10px 14px 0;"></div>
-    <iframe id="previewIframe" style="width:100%;height:calc(100vh - 80px);border:none;" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy"></iframe>
+    <iframe id="previewIframe" style="width:100%;height:calc(100vh - 80px);border:none;" loading="lazy"></iframe>
   </div>
 
   <!-- Planner recipe picker -->
@@ -1528,7 +1532,12 @@
     const el = document.getElementById(id);
     el.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
     el.style.opacity = '0'; el.style.transform = 'translateX(60px)';
-    setTimeout(() => { el.style.display = 'none'; el.classList.remove('active'); el.style.opacity = ''; el.style.transform = ''; el.style.transition = ''; if (cb) cb(); }, 130);
+    setTimeout(() => {
+      el.style.display = 'none'; el.classList.remove('active');
+      el.style.opacity = ''; el.style.transform = ''; el.style.transition = '';
+      if (id === 'messagingModal' && typeof clearMsgPoll === 'function') clearMsgPoll();
+      if (cb) cb();
+    }, 130);
   }
 
   function closeDetailsAnimated() {
@@ -1793,10 +1802,25 @@
   function toggleStep(i) { document.getElementById('step-c-' + i).classList.toggle('done', document.getElementById('sc-' + i).checked); }
   function changeScale(s) {
     currentScale = s;
-    document.querySelectorAll('.scale-btn').forEach(b => {
+    // Update both old and new scale buttons
+    document.querySelectorAll('.scale-btn, .detail-scale-b-btn').forEach(b => {
       const val = b.getAttribute('data-scale');
       b.classList.toggle('active', parseFloat(val) === s);
     });
+    // Update servings display dynamically
+    const r = allRecipes[activeRecipeIndex];
+    if (r && r.servings) {
+      const baseNum = parseFloat(r.servings);
+      const servingsEl = document.getElementById('detailServingsB');
+      if (servingsEl) {
+        if (!isNaN(baseNum)) {
+          const scaled = Math.round(baseNum * s * 10) / 10;
+          const label = r.servings.replace(/[\d.]+/, scaled);
+          servingsEl.style.display = '';
+          servingsEl.textContent = '👤 ' + label;
+        }
+      }
+    }
     renderDetailContent();
   }
   function toggleConverter() { const w = document.getElementById('converterWrap'); const b = document.getElementById('converterBtn'); w.classList.toggle('open'); b.classList.toggle('active', w.classList.contains('open')); }
@@ -1815,30 +1839,7 @@
   function handleRating(val) { const r = allRecipes[activeRecipeIndex]; const nv = parseInt(r.rating) === val ? '' : val; setRating(r.id, nv).then(res => { if (res.status === 'Success') { r.rating = nv.toString(); renderDetailContent(); renderRecipes(); } }); }
   function handleDuplicate() { addRecipe(currentUser, allRecipes[activeRecipeIndex]).then(res => { if (res.status === 'Success') { closeDetailsAnimated(); init(); } }); }
 
-  // ── ALARM SOUND ──
-  function playAlarm() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      // beep beep beep, pause, beep beep beep, pause, beep beep beep
-      const pattern = [0, 0.18, 0.36, 0.7, 0.88, 1.06, 1.4, 1.58, 1.76];
-      pattern.forEach(time => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 1040;
-        osc.type = 'square';
-        gain.gain.setValueAtTime(0, ctx.currentTime + time);
-        gain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + time + 0.01);
-        gain.gain.setValueAtTime(1.0, ctx.currentTime + time + 0.13);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.15);
-        osc.start(ctx.currentTime + time);
-        osc.stop(ctx.currentTime + time + 0.16);
-      });
-    } catch(e) {
-      try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e2) {}
-    }
-  }
+  // ── ALARM SOUND — see playAlarm and playAlarmTone below ──
   function scheduleTimerNotification(key, label, seconds) { /* Requires OneSignal plugin — not yet configured */ }
   function cancelTimerNotification(key) { /* Requires OneSignal plugin — not yet configured */ }
 
@@ -1850,13 +1851,14 @@
     const bar = document.getElementById('globalTimerBar');
     const inner = document.getElementById('globalTimerInner');
     const header = document.getElementById('appHeader');
-    const activeTimers = Object.entries(timerStates).filter(([,t]) => t.state === 'running' || t.state === 'alarm');
+    // Include running, alarm AND paused timers
+    const activeTimers = Object.entries(timerStates).filter(([k,t]) => k !== '_recipeIdx' && (t.state === 'running' || t.state === 'alarm' || t.state === 'paused'));
     const wasVisible = bar.classList.contains('visible');
 
     if (activeTimers.length === 0) {
       bar.classList.remove('visible');
       inner.innerHTML = '';
-      header.style.top = '0px';
+      if (header) header.style.top = '0px';
       if (wasVisible) setTimeout(adjustHeaderPadding, 400);
       return;
     }
@@ -1865,7 +1867,7 @@
       const mins = Math.floor(t.rem / 60);
       const secs = (t.rem % 60).toString().padStart(2, '0');
       const timeStr = t.state === 'alarm' ? 'TIME UP!' : mins + ':' + secs;
-      const label = t.label || ('Timer ' + (parseInt(key)+1));
+      const label = t.label || ('Timer ' + key);
       const pauseBtn = t.state === 'running'
         ? '<button class="global-timer-chip-action" onclick="globalPauseTimer(\'' + key + '\')" title="Pause">⏸</button>'
         : t.state === 'paused'
@@ -1883,12 +1885,9 @@
     }).join('');
 
     bar.classList.add('visible');
-
-    // After transition, measure bar height and push entire header down by that amount
     setTimeout(() => {
       const barH = bar.getBoundingClientRect().height;
-      // bar starts at 48px (statusbar height), so header needs to move down by barH
-      header.style.top = barH + 'px';
+      if (header) header.style.top = barH + 'px';
       adjustHeaderPadding();
     }, 380);
   }
@@ -2300,6 +2299,11 @@
       const badge = document.getElementById('notifBadge');
       if (userNotifications.length > 0) { badge.style.display = 'flex'; badge.textContent = userNotifications.length; }
       else badge.style.display = 'none';
+    });
+    // Check unread messages
+    getUnreadMessageCount(currentUser).then(count => {
+      const msgBadge = document.getElementById('msgBellBadge');
+      if (msgBadge) { msgBadge.style.display = count > 0 ? 'flex' : 'none'; if (count > 0) msgBadge.textContent = count; }
     });
   }
 
@@ -3011,7 +3015,7 @@
     if (!grid) return;
     if (size === 'compact') grid.style.gridTemplateColumns = 'repeat(3,1fr)';
     else if (size === 'large') grid.style.gridTemplateColumns = '1fr';
-    else grid.style.gridTemplateColumns = '1fr 1fr';
+    else grid.style.gridTemplateColumns = '1fr 1fr'; // normal or empty default
   }
 
   // ═══ AVATAR UPLOAD ═══
@@ -3105,15 +3109,15 @@
       openModalAnimated('adminModal');
     });
   }
+  let cachedAdminTone = 'default';
   function setAdminTone(tone) {
     document.querySelectorAll('.admin-tone-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tone === tone));
+    cachedAdminTone = tone;
     adminSettings.timer_tone = tone;
     updateAdminSettings({ timer_tone: tone });
+    playAlarmTone(tone); // preview on select
   }
-  function previewCurrentTone() {
-    const tone = adminSettings.timer_tone || 'default';
-    playAlarmTone(tone);
-  }
+  function previewCurrentTone() { playAlarmTone(cachedAdminTone); }
   function toggleAdminBroadcastBtn() {
     const el = document.getElementById('toggleBroadcastBtn');
     const on = !el.classList.contains('on');
@@ -3234,42 +3238,41 @@
       });
     } catch(e) { playAlarm(); }
   }
-  function playAlarm() {
-    getAdminSettings().then(res => {
-      const tone = (res.settings && res.settings.timer_tone) || 'default';
-      playAlarmTone(tone);
-    }).catch(() => playAlarmTone('default'));
-  }
+  function playAlarm() { playAlarmTone(cachedAdminTone); }
+  function loadAdminTone() { getAdminSettings().then(res => { if (res.settings && res.settings.timer_tone) cachedAdminTone = res.settings.timer_tone; }); }
 
   // ═══ MESSAGING ═══
   let currentMsgPartner = null;
+  let msgPollInterval = null;
+  let myUserId = null; // cached for message rendering
+
   function openMessaging(partner) {
     currentMsgPartner = partner;
-    // Close friend options
     if (activeFriendOptionsUser) { const prev = document.getElementById('friend-opts-' + activeFriendOptionsUser); if (prev) prev.innerHTML = ''; activeFriendOptionsUser = null; }
+    // Cache userId for message rendering
+    getUserId(currentUser).then(id => { myUserId = id; });
     if (partner) { openMsgThread(partner); }
     else { loadConversations(); }
     openModalAnimated('messagingModal');
   }
   function loadConversations() {
+    clearMsgPoll();
     document.getElementById('msgConvView').style.display = 'block';
     document.getElementById('msgThreadView').style.display = 'none';
     document.getElementById('msgConvList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
     Promise.all([getConversations(currentUser), getMessageRequests(currentUser)]).then(([convRes, reqRes]) => {
       const convs = convRes.conversations || [];
       const reqs = reqRes.requests || [];
-      // Requests badge
       const badge = document.getElementById('msgRequestsBadge');
       if (badge) { badge.style.display = reqs.length > 0 ? 'block' : 'none'; badge.textContent = reqs.length + ' Request' + (reqs.length > 1 ? 's' : ''); }
-      // Requests section
       if (reqs.length > 0) {
         document.getElementById('msgRequestsSection').style.display = 'block';
         document.getElementById('msgRequestsList').innerHTML = reqs.map(r => {
-          const av = r.from_user.avatar_url ? '<img src="' + r.from_user.avatar_url + '">' : r.from_user.username.charAt(0);
-          return '<div class="msg-conv-item"><div class="msg-conv-avatar">' + av + '</div><div class="msg-conv-info"><div class="msg-conv-name">' + r.from_user.username + '</div><div class="msg-conv-preview">' + r.content + '</div></div><div style="display:flex;gap:6px;"><button class="inbox-accept" style="padding:7px 12px;font-size:0.78em;" onclick="acceptMsgRequest(\'' + r.id + '\',\'' + r.from_user.username + '\')">Accept</button><button class="inbox-decline" style="padding:7px 10px;font-size:0.78em;" onclick="declineMsgRequest(\'' + r.id + '\')">✕</button></div></div>';
+          const av = r.from_user && r.from_user.avatar_url ? '<img src="' + r.from_user.avatar_url + '">' : (r.from_user ? r.from_user.username.charAt(0) : '?');
+          const name = r.from_user ? r.from_user.username : 'Unknown';
+          return '<div class="msg-conv-item"><div class="msg-conv-avatar">' + av + '</div><div class="msg-conv-info"><div class="msg-conv-name">' + name + '</div><div class="msg-conv-preview">' + escapeHtml(r.content) + '</div></div><div style="display:flex;gap:6px;"><button class="inbox-accept" style="padding:7px 12px;font-size:0.78em;" onclick="acceptMsgRequest(\'' + r.id + '\',\'' + name + '\')">Accept</button><button class="inbox-decline" style="padding:7px 10px;font-size:0.78em;" onclick="declineMsgRequest(\'' + r.id + '\')">✕</button></div></div>';
         }).join('');
       } else { document.getElementById('msgRequestsSection').style.display = 'none'; }
-      // Conversations
       if (convs.length === 0) {
         document.getElementById('msgConvList').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);font-size:0.85em;">No messages yet.<br>Message a friend from your friends list.</div>';
         return;
@@ -3277,7 +3280,7 @@
       document.getElementById('msgConvList').innerHTML = convs.map(c => {
         const av = c.partnerAvatar ? '<img src="' + c.partnerAvatar + '">' : c.partner.charAt(0);
         const lastMsg = c.lastMsg;
-        const preview = lastMsg ? (lastMsg.from_user_id === currentUser ? 'You: ' : '') + lastMsg.content : '';
+        const preview = lastMsg ? escapeHtml((lastMsg.from_user_id === myUserId ? 'You: ' : '') + lastMsg.content) : '';
         const time = lastMsg ? formatMsgTime(lastMsg.created_at) : '';
         const unreadBadge = c.unread > 0 ? '<div class="msg-unread-badge">' + c.unread + '</div>' : '';
         return '<div class="msg-conv-item" onclick="openMsgThread(\'' + c.partner + '\')"><div class="msg-conv-avatar">' + av + '</div><div class="msg-conv-info"><div class="msg-conv-name">' + c.partner + '</div><div class="msg-conv-preview">' + preview + '</div></div><div class="msg-conv-meta"><div class="msg-conv-time">' + time + '</div>' + unreadBadge + '</div></div>';
@@ -3285,7 +3288,13 @@
     });
   }
   function showMsgRequests() { document.getElementById('msgRequestsSection').scrollIntoView({ behavior: 'smooth' }); }
-  function showMsgConvList() { document.getElementById('msgConvView').style.display = 'block'; document.getElementById('msgThreadView').style.display = 'none'; currentMsgPartner = null; loadConversations(); }
+  function showMsgConvList() {
+    clearMsgPoll();
+    document.getElementById('msgConvView').style.display = 'block';
+    document.getElementById('msgThreadView').style.display = 'none';
+    currentMsgPartner = null;
+    loadConversations();
+  }
   function openMsgThread(partner) {
     currentMsgPartner = partner;
     document.getElementById('msgConvView').style.display = 'none';
@@ -3293,56 +3302,48 @@
     threadView.style.display = 'flex';
     document.getElementById('msgThreadName').textContent = partner;
     const av = document.getElementById('msgThreadAvatar');
-    av.textContent = partner.charAt(0);
+    // Try to load avatar
+    getUserAvatar(partner).then(url => { av.innerHTML = url ? '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">' : partner.charAt(0); });
     document.getElementById('msgInput').value = '';
     document.getElementById('msgCharCount').textContent = '0 / 300';
     loadMessages(partner);
+    // Poll for new messages every 5 seconds
+    clearMsgPoll();
+    msgPollInterval = setInterval(() => {
+      if (currentMsgPartner === partner) loadMessages(partner);
+      else clearMsgPoll();
+    }, 5000);
   }
+  function clearMsgPoll() { if (msgPollInterval) { clearInterval(msgPollInterval); msgPollInterval = null; } }
   function loadMessages(partner) {
     getMessages(currentUser, partner).then(res => {
       const msgs = res.messages || [];
       const bubbles = document.getElementById('msgBubbles');
-      // Check if first message is pending (request)
-      const firstMsg = msgs[0];
-      const isRequest = firstMsg && firstMsg.status === 'pending' && firstMsg.to_user_id !== currentUser;
+      if (!bubbles) return;
+      const wasAtBottom = bubbles.scrollHeight - bubbles.scrollTop <= bubbles.clientHeight + 50;
       if (msgs.length === 0) { bubbles.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-faint);font-size:0.85em;">Say hello 👋</div>'; return; }
       bubbles.innerHTML = msgs.map(m => {
-        const isMine = m.from_user_id !== undefined && msgs.findIndex(x => x.id === m.id && x.from_user_id === m.from_user_id) >= 0;
-        // Determine mine by checking against currentUser
-        const mine = m.status === 'pending' ? true : (m.from_user_id === m.from_user_id); // will fix with real check below
-        return '';
+        const mine = myUserId ? m.from_user_id === myUserId : false;
+        const side = mine ? 'mine' : 'theirs';
+        const time = formatMsgTime(m.created_at);
+        const pending = m.status === 'pending' && !mine ? '<div style="font-size:0.65em;color:var(--gold);margin-top:2px;">Message request · awaiting acceptance</div>' : '';
+        return '<div style="display:flex;flex-direction:column;align-items:' + (mine?'flex-end':'flex-start') + '"><div class="msg-bubble ' + side + '">' + escapeHtml(m.content) + '</div><div class="msg-bubble-time" style="text-align:' + (mine?'right':'left') + '">' + time + pending + '</div></div>';
       }).join('');
-      // Proper mine check — need userId. Use a workaround via username lookup
-      getUserId(currentUser).then(myId => {
-        bubbles.innerHTML = msgs.map(m => {
-          const mine = m.from_user_id === myId;
-          const side = mine ? 'mine' : 'theirs';
-          const time = formatMsgTime(m.created_at);
-          const pending = m.status === 'pending' && !mine ? '<div style="font-size:0.65em;color:var(--gold);margin-top:2px;">Message request</div>' : '';
-          return '<div style="display:flex;flex-direction:column;align-items:' + (mine?'flex-end':'flex-start') + '"><div class="msg-bubble ' + side + '">' + escapeHtml(m.content) + '</div><div class="msg-bubble-time" style="text-align:' + (mine?'right':'left') + '">' + time + pending + '</div></div>';
-        }).join('');
-        bubbles.scrollTop = bubbles.scrollHeight;
-      });
+      if (wasAtBottom) bubbles.scrollTop = bubbles.scrollHeight;
     });
   }
   function sendCurrentMessage() {
     const input = document.getElementById('msgInput');
     const content = input.value.trim();
     if (!content || !currentMsgPartner) return;
+    input.value = ''; document.getElementById('msgCharCount').textContent = '0 / 300';
     sendMessage(currentUser, currentMsgPartner, content).then(res => {
-      if (res.status === 'Success') { input.value = ''; document.getElementById('msgCharCount').textContent = '0 / 300'; loadMessages(currentMsgPartner); }
+      if (res.status === 'Success') loadMessages(currentMsgPartner);
     });
   }
-  function updateMsgCharCount() {
-    const len = document.getElementById('msgInput').value.length;
-    document.getElementById('msgCharCount').textContent = len + ' / 300';
-  }
-  function acceptMsgRequest(msgId, fromUser) {
-    respondToMessage(msgId, true).then(() => { openMsgThread(fromUser); });
-  }
-  function declineMsgRequest(msgId) {
-    respondToMessage(msgId, false).then(() => loadConversations());
-  }
+  function updateMsgCharCount() { const len = document.getElementById('msgInput').value.length; document.getElementById('msgCharCount').textContent = len + ' / 300'; }
+  function acceptMsgRequest(msgId, fromUser) { respondToMessage(msgId, true).then(() => { openMsgThread(fromUser); }); }
+  function declineMsgRequest(msgId) { respondToMessage(msgId, false).then(() => loadConversations()); }
   function blockCurrentMsgUser() {
     if (!currentMsgPartner) return;
     if (!confirm('Block ' + currentMsgPartner + '? They will not be able to message you.')) return;
@@ -3350,14 +3351,14 @@
   }
   function formatMsgTime(iso) {
     if (!iso) return '';
-    const d = new Date(iso); const now = new Date();
-    const diff = now - d;
+    const d = new Date(iso); const now = new Date(); const diff = now - d;
     if (diff < 60000) return 'just now';
     if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
     if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
-    return d.toLocaleDateString();
+    if (diff < 604800000) return d.toLocaleDateString('en',{weekday:'short'});
+    return d.toLocaleDateString('en',{month:'short',day:'numeric'});
   }
-  function escapeHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   // ═══ FRIEND COLLECTIONS ═══
   function viewFriendCollections(username) {
@@ -3418,7 +3419,7 @@
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
-      checkFeaturedBadge(); loadBlacklist(); checkBroadcast();
+      checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
       setTimeout(adjustHeaderPadding, 100);
     } catch(e) { console.error('Init error:', e); }
   }
