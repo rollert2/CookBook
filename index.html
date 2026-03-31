@@ -916,9 +916,47 @@
     if (typeof median !== 'undefined' && median.android && median.android.swipeGestures) {
       median.android.swipeGestures.enable();
     }
+    // Push initial state so back gesture has somewhere to go
+    history.replaceState({ root: true }, '');
     const saved = localStorage.getItem('currentUser');
     if (saved) enterApp(saved); else showLoginScreen();
   };
+
+  // Handle back gesture / back button — close topmost open modal
+  window.addEventListener('popstate', function(e) {
+    // Find the topmost active modal and close it
+    const modals = ['detailModal','syncModal','profileModal','friendRecipeModal'];
+    for (const id of modals) {
+      const el = document.getElementById(id);
+      if (el && el.classList.contains('active')) {
+        if (id === 'detailModal') closeDetailsAnimated();
+        else if (id === 'profileModal') closeProfileAnimated();
+        else if (id === 'syncModal') closeSyncModalAnimated();
+        else if (id === 'friendRecipeModal') closeModalAnimated('friendRecipeModal');
+        // Push state again so the next back gesture also works
+        history.pushState({ modal: id }, '');
+        return;
+      }
+    }
+    // Check slide panels
+    const panels = ['sharePanel','inboxPanel','collectionsPanel','addToColPanel','plannerPicker','previewPanel','shopPanel'];
+    for (const id of panels) {
+      const el = document.getElementById(id);
+      if (el && el.classList.contains('open')) {
+        el.classList.remove('open');
+        // Also close overlay
+        const overlay = document.getElementById(id.replace('Panel','Overlay').replace('Picker','PickerOverlay'));
+        if (overlay) overlay.classList.remove('open');
+        history.pushState({ panel: id }, '');
+        return;
+      }
+    }
+    // No modal open — if not on recipes tab, go back to recipes
+    if (currentTab !== 'recipes') {
+      switchTab('recipes');
+      history.pushState({ tab: 'recipes' }, '');
+    }
+  });
 
   function showLoginScreen() {
     document.getElementById('loginScreen').style.display = 'flex';
@@ -1095,6 +1133,8 @@
     el.style.opacity = '0'; el.style.transform = 'translateX(60px)';
     requestAnimationFrame(() => { el.style.transition = 'opacity 0.15s ease, transform 0.15s ease'; el.style.opacity = '1'; el.style.transform = 'translateX(0)'; });
     el.classList.add('active');
+    // Push history state so back gesture closes the modal
+    history.pushState({ modal: id }, '');
   }
 
   function closeModalAnimated(id, cb) {
