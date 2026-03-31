@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Supabase Connection Test</title>
+  <style>
+    body { font-family: monospace; background: #0d0d0f; color: #f0f0f0; padding: 30px; }
+    h2 { color: #c9a84c; }
+    .result { background: #18181c; border: 1px solid #333; border-radius: 8px; padding: 16px; margin: 10px 0; white-space: pre-wrap; font-size: 0.85em; }
+    .ok { border-color: #4caf7d; color: #4caf7d; }
+    .err { border-color: #e05555; color: #e05555; }
+    button { background: #c9a84c; color: #0d0d0f; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin: 6px 4px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h2>🍳 Roll Cookbook — Supabase Test</h2>
+  <p style="color:#888;">Run each test to confirm connection is working.</p>
+
+  <button onclick="testConnection()">1. Test Connection</button>
+  <button onclick="testGetUsers()">2. Get Users</button>
+  <button onclick="testGetRecipes()">3. Get rollert2 Recipes</button>
+  <button onclick="testGetFeatured()">4. Get Featured</button>
+  <button onclick="testGetBlacklist()">5. Get Blacklist</button>
+
+  <div id="output"></div>
+
+  <script src="supabase.js"></script>
+  <script>
+    function log(label, data, isError = false) {
+      const div = document.createElement('div');
+      div.className = 'result ' + (isError ? 'err' : 'ok');
+      div.textContent = label + '\n\n' + JSON.stringify(data, null, 2);
+      document.getElementById('output').prepend(div);
+    }
+
+    async function testConnection() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=count`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        log('✅ Connection OK — Status ' + res.status, { connected: true, status: res.status });
+      } catch(e) {
+        log('❌ Connection FAILED', { error: e.message }, true);
+      }
+    }
+
+    async function testGetUsers() {
+      try {
+        const data = await sbFetch('GET', 'users', null, 'select=username&order=username');
+        log('✅ Users (' + data.length + ' found)', data);
+      } catch(e) {
+        log('❌ Get Users FAILED', { error: e.message }, true);
+      }
+    }
+
+    async function testGetRecipes() {
+      try {
+        const recipes = await getRecipes('rollert2');
+        log('✅ rollert2 Recipes (' + recipes.length + ' found)', recipes.slice(0, 3));
+      } catch(e) {
+        log('❌ Get Recipes FAILED', { error: e.message }, true);
+      }
+    }
+
+    async function testGetFeatured() {
+      try {
+        const res = await getFeatured();
+        log('✅ Featured (' + res.recipes.length + ' found)', res.recipes.slice(0, 2));
+      } catch(e) {
+        log('❌ Get Featured FAILED', { error: e.message }, true);
+      }
+    }
+
+    async function testGetBlacklist() {
+      try {
+        const res = await getBlacklist();
+        log('✅ Blacklist (' + res.domains.length + ' domains)', res.domains);
+      } catch(e) {
+        log('❌ Get Blacklist FAILED', { error: e.message }, true);
+      }
+    }
+  </script>
+</body>
+</html>
