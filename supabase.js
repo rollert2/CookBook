@@ -555,35 +555,61 @@ async function getAdminSettings() {
 }
 
 async function updateAdminSettings(settings) {
-  const data = await sbFetch('GET', 'admin_settings', null, 'select=id&limit=1');
-  if (!data || data.length === 0) return { status: 'Error', message: 'No admin settings row' };
-  await sbFetch('PATCH', `admin_settings?id=eq.${data[0].id}`, { ...settings, updated_at: new Date().toISOString() });
-  return { status: 'Success' };
+  try {
+    // Get or create the admin settings row
+    let data = await sbFetch('GET', 'admin_settings', null, 'select=id&limit=1');
+    if (!data || data.length === 0) {
+      // Insert a new row
+      await sbFetch('POST', 'admin_settings', { timer_tone: 'default' });
+      data = await sbFetch('GET', 'admin_settings', null, 'select=id&limit=1');
+    }
+    if (!data || data.length === 0) return { status: 'Error', message: 'Could not find admin settings' };
+    // Remove updated_at if column doesn't exist - only send the actual settings
+    const cleanSettings = { ...settings };
+    delete cleanSettings.updated_at;
+    await sbFetch('PATCH', `admin_settings?id=eq.${data[0].id}`, cleanSettings);
+    return { status: 'Success' };
+  } catch(e) {
+    console.error('updateAdminSettings error:', e);
+    return { status: 'Error', message: e.message };
+  }
 }
 
 // ── PROFILE PICTURE ───────────────────────────────────────────
 
 async function uploadProfilePicture(base64Data, fileName, username) {
   try {
-    const byteString = atob(base64Data.split(',')[1]);
-    const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
+    const parts = base64Data.split(',');
+    const byteString = atob(parts[1]);
+    const mimeString = parts[0].split(':')[1].split(';')[0];
     const ab = new ArrayBuffer(byteString.length);
     const ia = new Uint8Array(ab);
     for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
     const blob = new Blob([ab], { type: mimeString });
-    const ext = fileName.split('.').pop() || 'jpg';
-    const path = `avatars/${username}.${ext}`;
+    const path = `avatars/${username}.jpg`;
+    // Use PUT with x-upsert for create-or-replace
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/profile-pictures/${path}`, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': mimeString, 'x-upsert': 'true' },
+      method: 'PUT',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'image/jpeg',
+        'x-upsert': 'true'
+      },
       body: blob
     });
-    if (!res.ok) throw new Error('Upload failed');
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/profile-pictures/${path}`;
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('Storage error: ' + errText);
+    }
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/profile-pictures/${path}?t=${Date.now()}`;
     const userId = await getUserId(username);
     if (userId) await sbFetch('PATCH', `users?id=eq.${userId}`, { avatar_url: publicUrl });
     return { status: 'Success', url: publicUrl };
-  } catch(e) { return { status: 'Error', message: e.message }; }
+  } catch(e) {
+    console.error('uploadProfilePicture error:', e);
+    return { status: 'Error', message: e.message };
+  }
 }
 
 async function getUserAvatar(username) {
