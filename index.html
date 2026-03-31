@@ -1361,8 +1361,28 @@
   function handleRating(val) { const r = allRecipes[activeRecipeIndex]; const nv = parseInt(r.rating) === val ? '' : val; setRating(r.id, nv).then(res => { if (res.status === 'Success') { r.rating = nv.toString(); renderDetailContent(); renderRecipes(); } }); }
   function handleDuplicate() { addRecipe(currentUser, allRecipes[activeRecipeIndex]).then(res => { if (res.status === 'Success') { closeDetailsAnimated(); init(); } }); }
 
+  // ── MEDIAN LOCAL NOTIFICATIONS ──
+  function scheduleTimerNotification(key, label, seconds) {
+    if (typeof median === 'undefined') return;
+    try {
+      median.android.localNotification.scheduleAt({
+        id: 'timer_' + key,
+        title: '⏱ Timer Done!',
+        message: label + ' is finished.',
+        time: Date.now() + (seconds * 1000)
+      });
+    } catch(e) {}
+  }
+
+  function cancelTimerNotification(key) {
+    if (typeof median === 'undefined') return;
+    try {
+      median.android.localNotification.cancel({ id: 'timer_' + key });
+    } catch(e) {}
+  }
+
   function hasActiveTimers() {
-    return Object.values(timerStates).some(t => t.state === 'running' || t.state === 'alarm');
+    return Object.entries(timerStates).some(([k, t]) => k !== '_recipeIdx' && (t.state === 'running' || t.state === 'alarm'));
   }
 
   function renderGlobalTimerBar() {
@@ -1414,6 +1434,7 @@
 
   function globalDismissTimer(key) {
     if (timerStates[key]) { clearInterval(timerStates[key].interval); delete timerStates[key]; }
+    cancelTimerNotification(key);
     const btn = document.getElementById('t-btn-' + key);
     if (btn) { btn.className = 'timer-btn'; btn.innerHTML = '⏱ Timer'; }
     renderGlobalTimerBar();
@@ -1423,6 +1444,7 @@
     const t = timerStates[key];
     if (!t || t.state !== 'running') return;
     clearInterval(t.interval); t.state = 'paused';
+    cancelTimerNotification(key);
     const btn = document.getElementById('t-btn-' + key);
     if (btn) { btn.className = 'timer-btn'; btn.innerHTML = 'Resume: ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0'); }
     renderGlobalTimerBar();
@@ -1432,6 +1454,7 @@
     const t = timerStates[key];
     if (!t || t.state !== 'paused') return;
     t.state = 'running';
+    scheduleTimerNotification(key, t.label, t.rem);
     const btn = document.getElementById('t-btn-' + key);
     if (btn) btn.className = 'timer-btn running';
     t.interval = setInterval(() => {
@@ -1453,6 +1476,7 @@
     const t = timerStates[key];
     if (!t) return;
     clearInterval(t.interval);
+    cancelTimerNotification(key);
     const origSec = t.origSec || t.rem;
     delete timerStates[key];
     const btn = document.getElementById('t-btn-' + key);
@@ -1466,10 +1490,12 @@
     const t = timerStates[i];
     if (t.state === 'running') {
       clearInterval(t.interval); t.state = 'paused';
+      cancelTimerNotification(i);
       btn.innerHTML = 'Resume: ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
       btn.className = 'timer-btn';
     } else {
       t.state = 'running'; btn.className = 'timer-btn running';
+      scheduleTimerNotification(i, t.label, t.rem);
       t.interval = setInterval(() => {
         t.rem--;
         const display = Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
@@ -1488,6 +1514,7 @@
 
   function resetTimer(i, s) {
     if (timerStates[i]) clearInterval(timerStates[i].interval);
+    cancelTimerNotification(i);
     delete timerStates[i];
     const btn = document.getElementById('t-btn-' + i);
     if (btn) { btn.innerHTML = '⏱ Start ' + (s>=60 ? Math.floor(s/60)+' min' : s+' sec'); btn.className = 'timer-btn'; }
