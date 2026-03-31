@@ -912,6 +912,10 @@
   let currentFriendView = null;
 
   window.onload = function() {
+    // Enable swipe gestures via Median JavaScript Bridge
+    if (typeof median !== 'undefined' && median.android && median.android.swipeGestures) {
+      median.android.swipeGestures.enable();
+    }
     const saved = localStorage.getItem('currentUser');
     if (saved) enterApp(saved); else showLoginScreen();
   };
