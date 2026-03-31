@@ -40,12 +40,33 @@ async function checkUsername(username) {
 async function createUser(username) {
   const name = username.toLowerCase().trim();
   // Create user row
-  await sbFetch('POST', 'users', { username: name });
-  // Create user settings row
+  const newUser = await sbFetch('POST', 'users', { username: name });
   const userRes = await sbFetch('GET', 'users', null, `username=eq.${name}&select=id`);
-  if (userRes && userRes[0]) {
-    await sbFetch('POST', 'user_settings', { user_id: userRes[0].id });
-  }
+  if (!userRes || !userRes[0]) return { status: 'Error', message: 'Failed to create user' };
+  const userId = userRes[0].id;
+
+  // Create user settings row
+  await sbFetch('POST', 'user_settings', { user_id: userId });
+
+  // Copy template recipes to new user
+  try {
+    const templates = await sbFetch('GET', 'templates', null, 'select=*');
+    if (templates && templates.length > 0) {
+      const recipes = templates.map(t => ({
+        user_id:      userId,
+        title:        t.title,
+        category:     t.category,
+        ingredients:  t.ingredients || '',
+        instructions: t.instructions || '',
+        notes:        t.notes || '',
+        cook_time:    t.cook_time || '',
+        favourite:    false,
+        rating:       null
+      }));
+      await sbFetch('POST', 'recipes', recipes);
+    }
+  } catch(e) { console.error('Template copy failed:', e); }
+
   return { status: 'Success' };
 }
 
