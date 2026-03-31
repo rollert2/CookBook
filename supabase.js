@@ -321,26 +321,6 @@ async function getFriendRecipes(username) {
 
 // ── NOTIFICATIONS ────────────────────────────────────────────
 
-async function getNotifications(username) {
-  const userId = await getUserId(username);
-  if (!userId) return { status: 'Success', notifications: [] };
-  const data = await sbFetch('GET', 'notifications', null,
-    `to_user_id=eq.${userId}&seen=eq.false&select=*,users!notifications_from_user_id_fkey(username)&order=created_at.desc`);
-  return {
-    status: 'Success',
-    notifications: data.map(n => ({
-      notifId:  n.id,
-      fromUser: n.users.username,
-      type:     n.type
-    }))
-  };
-}
-
-async function dismissNotification(notifId) {
-  await sbFetch('PATCH', `notifications?id=eq.${notifId}`, { seen: true });
-  return { status: 'Success' };
-}
-
 // ── INBOX / SHARING ──────────────────────────────────────────
 
 async function sendRecipe(fromUsername, toUsername, recipeData) {
