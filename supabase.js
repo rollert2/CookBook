@@ -60,6 +60,7 @@ async function createUser(username) {
         instructions: t.instructions || '',
         notes:        t.notes || '',
         cook_time:    t.cook_time || '',
+        image_url:    t.image_url || '',
         favourite:    false,
         rating:       null
       }));
