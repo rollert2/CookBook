@@ -1370,56 +1370,29 @@
   // ── ALARM SOUND ──
   function playAlarm() {
     try {
-      // beep beep beep, pause, beep beep beep pattern
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const pattern = [0, 0.2, 0.4, 0.9, 1.1, 1.3]; // beep start times in seconds
+      // beep beep beep, pause, beep beep beep, pause, beep beep beep
+      const pattern = [0, 0.18, 0.36, 0.7, 0.88, 1.06, 1.4, 1.58, 1.76];
       pattern.forEach(time => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        osc.type = 'sine';
+        osc.frequency.value = 1040;
+        osc.type = 'square';
         gain.gain.setValueAtTime(0, ctx.currentTime + time);
-        gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + time + 0.02);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.18);
+        gain.gain.linearRampToValueAtTime(1.0, ctx.currentTime + time + 0.01);
+        gain.gain.setValueAtTime(1.0, ctx.currentTime + time + 0.13);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.15);
         osc.start(ctx.currentTime + time);
-        osc.stop(ctx.currentTime + time + 0.2);
+        osc.stop(ctx.currentTime + time + 0.16);
       });
     } catch(e) {
-      // Fallback to single beep if AudioContext not available
       try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e2) {}
     }
   }
-  function scheduleTimerNotification(key, label, seconds) {
-    if (typeof median === 'undefined') return;
-    // Try both Median notification API formats
-    try {
-      median.localNotification.schedule({
-        id: String(key),
-        title: '⏱ Timer Done!',
-        body: (label || 'Your timer') + ' has finished!',
-        fireDate: new Date(Date.now() + seconds * 1000).toISOString(),
-        badge: 1
-      });
-    } catch(e) {
-      try {
-        median.android.localNotification.scheduleAt({
-          id: 'timer_' + key,
-          title: '⏱ Timer Done!',
-          message: (label || 'Your timer') + ' has finished!',
-          time: Date.now() + (seconds * 1000)
-        });
-      } catch(e2) {}
-    }
-  }
-
-  function cancelTimerNotification(key) {
-    if (typeof median === 'undefined') return;
-    try { median.localNotification.cancel({ id: String(key) }); } catch(e) {
-      try { median.android.localNotification.cancel({ id: 'timer_' + key }); } catch(e2) {}
-    }
-  }
+  function scheduleTimerNotification(key, label, seconds) { /* Requires OneSignal plugin — not yet configured */ }
+  function cancelTimerNotification(key) { /* Requires OneSignal plugin — not yet configured */ }
 
   function hasActiveTimers() {
     return Object.entries(timerStates).some(([k, t]) => k !== '_recipeIdx' && (t.state === 'running' || t.state === 'alarm'));
