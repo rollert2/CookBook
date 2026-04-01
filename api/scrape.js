@@ -77,7 +77,7 @@ PAGE TEXT:
 ${cleanText}`;
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,6 +103,9 @@ ${cleanText}`;
     if (!recipe.title || !recipe.ingredients || !recipe.instructions) {
       return res.json({ status: 'Error', message: 'AI extracted incomplete data. Try a different URL.' });
     }
+
+    // Always attach source URL so we can link back to original
+    recipe.source_url = url;
 
     return res.json({ status: 'Success', message: `"${recipe.title}" imported!`, recipe });
 
