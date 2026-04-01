@@ -101,6 +101,7 @@ async function getRecipes(username) {
     rating:       r.rating ? r.rating.toString() : '',
     cookTime:     r.cook_time || '',
     servings:     r.servings || '',
+    sourceUrl:    r.source_url || '',
     lastCooked:   r.last_cooked || ''
   }));
 }
@@ -127,6 +128,7 @@ async function addRecipe(username, recipe) {
     image_url:    recipe.image_url || recipe.image || '',
     cook_time:    recipe.cookTime || recipe.cook_time || '',
     servings:     recipe.servings || '',
+    source_url:   recipe.source_url || '',
     favourite:    false,
     rating:       null
   });
@@ -144,7 +146,8 @@ async function updateRecipe(recipeId, updates) {
     notes:        updates.notes,
     image_url:    updates.image || updates.image_url,
     cook_time:    updates.cookTime || updates.cook_time,
-    servings:     updates.servings
+    servings:     updates.servings,
+    source_url:   updates.sourceUrl || updates.source_url
   };
   Object.keys(mapped).forEach(k => mapped[k] === undefined && delete mapped[k]);
   await sbFetch('PATCH', `recipes?id=eq.${recipeId}`, mapped);
