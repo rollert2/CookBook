@@ -70,6 +70,7 @@ export default async function handler(req, res) {
 - "instructions": numbered steps, each on its own line
 - "notes": any tips or notes (empty string if none)
 - "cookTime": total time e.g. "35 min" (empty string if not found)
+- "servings": serving size e.g. "4 servings" or "Makes 12 cookies" (empty string if not found)
 
 Return ONLY raw JSON. No markdown, no backticks, no explanation.
 
