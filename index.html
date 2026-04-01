@@ -941,6 +941,7 @@
       <label class="edit-label">Category</label><input type="text" id="editCategory" class="edit-field">
       <label class="edit-label">Cook Time</label><input type="text" id="editCookTime" class="edit-field">
       <label class="edit-label">Servings</label><input type="text" id="editServings" class="edit-field" placeholder="e.g. 4 servings">
+      <label class="edit-label">Source URL <span style="font-weight:400;color:var(--text-faint);font-size:0.85em;">(optional — enables 🔗 Source button)</span></label><input type="url" id="editSourceUrl" class="edit-field" placeholder="https://...">
       <label class="edit-label">New Image</label><input type="file" id="imageInput" class="edit-field" accept="image/*">
       <label class="edit-label">Ingredients (one per line)</label><textarea id="editIngredients" class="edit-field" rows="5"></textarea>
       <label class="edit-label">Instructions (one step per line)</label><textarea id="editInstructions" class="edit-field" style="height:200px;"></textarea>
@@ -2080,6 +2081,7 @@
     document.getElementById('editId').value = r.id; document.getElementById('editTitle').value = r.title;
     document.getElementById('editCategory').value = r.category; document.getElementById('editCookTime').value = r.cookTime||'';
     document.getElementById('editServings').value = r.servings||'';
+    document.getElementById('editSourceUrl').value = r.sourceUrl||'';
     document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
     document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
   }
@@ -2087,7 +2089,7 @@
   function saveEdit() {
     const rId = document.getElementById('editId').value; const fileIn = document.getElementById('imageInput'); const sBtn = document.getElementById('saveEditBtn');
     sBtn.innerHTML = 'Saving...'; sBtn.disabled = true;
-    const item = {id:rId,title:document.getElementById('editTitle').value,category:document.getElementById('editCategory').value,cookTime:document.getElementById('editCookTime').value,servings:document.getElementById('editServings').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
+    const item = {id:rId,title:document.getElementById('editTitle').value,category:document.getElementById('editCategory').value,cookTime:document.getElementById('editCookTime').value,servings:document.getElementById('editServings').value,sourceUrl:document.getElementById('editSourceUrl').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
     const r = allRecipes.find(x => x.id === rId); if (r) Object.assign(r, item);
     const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; exitEditMode(); renderDetailContent(); renderRecipes(); }); };
     if (fileIn.files.length > 0) { const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, fileIn.files[0].name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
