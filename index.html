@@ -833,7 +833,8 @@
         <div class="detail-hero-b-placeholder" id="detailHeroPlaceholder"></div>
         <img id="detailHeroImg" style="display:none;" onload="this.style.display='block';document.getElementById('detailHeroPlaceholder').style.display='none';">
         <button class="detail-hero-back" onclick="closeDetailsAnimated()">← Back</button>
-        <button class="detail-hero-weigh" onclick="toggleConverter()">⚖️</button>
+        <button class="detail-hero-weigh" onclick="toggleConverter()" id="converterBtn">⚖️</button>
+        <button id="sourceUrlBtn" onclick="openSourceUrl()" style="display:none;position:absolute;top:16px;right:56px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:none;border-radius:20px;padding:6px 11px;color:#fff;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;z-index:5;">🔗 Source</button>
         <div class="detail-hero-b-overlay">
           <div class="detail-hero-b-cat" id="detailCategoryB"></div>
           <div class="detail-hero-b-title" id="detailTitleB"></div>
@@ -1097,7 +1098,7 @@
         <select class="settings-select" id="settingTheme" onchange="applyTheme(this.value);saveSetting('theme',this.value)">
           <option value="dark">🌙 Dark</option>
           <option value="light">☀️ Light</option>
-          <option value="system">⚙️ System</option>
+          <option value="system" selected>⚙️ System</option>
         </select>
       </div>
       <div class="settings-row">
@@ -1350,7 +1351,7 @@
 
   window.onload = function() {
     // Apply theme instantly to avoid flash
-    const savedTheme = localStorage.getItem('rc_theme') || 'dark';
+    const savedTheme = localStorage.getItem('rc_theme') || 'system';
     if (savedTheme === 'light') document.body.classList.add('light-mode');
     else if (savedTheme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('light-mode');
     // Enable swipe gestures via Median JavaScript Bridge
@@ -1782,6 +1783,9 @@
     const r = allRecipes[activeRecipeIndex];
     // Load friend ratings async
     if (r && r.id) { friendRatingsCache = null; loadFriendRatings(r.id); }
+    // Show/hide source URL button
+    const srcBtn = document.getElementById('sourceUrlBtn');
+    if (srcBtn) { srcBtn.style.display = (r.sourceUrl && r.sourceUrl.trim()) ? 'block' : 'none'; }
 
     // Style B hero
     const heroImg = document.getElementById('detailHeroImg');
@@ -1827,13 +1831,13 @@
     // Ingredients
     const ings = parseIngredients(r.ingredients);
     document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
-      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + scaleIngredientLine(ing, currentScale) + '</div>'
+      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, currentScale)) + '</div>'
     ).join('');
 
     // Steps
     const steps = r.instructions.split('\n').filter(s => s.trim());
     document.getElementById('stepsList').innerHTML = steps.map((step, i) => {
-      let html = '<div class="step-item"><input type="checkbox" class="step-checkbox" id="sc-' + i + '" onchange="toggleStep(' + i + ')"><label for="sc-' + i + '" class="step-num">' + (i+1) + '</label><div id="step-c-' + i + '" class="step-content">' + step;
+      let html = '<div class="step-item"><input type="checkbox" class="step-checkbox" id="sc-' + i + '" onchange="toggleStep(' + i + ')"><label for="sc-' + i + '" class="step-num">' + (i+1) + '</label><div id="step-c-' + i + '" class="step-content">' + decodeHtml(step);
       const time = step.match(/(\d+)\s*(min|sec|minute|second)/i);
       if (time) {
         const sec = time[2].toLowerCase().includes('min') ? parseInt(time[1])*60 : parseInt(time[1]);
@@ -1905,6 +1909,12 @@
     renderDetailContent();
   }
   function toggleConverter() { const w = document.getElementById('converterWrap'); const b = document.getElementById('converterBtn'); w.classList.toggle('open'); b.classList.toggle('active', w.classList.contains('open')); }
+  function openSourceUrl() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r || !r.sourceUrl) return;
+    if (typeof median !== 'undefined' && median.openExternalUrl) { median.openExternalUrl({ url: r.sourceUrl }); }
+    else { window.open(r.sourceUrl, '_blank'); }
+  }
   const convFactors = {tsp:4.92892,tbsp:14.7868,cup:236.588,floz:29.5735,ml:1,l:1000,g:1,kg:1000,oz:28.3495,lb:453.592};
   function runConverter() {
     const val = parseFloat(document.getElementById('convInput').value); const from = document.getElementById('convFrom').value; const to = document.getElementById('convTo').value; const res = document.getElementById('convResult');
@@ -2292,6 +2302,10 @@
     return parseFloat(val.toFixed(2)).toString();
   }
 
+  function decodeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&apos;/g,"'").replace(/&nbsp;/g,' ');
+  }
   function scaleIngredientLine(line, scale) {
     // First expand unicode fractions with a preceding whole number e.g. "1½" → "1.5"
     let result = line.replace(new RegExp('(\\d+)([' + Object.keys(UNICODE_FRACS).join('') + '])', 'g'), (_, w, f) => {
@@ -2796,6 +2810,9 @@
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3000);
           init();
+          // If onboarding is active on discover step, advance to manual step
+          const ob = document.getElementById('onboardingOverlay');
+          if (ob && ob.classList.contains('active')) { onboardingStep = 2; showOnboardingStep(); }
         } else {
           if (btn) { btn.innerHTML = '❌ ' + saveRes.message; btn.disabled = false; }
         }
@@ -3364,7 +3381,7 @@
   }
   function loadTheme() {
     // Load from localStorage first (instant, no flicker)
-    const saved = localStorage.getItem('rc_theme') || 'dark';
+    const saved = localStorage.getItem('rc_theme') || 'system';
     applyTheme(saved);
     // Then sync from Supabase settings if available
     if (currentUser) {
