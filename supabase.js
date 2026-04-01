@@ -746,3 +746,114 @@ async function createCollectionWithVisibility(username, name, isPublic) {
 
 // Make sbFetch available globally for admin panel direct queries
 window._sbFetch = sbFetch;
+
+// ── RECIPE SHARES ─────────────────────────────────────────────
+
+async function createShareLink(recipeId, username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error', message: 'User not found' };
+  // Upsert — create or re-enable
+  const existing = await sbFetch('GET', 'recipe_shares', null, `recipe_id=eq.${recipeId}&user_id=eq.${userId}&select=id`);
+  if (existing && existing.length > 0) {
+    await sbFetch('PATCH', `recipe_shares?id=eq.${existing[0].id}`, { active: true });
+  } else {
+    await sbFetch('POST', 'recipe_shares', { recipe_id: recipeId, user_id: userId, active: true });
+  }
+  return { status: 'Success', url: `https://rollcookbook.vercel.app/api/recipe?id=${recipeId}` };
+}
+
+async function getShareStatus(recipeId, username) {
+  const userId = await getUserId(username);
+  if (!userId) return { active: false };
+  const data = await sbFetch('GET', 'recipe_shares', null, `recipe_id=eq.${recipeId}&user_id=eq.${userId}&select=active`);
+  if (!data || data.length === 0) return { active: false };
+  return { active: data[0].active };
+}
+
+async function setShareActive(recipeId, username, active) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error' };
+  const existing = await sbFetch('GET', 'recipe_shares', null, `recipe_id=eq.${recipeId}&user_id=eq.${userId}&select=id`);
+  if (existing && existing.length > 0) {
+    await sbFetch('PATCH', `recipe_shares?id=eq.${existing[0].id}`, { active });
+  } else if (active) {
+    await sbFetch('POST', 'recipe_shares', { recipe_id: recipeId, user_id: userId, active: true });
+  }
+  return { status: 'Success' };
+}
+
+async function addRecipeFromPublicLink(recipeId, username) {
+  // Get the recipe data
+  const recipes = await sbFetch('GET', 'recipes', null, `id=eq.${recipeId}&select=*`);
+  if (!recipes || recipes.length === 0) return { status: 'Error', message: 'Recipe not found' };
+  const r = recipes[0];
+  return await addRecipe(username, {
+    title: r.title, category: r.category, ingredients: r.ingredients,
+    instructions: r.instructions, notes: r.notes, cook_time: r.cook_time,
+    servings: r.servings, image_url: r.image_url
+  });
+}
+
+// ── FRIEND RATINGS ────────────────────────────────────────────
+
+async function setFriendRating(recipeId, raterUsername, rating) {
+  const raterId = await getUserId(raterUsername);
+  if (!raterId) return { status: 'Error', message: 'User not found' };
+  // Upsert
+  const existing = await sbFetch('GET', 'friend_ratings', null, `recipe_id=eq.${recipeId}&rater_user_id=eq.${raterId}&select=id`);
+  if (existing && existing.length > 0) {
+    await sbFetch('PATCH', `friend_ratings?id=eq.${existing[0].id}`, { rating });
+  } else {
+    await sbFetch('POST', 'friend_ratings', { recipe_id: recipeId, rater_user_id: raterId, rating });
+  }
+  // Notify recipe owner
+  const recipeData = await sbFetch('GET', 'recipes', null, `id=eq.${recipeId}&select=user_id,title`);
+  if (recipeData && recipeData[0] && recipeData[0].user_id !== raterId) {
+    await sbFetch('POST', 'notifications', {
+      to_user_id: recipeData[0].user_id,
+      from_user_id: raterId,
+      type: 'friend_rating',
+      meta: JSON.stringify({ recipe_id: recipeId, recipe_title: recipeData[0].title, rating })
+    });
+  }
+  return { status: 'Success' };
+}
+
+async function getFriendRatings(recipeId, username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Success', ratings: [], average: null };
+  // Get who this user follows
+  const follows = await sbFetch('GET', 'follows', null, `follower_id=eq.${userId}&select=followee_id`);
+  if (!follows || follows.length === 0) return { status: 'Success', ratings: [], average: null };
+  const followeeIds = follows.map(f => f.followee_id);
+  const data = await sbFetch('GET', 'friend_ratings', null,
+    `recipe_id=eq.${recipeId}&rater_user_id=in.(${followeeIds.join(',')})&select=rating,rater_user_id,users!friend_ratings_rater_user_id_fkey(username,avatar_url)`);
+  if (!data || data.length === 0) return { status: 'Success', ratings: [], average: null };
+  const ratings = data.map(d => ({
+    username: d.users.username,
+    avatarUrl: d.users.avatar_url,
+    rating: d.rating
+  }));
+  const average = Math.round(ratings.reduce((s, r) => s + r.rating, 0) / ratings.length * 10) / 10;
+  return { status: 'Success', ratings, average };
+}
+
+// ── ROTD PER USER ─────────────────────────────────────────────
+
+async function getOrSetRotd(username) {
+  const userId = await getUserId(username);
+  if (!userId) return null;
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const settings = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=rotd_recipe_id,rotd_date`);
+  if (settings && settings[0] && settings[0].rotd_date === today && settings[0].rotd_recipe_id) {
+    // Return existing ROTD for today
+    const r = await sbFetch('GET', 'recipes', null, `id=eq.${settings[0].rotd_recipe_id}&select=*`);
+    return r && r[0] ? r[0] : null;
+  }
+  // Pick a new random recipe for today
+  const recipes = await sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`);
+  if (!recipes || recipes.length === 0) return null;
+  const pick = recipes[Math.floor(Math.random() * recipes.length)];
+  await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, { rotd_recipe_id: pick.id, rotd_date: today });
+  return pick;
+}
