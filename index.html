@@ -583,7 +583,8 @@
 <!-- ═══ LOGIN ═══ -->
 <div id="loginScreen" class="login-screen">
   <div class="login-logo">Roll <span>Cookbook</span></div>
-  <div class="login-tagline">Who's cooking today?</div>
+  <div class="login-tagline login-sub" id="loginSubtitle">Who's cooking today?</div>
+  <div id="appVersionLabel" style="font-size:0.65em;color:var(--text-faint);text-align:center;margin-top:4px;"></div>
   <div class="login-box">
     <div id="savedUsersSection" style="display:none;">
       <div class="login-section-title">Your accounts</div>
@@ -1259,14 +1260,45 @@
         </div>
         <button class="settings-toggle" id="toggleMaintenance" onclick="toggleAdminSetting('maintenance_mode','toggleMaintenance')"></button>
       </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">📅 Recipe of the Day Override</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">Pin a specific recipe as the ROTD for all users today. Search by title below.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="rotdSearchInput" class="edit-field" placeholder="Search your recipes..." oninput="searchRotdRecipes()" style="flex:1;margin:0;">
+      </div>
+      <div id="rotdSearchResults" style="max-height:200px;overflow-y:auto;"></div>
+      <div id="rotdCurrentOverride" style="margin-top:10px;font-size:0.82em;color:var(--text-dim);"></div>
+      <button class="btn btn-secondary" style="margin-top:8px;" onclick="clearRotdOverride()">Clear Override</button>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">🎨 App Settings</div>
       <div class="admin-row">
         <div class="admin-row-info">
-          <div class="admin-row-label">Recipe of the Day override</div>
-          <div class="admin-row-sub">Pin a specific recipe as ROTD</div>
+          <div class="admin-row-label">App version label</div>
+          <div class="admin-row-sub">Shown in profile footer</div>
         </div>
-        <button class="btn btn-secondary" style="width:auto;padding:7px 12px;font-size:0.78em;" onclick="openRotdOverride()">Set</button>
+        <input type="text" id="adminVersionInput" class="edit-field" placeholder="e.g. v1.2.0" style="width:90px;margin:0;padding:6px 10px;font-size:0.82em;">
       </div>
+      <div class="admin-row" style="margin-top:10px;">
+        <div class="admin-row-info">
+          <div class="admin-row-label">New user greeting</div>
+          <div class="admin-row-sub">First line on the login screen</div>
+        </div>
+      </div>
+      <input type="text" id="adminGreetingInput" class="edit-field" placeholder="Who's cooking today?" style="margin-top:4px;">
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="saveAppSettings()">💾 Save App Settings</button>
+      <div id="appSettingsSaveStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
     </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">📊 Quick Stats</div>
+      <button class="btn btn-secondary" onclick="loadAdminStats()">Load Stats</button>
+      <div id="adminStats" style="margin-top:12px;"></div>
+    </div>
+
     <div style="height:30px;"></div>
   </div>
 
@@ -1494,7 +1526,7 @@
     initPullToRefresh();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
-    init().then(() => checkAddRecipeParam());
+    init().then(() => { checkAddRecipeParam(); startNotifPolling(); });
   }
 
   function adjustHeaderPadding() {
@@ -2390,6 +2422,7 @@
   // ═══ NOTIFICATIONS ═══
   let userNotifications = [];
 
+  let notifPollInterval = null;
   function checkNotifications() {
     getNotifications(currentUser).then(res => {
       if (res.status !== 'Success') return;
@@ -2398,11 +2431,14 @@
       if (userNotifications.length > 0) { badge.style.display = 'flex'; badge.textContent = userNotifications.length; }
       else badge.style.display = 'none';
     });
-    // Check unread messages
     getUnreadMessageCount(currentUser).then(count => {
       const msgBadge = document.getElementById('msgBellBadge');
       if (msgBadge) { msgBadge.style.display = count > 0 ? 'flex' : 'none'; if (count > 0) msgBadge.textContent = count; }
     });
+  }
+  function startNotifPolling() {
+    if (notifPollInterval) return;
+    notifPollInterval = setInterval(checkNotifications, 30000); // every 30s
   }
 
   function renderProfileNotifications() {
@@ -2741,9 +2777,12 @@
         const results = res.results || [];
         if (results.length === 0) { document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">No results found.</div>'; return; }
         const filtered = results.filter(r => !blacklist.includes(getDomainFromUrl(r.url)));
-        if (filtered.length === 0) { document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">No results found (some sites were filtered).</div>'; return; }
+        if (filtered.length === 0) {
+          document.getElementById('discoverResults').innerHTML = '<div class="discover-empty"><div style="font-size:2em;margin-bottom:10px;">🚫</div><p>All results were from sites that failed to import before and have been blocked.<br><br><span style="font-size:0.85em;color:var(--text-faint);">Try a more specific search, or tap a result and use Browse Site to find the recipe manually.</span></p></div>';
+          return;
+        }
         const blockedCount = results.length - filtered.length;
-        const filteredNote = blockedCount > 0 ? '<div style="font-size:0.75em;color:var(--text-faint);padding:6px 4px 10px;">🚫 ' + blockedCount + ' result' + (blockedCount>1?'s':'') + ' hidden from blocked sites</div>' : '';
+        const filteredNote = blockedCount > 0 ? '<div style="font-size:0.75em;color:var(--text-faint);padding:6px 4px 10px;">🚫 ' + blockedCount + ' result' + (blockedCount>1?'s':'') + ' hidden (previously failed to import)</div>' : '';
         document.getElementById('discoverResults').innerHTML = filteredNote + filtered.map((r,i) => '<div class="discover-result-card" onclick="openPreview('+i+')" style="animation-delay:'+(i*0.04)+'s"><div class="discover-thumb">'+(r.thumbnail?'<img src="'+r.thumbnail+'">':'🍽️')+'</div><div class="discover-info"><div class="discover-site">'+r.site+'</div><div class="discover-title">'+r.title+'</div><div class="discover-snippet">'+r.snippet+'</div></div></div>').join('');
         window._discoverResults = filtered;
       })
@@ -2812,9 +2851,9 @@
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3000);
           init();
-          // If onboarding is active on discover step, advance to manual step
+          // If onboarding sent them to discover, re-open at the manual add step
           const ob = document.getElementById('onboardingOverlay');
-          if (ob && ob.classList.contains('active')) { onboardingStep = 2; showOnboardingStep(); }
+          if (ob) { onboardingStep = 2; ob.classList.add('active'); showOnboardingStep(); }
         } else {
           if (btn) { btn.innerHTML = '❌ ' + saveRes.message; btn.disabled = false; }
         }
@@ -3538,11 +3577,9 @@
   function openAdminModal() {
     getAdminSettings().then(res => {
       adminSettings = res.settings || {};
-      // Set active tone
       document.querySelectorAll('.admin-tone-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tone === (adminSettings.timer_tone || 'default'));
       });
-      // Broadcast
       const broadcastText = document.getElementById('adminBroadcastText');
       if (broadcastText) broadcastText.value = adminSettings.broadcast_message || '';
       setToggle('toggleBroadcastBtn', adminSettings.broadcast_button_enabled || false);
@@ -3551,6 +3588,16 @@
       if (adminSettings.broadcast_button_label) document.getElementById('adminBroadcastBtnLabel').value = adminSettings.broadcast_button_label;
       if (adminSettings.broadcast_button_action) document.getElementById('adminBroadcastBtnAction').value = adminSettings.broadcast_button_action;
       if (adminSettings.broadcast_button_url) document.getElementById('adminBroadcastBtnUrl').value = adminSettings.broadcast_button_url;
+      // Load app settings fields
+      const vi = document.getElementById('adminVersionInput');
+      const gi = document.getElementById('adminGreetingInput');
+      if (vi) vi.value = adminSettings.app_version || '';
+      if (gi) gi.value = adminSettings.login_greeting || '';
+      // ROTD current override
+      const rotdEl = document.getElementById('rotdCurrentOverride');
+      if (rotdEl && adminSettings.rotd_override_id) {
+        rotdEl.textContent = 'Current override: ' + (adminSettings.rotd_override_date || '') + ' — ID: ' + adminSettings.rotd_override_id.slice(0,8) + '...';
+      }
       openModalAnimated('adminModal');
     });
   }
@@ -3610,6 +3657,10 @@
   function loadBroadcast() {
     getAdminSettings().then(res => {
       const s = res.settings || {};
+      // Apply custom login greeting if set
+      if (s.login_greeting) { const el = document.getElementById('loginSubtitle'); if (el) el.textContent = s.login_greeting; }
+      // Apply app version if set
+      if (s.app_version) { const el = document.getElementById('appVersionLabel'); if (el) el.textContent = s.app_version; }
       const banner = document.getElementById('broadcastBanner');
       if (!banner) return;
       if (!s.broadcast_active || !s.broadcast_message) { banner.classList.remove('visible'); return; }
@@ -3661,7 +3712,81 @@
     el.classList.toggle('on', on);
     updateAdminSettings({ [key]: on });
   }
-  function openRotdOverride() { alert('Recipe of the Day override coming soon!'); }
+  function openRotdOverride() {} // replaced by inline admin panel UI
+
+  // ── ROTD OVERRIDE ──
+  function searchRotdRecipes() {
+    const q = document.getElementById('rotdSearchInput').value.toLowerCase();
+    const matches = allRecipes.filter(r => r.title.toLowerCase().includes(q)).slice(0, 6);
+    const el = document.getElementById('rotdSearchResults');
+    if (!q) { el.innerHTML = ''; return; }
+    if (matches.length === 0) { el.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:8px 0;">No recipes found</div>'; return; }
+    el.innerHTML = matches.map(r =>
+      '<div onclick="setRotdOverride(\'' + r.id + '\',\'' + escapeHtml(r.title) + '\')" style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' +
+      (r.image ? '<img src="' + r.image + '" style="width:32px;height:32px;object-fit:cover;border-radius:6px;margin-right:10px;vertical-align:middle;">' : '') +
+      r.title + '</div>'
+    ).join('');
+  }
+  async function setRotdOverride(recipeId, title) {
+    const el = document.getElementById('rotdCurrentOverride');
+    el.textContent = 'Setting...'; el.style.color = 'var(--gold)';
+    // Set rotd_recipe_id and rotd_date to today for ALL users via admin_settings
+    await updateAdminSettings({ rotd_override_id: recipeId, rotd_override_date: new Date().toISOString().slice(0,10) });
+    el.textContent = '✅ ROTD set to: ' + title; el.style.color = 'var(--green)';
+    document.getElementById('rotdSearchInput').value = '';
+    document.getElementById('rotdSearchResults').innerHTML = '';
+  }
+  async function clearRotdOverride() {
+    await updateAdminSettings({ rotd_override_id: null, rotd_override_date: null });
+    document.getElementById('rotdCurrentOverride').textContent = '✅ Override cleared — users will see their own ROTD';
+    document.getElementById('rotdCurrentOverride').style.color = 'var(--text-dim)';
+  }
+
+  // ── APP SETTINGS ──
+  async function loadAppSettings() {
+    const res = await getAdminSettings();
+    const s = res.settings || {};
+    const vi = document.getElementById('adminVersionInput');
+    const gi = document.getElementById('adminGreetingInput');
+    if (vi) vi.value = s.app_version || '';
+    if (gi) gi.value = s.login_greeting || '';
+  }
+  async function saveAppSettings() {
+    const statusEl = document.getElementById('appSettingsSaveStatus');
+    statusEl.textContent = 'Saving...'; statusEl.style.color = 'var(--gold)';
+    const version = document.getElementById('adminVersionInput').value.trim();
+    const greeting = document.getElementById('adminGreetingInput').value.trim();
+    const res = await updateAdminSettings({ app_version: version, login_greeting: greeting });
+    if (res.status === 'Success') {
+      statusEl.textContent = '✅ Saved!'; statusEl.style.color = 'var(--green)';
+      // Apply greeting live
+      if (greeting) { const el = document.getElementById('loginSubtitle'); if (el) el.textContent = greeting; }
+      setTimeout(() => statusEl.textContent = '', 2500);
+    } else { statusEl.textContent = '❌ Save failed'; statusEl.style.color = 'var(--red)'; }
+  }
+
+  // ── ADMIN STATS ──
+  async function loadAdminStats() {
+    const el = document.getElementById('adminStats');
+    el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;">Loading...</div>';
+    try {
+      const [users, recipes, messages, blacklist] = await Promise.all([
+        sbFetch('GET', 'users', null, 'select=id'),
+        sbFetch('GET', 'recipes', null, 'select=id'),
+        sbFetch('GET', 'messages', null, 'select=id'),
+        sbFetch('GET', 'blacklist', null, 'select=id')
+      ]);
+      el.innerHTML = [
+        ['👥 Total users', (users||[]).length],
+        ['🍳 Total recipes', (recipes||[]).length],
+        ['💬 Total messages', (messages||[]).length],
+        ['🚫 Blocked domains', (blacklist||[]).length],
+      ].map(([label, val]) =>
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;">' +
+        '<span style="color:var(--text-dim);">' + label + '</span><span style="font-weight:700;">' + val + '</span></div>'
+      ).join('');
+    } catch(e) { el.innerHTML = '<div style="color:var(--red);font-size:0.82em;">Failed to load stats</div>'; }
+  }
 
   // ═══ SEASONAL TIMER TONES ═══
   function playAlarmTone(tone) {
