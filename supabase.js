@@ -854,14 +854,25 @@ async function getFriendRatings(recipeId, username) {
 async function getOrSetRotd(username) {
   const userId = await getUserId(username);
   if (!userId) return null;
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Check admin override first
+  try {
+    const adminRes = await getAdminSettings();
+    const s = adminRes.settings || {};
+    if (s.rotd_override_id && s.rotd_override_date === today) {
+      const r = await sbFetch('GET', 'recipes', null, `id=eq.${s.rotd_override_id}&select=*`);
+      if (r && r[0]) return r[0];
+    }
+  } catch(e) {}
+
+  // Fall back to per-user ROTD
   const settings = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=rotd_recipe_id,rotd_date`);
   if (settings && settings[0] && settings[0].rotd_date === today && settings[0].rotd_recipe_id) {
-    // Return existing ROTD for today
     const r = await sbFetch('GET', 'recipes', null, `id=eq.${settings[0].rotd_recipe_id}&select=*`);
     return r && r[0] ? r[0] : null;
   }
-  // Pick a new random recipe for today
+  // Pick a new random recipe for today from THIS user's cookbook
   const recipes = await sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`);
   if (!recipes || recipes.length === 0) return null;
   const pick = recipes[Math.floor(Math.random() * recipes.length)];
