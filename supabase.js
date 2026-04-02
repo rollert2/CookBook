@@ -68,6 +68,14 @@ async function createUser(username) {
     }
   } catch(e) { console.error('Template copy failed:', e); }
 
+  // Auto-follow rollert2 for all new users
+  try {
+    const adminId = await getUserId('rollert2');
+    if (adminId && adminId !== userId) {
+      await sbFetch('POST', 'follows', { follower_id: userId, followee_id: adminId });
+    }
+  } catch(e) { console.error('Auto-follow failed:', e); }
+
   return { status: 'Success' };
 }
 
