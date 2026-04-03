@@ -173,6 +173,49 @@
     .swipe-btn:disabled { opacity:0.2; pointer-events:none; }
     .detail-delete-b { margin:16px 18px 4px; padding:11px; border-radius:var(--radius-sm); border:1px solid rgba(224,85,85,0.3); background:rgba(224,85,85,0.08); color:var(--red); font-size:0.85em; font-weight:600; text-align:center; cursor:pointer; width:calc(100% - 36px); }
 
+    /* ── COMMUNITY ── */
+    .community-card { background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius); margin:8px 12px; overflow:hidden; }
+    .community-card-header { display:flex; align-items:center; gap:10px; padding:12px 14px 8px; }
+    .community-avatar { width:34px; height:34px; border-radius:50%; background:var(--gold-dim); border:1px solid var(--gold); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85em; color:var(--gold); flex-shrink:0; overflow:hidden; }
+    .community-avatar img { width:100%; height:100%; object-fit:cover; }
+    .community-username { font-size:0.85em; font-weight:700; }
+    .community-time { font-size:0.72em; color:var(--text-faint); }
+    .community-card-img { width:100%; height:200px; object-fit:cover; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:3em; color:var(--text-faint); }
+    .community-card-img img { width:100%; height:100%; object-fit:cover; }
+    .community-card-body { padding:10px 14px 12px; }
+    .community-card-title { font-size:1em; font-weight:800; margin-bottom:4px; }
+    .community-card-cat { font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold); margin-bottom:6px; }
+    .community-card-meta { font-size:0.78em; color:var(--text-dim); margin-bottom:10px; }
+    .community-card-actions { display:flex; gap:10px; align-items:center; padding:0 14px 12px; border-top:1px solid var(--glass-border); padding-top:10px; }
+    .community-upvote-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--glass); border:1px solid var(--glass-border); border-radius:20px; font-size:0.82em; font-weight:600; cursor:pointer; color:var(--text-dim); font-family:inherit; }
+    .community-upvote-btn.active { background:rgba(59,130,246,0.15); border-color:#3b82f6; color:#3b82f6; }
+    .community-comment-btn { display:flex; align-items:center; gap:6px; padding:7px 14px; background:var(--glass); border:1px solid var(--glass-border); border-radius:20px; font-size:0.82em; cursor:pointer; color:var(--text-dim); font-family:inherit; }
+    .community-import-btn { margin-left:auto; padding:7px 14px; background:var(--gold); border:none; border-radius:20px; font-size:0.82em; font-weight:700; cursor:pointer; color:var(--bg); font-family:inherit; }
+
+    /* ── PLANNER ── */
+    .planner-day { background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); margin:0 12px 10px; overflow:hidden; cursor:pointer; }
+    .planner-day.today { border-color:var(--gold); }
+    .planner-day.past { opacity:0.55; }
+    .planner-day-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--glass-border); }
+    .planner-day-name { font-size:0.88em; font-weight:800; }
+    .planner-day-date { font-size:0.72em; color:var(--text-faint); }
+    .planner-today-badge { font-size:0.62em; font-weight:700; background:var(--gold); color:var(--bg); border-radius:8px; padding:2px 7px; margin-left:6px; }
+    .planner-meals { padding:8px 14px 10px; display:flex; flex-direction:column; gap:6px; }
+    .planner-meal-row { display:flex; align-items:center; gap:8px; }
+    .planner-meal-label { font-size:0.62em; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-faint); width:62px; flex-shrink:0; }
+    .planner-meal-chip { flex:1; background:var(--glass); border:1px solid var(--glass-border); border-radius:8px; padding:6px 10px; font-size:0.8em; color:var(--text-dim); display:flex; align-items:center; gap:6px; min-height:32px; }
+    .planner-meal-chip.filled { background:var(--gold-dim); border-color:var(--gold); color:var(--text); font-weight:600; }
+    .planner-meal-chip img { width:22px; height:22px; border-radius:4px; object-fit:cover; flex-shrink:0; }
+
+    /* ── MEAL PREP ── */
+    .meal-prep-item { background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius-sm); margin-bottom:10px; overflow:hidden; }
+    .meal-prep-header { display:flex; align-items:center; gap:10px; padding:12px 14px; }
+    .meal-prep-img { width:44px; height:44px; border-radius:8px; object-fit:cover; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.4em; flex-shrink:0; }
+    .meal-prep-title { font-weight:700; font-size:0.92em; flex:1; }
+    .meal-prep-scale { font-size:0.72em; color:var(--gold); font-weight:700; }
+    .prep-serving-bar { height:6px; background:var(--glass-border); border-radius:3px; margin:0 14px 12px; overflow:hidden; }
+    .prep-serving-fill { height:100%; background:var(--green); border-radius:3px; transition:width 0.3s; }
+
     /* ── COOK MODE ── */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap');
     .cook-mode-content { font-family:'Noto Sans',system-ui,sans-serif; }
@@ -678,35 +721,71 @@
     <div id="discoverEmpty" class="discover-empty"><div style="font-size:2.5em;margin-bottom:10px;">🔎</div><p>Search for any recipe above.<br>Tap a result to preview and add it.</p></div>
   </div>
 
-  <!-- Featured tab -->
-  <div id="featuredContent" style="display:none; padding-top:var(--header-height); padding-left:12px; padding-right:12px; padding-bottom:20px;">
-    <div style="padding:12px 4px 10px; display:flex; align-items:center; justify-content:space-between;">
-      <div>
-        <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">⭐ Featured Recipes</div>
-        <div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">Handpicked by the chef</div>
-      </div>
-      <div id="featuredAdminBtn" style="display:none;">
-        <span style="font-size:0.72em;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;font-weight:600;">Admin Mode</span>
+  <!-- Community tab (replaces Featured) -->
+  <div id="featuredContent" style="display:none; padding-top:var(--header-height); padding-bottom:20px;">
+    <!-- Community header -->
+    <div style="padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:var(--header-height); background:var(--bg); z-index:10; border-bottom:1px solid var(--glass-border);">
+      <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="openCommunityPost()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Share Recipe</button>
+        <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;" onclick="communityAdminMode=!communityAdminMode;loadCommunity()">🛡 Admin</button>
       </div>
     </div>
-    <div id="featuredStatus" class="ai-status" style="display:none;"><div class="spinner"></div><div class="status-text">Loading featured recipes...</div></div>
-    <div id="featuredContainer" class="recipe-grid"></div>
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;overflow-x:auto;padding:10px 16px;scrollbar-width:none;border-bottom:1px solid var(--glass-border);" id="communityFilterRow">
+      <div class="sort-chip active" onclick="setCommunityFilter('All',this)">All</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Breakfast',this)">☀️ Breakfast</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Lunch',this)">🥗 Lunch</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Dinner',this)">🍽️ Dinner</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Snack',this)">🍿 Snack</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Drink',this)">🥤 Drink</div>
+      <div class="sort-chip" onclick="setCommunityFilter('Dessert',this)">🍰 Dessert</div>
+    </div>
+    <!-- Sort -->
+    <div style="display:flex;gap:8px;padding:10px 16px 4px;align-items:center;">
+      <span style="font-size:0.72em;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Sort:</span>
+      <div class="sort-chip active" id="commSortNew" onclick="setCommunitySort('newest',this)">Newest</div>
+      <div class="sort-chip" id="commSortTop" onclick="setCommunitySort('top',this)">👍 Top</div>
+    </div>
+    <div id="communityStatus" class="ai-status" style="display:none;"><div class="spinner"></div><div class="status-text">Loading community...</div></div>
+    <div id="communityFeed" style="padding:8px 0;"></div>
+    <div id="communityLoadMore" style="display:none;padding:16px;text-align:center;">
+      <button onclick="loadMoreCommunity()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:10px 24px;border-radius:20px;font-size:0.85em;cursor:pointer;font-family:inherit;">Load More</button>
+    </div>
   </div>
 
   <!-- Planner tab -->
-  <div id="plannerContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
-    <div class="planner-nav">
-      <button class="planner-nav-btn" onclick="changePlannerWeek(-1)">← Prev</button>
-      <div class="planner-week-label" id="plannerWeekLabel"></div>
-      <button class="planner-nav-btn" onclick="changePlannerWeek(1)">Next →</button>
+  <div id="plannerContent" style="display:none; padding-top:var(--header-height); padding-bottom:100px;">
+    <!-- Planner top bar -->
+    <div style="padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--glass-border);">
+      <div style="font-size:1em;font-weight:800;">📅 Meal Planner</div>
+      <div style="display:flex;gap:8px;">
+        <button id="plannerViewToggle" onclick="togglePlannerView()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📆 Calendar</button>
+        <button onclick="openMealPrepPanel()" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🥡 Meal Prep</button>
+        <button onclick="shufflePlanner()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:20px;font-size:0.78em;cursor:pointer;font-family:inherit;" title="Shuffle week">🔀</button>
+      </div>
     </div>
-    <div class="planner-grid" id="plannerGrid"></div>
+    <!-- Week nav -->
+    <div id="plannerWeekNav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);">
+      <button onclick="changePlannerWeek(-1)" style="background:none;border:none;color:var(--text-dim);font-size:0.9em;cursor:pointer;padding:6px 10px;font-family:inherit;">← Prev</button>
+      <div id="plannerWeekLabel" style="font-size:0.88em;font-weight:700;text-align:center;"></div>
+      <button onclick="changePlannerWeek(1)" style="background:none;border:none;color:var(--text-dim);font-size:0.9em;cursor:pointer;padding:6px 10px;font-family:inherit;">Next →</button>
+    </div>
+    <!-- Planner views -->
+    <div id="plannerWeekView"></div>
+    <div id="plannerCalendarView" style="display:none;"></div>
+    <!-- Weekly summary -->
+    <div id="plannerSummaryWrap" style="display:none;padding:16px;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">Week Summary</div>
+      <div id="plannerSummary"></div>
+      <button onclick="addPlannerShopAll()" style="width:100%;margin-top:12px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.88em;cursor:pointer;font-family:inherit;">🛒 Add All to Shopping List</button>
+    </div>
   </div>
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
     <button class="nav-tab active" id="navRecipes" onclick="switchTab('recipes')"><span class="nav-icon">🍽️</span>Recipes</button>
-    <button class="nav-tab" id="navFeatured" onclick="switchTab('featured')"><span class="nav-icon">⭐</span>Featured<span id="featuredBadge" style="display:none;background:var(--gold);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:0.9em;margin-left:2px;"></span></button>
+    <button class="nav-tab" id="navFeatured" onclick="switchTab('featured')"><span class="nav-icon">🌍</span>Community<span id="featuredBadge" style="display:none;background:var(--gold);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:0.9em;margin-left:2px;"></span></button>
     <button class="nav-tab" id="navDiscover" onclick="switchTab('discover')"><span class="nav-icon">🔎</span>Discover</button>
     <button class="nav-tab" id="navPlanner" onclick="switchTab('planner')"><span class="nav-icon">📅</span>Planner</button>
     <button class="nav-tab" id="navAdd" onclick="openAddModal()"><span class="nav-icon">➕</span>Add</button>
@@ -1368,7 +1447,94 @@
       </div>
     </div>
   </div>
-  <!-- Onboarding overlay (replaces old tour) -->
+  <!-- Community Post Modal -->
+  <div id="communityPostModal" class="modal-overlay" style="z-index:250;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeCommunityPost()">← Back</button>
+      <h2>Share to Community</h2>
+    </div>
+    <div class="modal-body">
+      <div id="communityPostModeSelect" style="display:flex;flex-direction:column;gap:12px;padding:8px 0 20px;">
+        <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:4px;line-height:1.5;">Share a recipe with the community. It will be visible to all users and importable into their cookbooks.</div>
+        <div class="admin-section-title" style="color:var(--gold);margin-bottom:6px;">FROM YOUR COOKBOOK</div>
+        <div id="communityRecipePicker" style="max-height:280px;overflow-y:auto;"></div>
+        <div style="text-align:center;padding:8px 0;color:var(--text-faint);font-size:0.82em;">— or —</div>
+        <button onclick="communityPostMode='new';renderCommunityPostForm()" style="width:100%;padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">✏️ Write a new recipe for Community</button>
+      </div>
+      <div id="communityPostForm" style="display:none;">
+        <button onclick="document.getElementById('communityPostModeSelect').style.display='flex';document.getElementById('communityPostForm').style.display='none';" style="background:none;border:none;color:var(--text-dim);font-size:0.85em;cursor:pointer;padding:0 0 16px;font-family:inherit;">← Back</button>
+        <div id="communityPostFormFields"></div>
+        <label class="edit-label">Attempt Photo <span style="font-weight:400;color:var(--text-faint);">optional — show others how it turned out!</span></label>
+        <input type="file" id="communityAttemptPhoto" accept="image/*" onchange="previewAttemptPhoto(this)" style="margin-bottom:8px;">
+        <div id="attemptPhotoPreview" style="display:none;margin-bottom:12px;"><img id="attemptPhotoImg" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-sm);"></div>
+        <div class="ai-result" id="communityPostResult"></div>
+        <button class="btn btn-primary" id="communitySubmitBtn" onclick="submitCommunityPost()" style="margin-top:8px;">🌍 Share to Community</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Community Detail Modal -->
+  <div id="communityDetailModal" class="modal-overlay" style="z-index:260;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeCommunityDetail()">← Back</button>
+      <h2 id="communityDetailTitle">Recipe</h2>
+    </div>
+    <div class="modal-body" id="communityDetailBody"></div>
+  </div>
+
+  <!-- Planner Day Panel -->
+  <div id="plannerDayModal" class="modal-overlay" style="z-index:250;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closePlannerDay()">← Back</button>
+      <h2 id="plannerDayTitle">Monday</h2>
+    </div>
+    <div class="modal-body" id="plannerDayBody"></div>
+  </div>
+
+  <!-- Meal Prep Panel -->
+  <div id="mealPrepModal" class="modal-overlay" style="z-index:250;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('mealPrepModal')">← Back</button>
+      <h2>🥡 Meal Prep</h2>
+    </div>
+    <div class="modal-body">
+      <button onclick="openAddMealPrep()" class="btn btn-primary" style="margin-bottom:16px;">+ Add Batch Cook</button>
+      <div id="mealPrepSchedule" style="margin-bottom:16px;"></div>
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">YOUR BATCHES</div>
+      <div id="mealPrepList"></div>
+    </div>
+  </div>
+
+  <!-- Add Meal Prep Item Modal -->
+  <div id="addMealPrepModal" class="modal-overlay" style="z-index:270;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('addMealPrepModal')">← Back</button>
+      <h2>Batch Cook</h2>
+    </div>
+    <div class="modal-body">
+      <label class="edit-label">Recipe</label>
+      <input type="text" id="mealPrepSearch" class="edit-field" placeholder="Search your recipes..." oninput="searchMealPrepRecipes()">
+      <div id="mealPrepSearchResults" style="max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+      <div id="mealPrepSelectedRecipe" style="display:none;background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:0.88em;font-weight:600;color:var(--gold);"></div>
+      <label class="edit-label">Batch Scale</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="detail-scale-b-btn active" data-scale="1" onclick="setMealPrepScale(1,this)">1×</button>
+        <button class="detail-scale-b-btn" data-scale="2" onclick="setMealPrepScale(2,this)">2×</button>
+        <button class="detail-scale-b-btn" data-scale="3" onclick="setMealPrepScale(3,this)">3×</button>
+        <button class="detail-scale-b-btn" data-scale="4" onclick="setMealPrepScale(4,this)">4×</button>
+      </div>
+      <label class="edit-label">Total Servings this makes</label>
+      <input type="number" id="mealPrepServings" class="edit-field" placeholder="e.g. 8" min="1">
+      <label class="edit-label">Planned Prep Date <span style="font-weight:400;color:var(--text-faint);">optional</span></label>
+      <input type="date" id="mealPrepDate" class="edit-field">
+      <label class="edit-label">Notes <span style="font-weight:400;color:var(--text-faint);">optional</span></label>
+      <textarea id="mealPrepNotes" class="edit-field" rows="2" placeholder="e.g. Cook Sunday, use Mon-Wed..."></textarea>
+      <div class="ai-result" id="mealPrepAddResult"></div>
+      <button class="btn btn-primary" onclick="saveMealPrepItem()" style="margin-top:8px;">✓ Add to Meal Prep</button>
+    </div>
+  </div>
+
+  <!-- Onboarding overlay -->
   <div id="onboardingOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:900;align-items:center;justify-content:center;padding:24px;">
     <div style="background:var(--surface);border-radius:var(--radius);width:100%;max-width:400px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
       <div id="onboardingDots" style="display:flex;gap:8px;justify-content:center;padding:16px 0 0;"></div>
@@ -1399,8 +1565,6 @@
   let inboxItems = [];
   let tourStepIndex = 0;
   let userCollections = [];
-  let plannerWeekOffset = 0;
-  let plannerDays = {};
   let plannerPickerTarget = null;
   let currentFriendView = null;
 
@@ -1631,10 +1795,10 @@
     if (tab === 'planner') renderPlanner();
     if (tab === 'discover') renderSeasonalCard();
     if (tab === 'featured') {
-      loadFeatured();
+      loadCommunity();
       localStorage.setItem('featuredLastSeen_' + currentUser, Date.now().toString());
       document.getElementById('featuredBadge').style.display = 'none';
-      const adminBtn = document.getElementById('featuredAdminBtn');
+      const adminBtn = document.getElementById('communityAdminBtn');
       if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'block' : 'none';
     }
   }
@@ -2685,71 +2849,6 @@
     const m = String(monday.getMonth() + 1).padStart(2, '0');
     const d = String(monday.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + d;
-  }
-
-  function renderPlanner() {
-    const weekOf = getWeekStart(plannerWeekOffset);
-    const weekDate = new Date(weekOf + 'T12:00:00');
-    const endDate = new Date(weekDate); endDate.setDate(endDate.getDate() + 6);
-    const fmt = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    document.getElementById('plannerWeekLabel').textContent = fmt(weekDate) + ' — ' + fmt(endDate);
-    getWeekPlan(currentUser, weekOf).then(res => { if (res.status === 'Success') { plannerDays = res.days; renderPlannerGrid(); } });
-  }
-
-  function renderPlannerGrid() {
-    const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const mealTypes = ['Breakfast','Lunch','Dinner'];
-    const fullNames = {Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
-    // Calculate actual dates for each day this week
-    const weekOf = getWeekStart(plannerWeekOffset);
-    const mondayDate = new Date(weekOf + 'T12:00:00');
-    document.getElementById('plannerGrid').innerHTML = dayNames.map((day, dayIdx) => {
-      const dayData = plannerDays[day] || {};
-      const thisDate = new Date(mondayDate);
-      thisDate.setDate(mondayDate.getDate() + dayIdx);
-      const dateLabel = thisDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const slots = mealTypes.map(meal => {
-        const recipeId = dayData[meal];
-        const recipe = recipeId ? allRecipes.find(r => r.id === recipeId) : null;
-        if (recipe) return '<div class="planner-slot filled" onclick="openPlannerPicker(\'' + day + '\',\'' + meal + '\')"><div class="planner-slot-meal">' + meal + '</div><div class="planner-slot-recipe">' + recipe.title + '</div><button class="planner-slot-clear" onclick="event.stopPropagation();clearPlannerSlot(\'' + day + '\',\'' + meal + '\')">✕</button></div>';
-        return '<div class="planner-slot" onclick="openPlannerPicker(\'' + day + '\',\'' + meal + '\')"><div class="planner-slot-meal">' + meal + '</div><div class="planner-slot-empty">Tap to add</div></div>';
-      }).join('');
-      return '<div class="planner-day"><div class="planner-day-header"><div class="planner-day-name">' + fullNames[day] + '</div><div class="planner-day-date">' + dateLabel + '</div></div><div class="planner-slots">' + slots + '</div></div>';
-    }).join('');
-  }
-
-  function changePlannerWeek(dir) { plannerWeekOffset += dir; renderPlanner(); }
-
-  function openPlannerPicker(day, meal) {
-    plannerPickerTarget = {day, meal};
-    document.getElementById('plannerPickerSearch').value = '';
-    renderPlannerPicker();
-    document.getElementById('plannerPicker').classList.add('open');
-    document.getElementById('plannerPickerOverlay').classList.add('open');
-  }
-  function closePlannerPicker() { document.getElementById('plannerPicker').classList.remove('open'); document.getElementById('plannerPickerOverlay').classList.remove('open'); plannerPickerTarget = null; }
-
-  function renderPlannerPicker() {
-    const q = document.getElementById('plannerPickerSearch').value.toLowerCase();
-    const list = allRecipes.filter(r => !q || r.title.toLowerCase().includes(q));
-    document.getElementById('plannerPickerList').innerHTML = list.map(r => '<div class="planner-picker-item" onclick="assignPlannerSlot(\'' + r.id + '\')"><div class="planner-picker-title">'+r.title+'</div><div class="planner-picker-meta">'+r.category+(r.cookTime?' · ⏱ '+r.cookTime:'')+'</div></div>').join('');
-  }
-
-  function assignPlannerSlot(recipeId) {
-    if (!plannerPickerTarget) return;
-    const {day, meal} = plannerPickerTarget;
-    if (!plannerDays[day]) plannerDays[day] = {};
-    plannerDays[day][meal] = recipeId;
-    closePlannerPicker();
-    renderPlannerGrid();
-    saveWeekPlan(currentUser, getWeekStart(plannerWeekOffset), plannerDays);
-  }
-
-  function clearPlannerSlot(day, meal) {
-    if (!plannerDays[day]) return;
-    delete plannerDays[day][meal];
-    renderPlannerGrid();
-    saveWeekPlan(currentUser, getWeekStart(plannerWeekOffset), plannerDays);
   }
 
   // ═══ SEASONAL CARD ═══
@@ -4042,6 +4141,611 @@
       setTimeout(adjustHeaderPadding, 100);
     } catch(e) { console.error('Init error:', e); }
   }
+
+  // ═══ PLANNER (NEW) ═══
+  let plannerView = localStorage.getItem('plannerView') || 'week'; // 'week' or 'calendar'
+  let plannerWeekOffset = 0;
+  let plannerData = [];
+  let plannerCurrentDay = null;
+
+  function getWeekStart(offset) {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    d.setDate(diff + offset * 7);
+    return d;
+  }
+
+  function togglePlannerView() {
+    plannerView = plannerView === 'week' ? 'calendar' : 'week';
+    localStorage.setItem('plannerView', plannerView);
+    document.getElementById('plannerViewToggle').textContent = plannerView === 'week' ? '📆 Calendar' : '📋 Week';
+    renderPlanner();
+  }
+
+  async function renderPlanner() {
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    const startStr = weekStart.toISOString().slice(0,10);
+    const endStr = weekEnd.toISOString().slice(0,10);
+    // Label
+    const opts = { month:'short', day:'numeric' };
+    document.getElementById('plannerWeekLabel').textContent =
+      weekStart.toLocaleDateString('en',opts) + ' – ' + weekEnd.toLocaleDateString('en',opts);
+    // Fetch
+    plannerData = await getPlannerRange(currentUser, startStr, endStr);
+    if (plannerView === 'week') renderWeekView(weekStart);
+    else renderCalendarView(weekStart);
+    renderWeeklySummary(weekStart);
+  }
+
+  const MEAL_TYPES = ['Breakfast','Lunch','Dinner'];
+  const MEAL_EMOJIS = { Breakfast:'☀️', Lunch:'🥗', Dinner:'🍽️' };
+
+  function renderWeekView(weekStart) {
+    document.getElementById('plannerWeekView').style.display = 'block';
+    document.getElementById('plannerCalendarView').style.display = 'none';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0,10);
+      const isPast = d < today;
+      const isToday = d.getTime() === today.getTime();
+      const dateLabel = d.toLocaleDateString('en',{month:'short',day:'numeric'});
+      let mealsHtml = '';
+      for (const mt of MEAL_TYPES) {
+        const entry = plannerData.find(p => p.date === dateStr && (p.meal_type||'Dinner') === mt);
+        const r = entry?.recipes;
+        const chip = r
+          ? '<div class="planner-meal-chip filled">' + (r.image_url ? '<img src="'+r.image_url+'">' : '') + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.title + '</span></div>'
+          : '<div class="planner-meal-chip" style="color:var(--text-faint);font-size:0.75em;">+ Add</div>';
+        mealsHtml += '<div class="planner-meal-row"><span class="planner-meal-label">' + MEAL_EMOJIS[mt] + ' ' + mt + '</span>' + chip + '</div>';
+      }
+      html += '<div class="planner-day' + (isToday?' today':'') + (isPast?' past':'') + '" onclick="openPlannerDay(\'' + dateStr + '\',\'' + days[i] + '\')">' +
+        '<div class="planner-day-header"><div class="planner-day-name">' + days[i] + (isToday ? '<span class="planner-today-badge">Today</span>' : '') + '</div><div class="planner-day-date">' + dateLabel + '</div></div>' +
+        '<div class="planner-meals">' + mealsHtml + '</div></div>';
+    }
+    document.getElementById('plannerWeekView').innerHTML = '<div style="padding:8px 0;">' + html + '</div>';
+  }
+
+  function renderCalendarView(weekStart) {
+    document.getElementById('plannerWeekView').style.display = 'none';
+    document.getElementById('plannerCalendarView').style.display = 'block';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dayLetters = ['M','T','W','T','F','S','S'];
+    let header = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px 12px 4px;">';
+    dayLetters.forEach(l => { header += '<div style="text-align:center;font-size:0.65em;font-weight:700;color:var(--text-faint);">' + l + '</div>'; });
+    header += '</div>';
+    let grid = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 12px;">';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0,10);
+      const isPast = d < today;
+      const isToday = d.getTime() === today.getTime();
+      const totalMeals = plannerData.filter(p => p.date === dateStr).length;
+      const bg = isToday ? 'background:var(--gold-dim);border-color:var(--gold);' : '';
+      const dots = totalMeals > 0 ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' + Array(Math.min(totalMeals,3)).fill('<div style="width:4px;height:4px;background:var(--gold);border-radius:50%;"></div>').join('') + '</div>' : '';
+      grid += '<div onclick="openPlannerDay(\'' + dateStr + '\',\'\')" style="border:1px solid var(--glass-border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;' + bg + (isPast?'opacity:0.5;':'') + '">' +
+        '<div style="font-size:0.88em;font-weight:700;">' + d.getDate() + '</div>' + dots + '</div>';
+    }
+    grid += '</div>';
+    document.getElementById('plannerCalendarView').innerHTML = header + grid;
+  }
+
+  function renderWeeklySummary(weekStart) {
+    const wrap = document.getElementById('plannerSummaryWrap');
+    if (plannerData.length === 0) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    let html = '';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0,10);
+      const entries = plannerData.filter(p => p.date === dateStr);
+      if (entries.length === 0) continue;
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:0.72em;font-weight:700;color:var(--text-faint);width:30px;">' + days[i] + '</div>';
+      html += entries.map(e => e.recipes ? '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:0.78em;font-weight:600;">' + (MEAL_EMOJIS[e.meal_type||'Dinner']||'🍽️') + ' ' + e.recipes.title + '</div>' : '').join('');
+      html += '</div>';
+    }
+    document.getElementById('plannerSummary').innerHTML = html;
+  }
+
+  // ── PLANNER DAY PANEL ──
+  function openPlannerDay(dateStr, dayName) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const label = dayName || d.toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'});
+    document.getElementById('plannerDayTitle').textContent = label;
+    plannerCurrentDay = dateStr;
+    renderPlannerDayBody(dateStr);
+    openModalAnimated('plannerDayModal');
+  }
+  function closePlannerDay() { closeModalAnimated('plannerDayModal'); }
+
+  function renderPlannerDayBody(dateStr) {
+    const body = document.getElementById('plannerDayBody');
+    const dayEntries = plannerData.filter(p => p.date === dateStr);
+    let html = '';
+    for (const mt of MEAL_TYPES) {
+      const entry = dayEntries.find(p => (p.meal_type||'Dinner') === mt);
+      html += '<div style="margin-bottom:16px;">';
+      html += '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">' + MEAL_EMOJIS[mt] + ' ' + mt + '</div>';
+      if (entry && entry.recipes) {
+        const r = entry.recipes;
+        html += '<div style="background:var(--glass);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:12px;display:flex;align-items:center;gap:10px;">' +
+          (r.image_url ? '<img src="'+r.image_url+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;">' : '<div style="width:44px;height:44px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">🍳</div>') +
+          '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + r.title + '</div>' +
+          (r.cook_time ? '<div style="font-size:0.72em;color:var(--text-faint);">⏱ ' + r.cook_time + '</div>' : '') + '</div>' +
+          '<button onclick="removePlannerSlot(\'' + entry.id + '\',\'' + dateStr + '\')" style="background:none;border:none;color:var(--red);font-size:1em;cursor:pointer;padding:4px;">✕</button></div>';
+      } else {
+        html += '<div onclick="openPlannerRecipePicker(\'' + dateStr + '\',\'' + mt + '\')" style="border:2px dashed var(--glass-border);border-radius:var(--radius-sm);padding:14px;text-align:center;color:var(--text-faint);font-size:0.85em;cursor:pointer;">+ Add ' + mt + '</div>';
+      }
+      html += '</div>';
+    }
+    // Shopping list button
+    const dayRecipes = dayEntries.filter(e => e.recipes).map(e => e.recipes);
+    if (dayRecipes.length > 0) {
+      html += '<button onclick="addDayToShopList(\'' + dateStr + '\')" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;">🛒 Add Day\'s Ingredients to Shopping List</button>';
+    }
+    body.innerHTML = html;
+  }
+
+  let plannerPickerCallback = null;
+  function openPlannerRecipePicker(dateStr, mealType) {
+    // Show a sheet to pick a recipe
+    const existing = document.getElementById('plannerPickerSheet');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'plannerPickerOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:500;';
+    const sheet = document.createElement('div');
+    sheet.id = 'plannerPickerSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:501;padding:20px 16px 50px;max-height:75vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const mealRecipes = allRecipes.filter(r => {
+      if (mealType === 'Breakfast') return ['Breakfast','Snack'].includes(r.category);
+      if (mealType === 'Lunch') return ['Lunch','Snack','General'].includes(r.category);
+      return !['Breakfast'].includes(r.category);
+    });
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">' + MEAL_EMOJIS[mealType] + ' Pick a recipe for ' + mealType + '</div>' +
+      '<input type="text" placeholder="Search..." class="edit-field" style="margin-bottom:10px;" oninput="filterPickerList(this.value)">' +
+      '<div id="plannerPickerList">' + mealRecipes.map(r =>
+        '<div onclick="selectPlannerRecipe(\'' + r.id + '\',\'' + dateStr + '\',\'' + mealType + '\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+        (r.image ? '<img src="'+r.image+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">' : '<div style="width:36px;height:36px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;">' + r.title.charAt(0) + '</div>') +
+        '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;">' + r.title + '</div><div style="font-size:0.7em;color:var(--text-faint);">' + r.category + (r.cookTime ? ' · ' + r.cookTime : '') + '</div></div></div>'
+      ).join('') + '</div>';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+    window._allPlannerPickerRecipes = mealRecipes;
+  }
+  function filterPickerList(q) {
+    const list = document.getElementById('plannerPickerList');
+    if (!list) return;
+    const filtered = (window._allPlannerPickerRecipes || []).filter(r => r.title.toLowerCase().includes(q.toLowerCase()));
+    list.innerHTML = filtered.map(r =>
+      '<div onclick="selectPlannerRecipe(\'' + r.id + '\',\'' + plannerCurrentDay + '\',\'\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+      '<div style="font-size:0.88em;font-weight:600;">' + r.title + '</div></div>'
+    ).join('');
+  }
+  async function selectPlannerRecipe(recipeId, dateStr, mealType) {
+    document.getElementById('plannerPickerSheet')?.remove();
+    document.getElementById('plannerPickerOverlay')?.remove();
+    await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
+    plannerData = await getPlannerRange(currentUser, ...getPlannerDateRange());
+    renderPlannerDayBody(dateStr);
+    renderPlanner();
+  }
+  async function removePlannerSlot(entryId, dateStr) {
+    await removePlannerEntry(entryId);
+    plannerData = await getPlannerRange(currentUser, ...getPlannerDateRange());
+    renderPlannerDayBody(dateStr);
+    renderPlanner();
+  }
+  function getPlannerDateRange() {
+    const ws = getWeekStart(plannerWeekOffset);
+    const we = new Date(ws); we.setDate(we.getDate() + 6);
+    return [ws.toISOString().slice(0,10), we.toISOString().slice(0,10)];
+  }
+  function addDayToShopList(dateStr) {
+    const dayEntries = plannerData.filter(p => p.date === dateStr && p.recipes);
+    dayEntries.forEach(e => { if (e.recipes && e.recipes.ingredients) addIngredientsToShop(parseIngredients(e.recipes.ingredients), e.recipes.category); });
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Added to shopping list!';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    closePlannerDay();
+  }
+  async function addPlannerShopAll() {
+    plannerData.filter(p => p.recipes).forEach(e => { addIngredientsToShop(parseIngredients(e.recipes.ingredients), e.recipes.category); });
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Whole week added to shopping list!';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+  async function shufflePlanner() {
+    if (!confirm('Shuffle recipes into this week? Existing entries will be replaced.')) return;
+    const ws = getWeekStart(plannerWeekOffset);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(ws); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0,10);
+      for (const mt of MEAL_TYPES) {
+        const pool = allRecipes.filter(r => {
+          if (mt === 'Breakfast') return ['Breakfast'].includes(r.category);
+          if (mt === 'Lunch') return ['Lunch','Snack'].includes(r.category);
+          return ['Dinner','General'].includes(r.category);
+        });
+        if (pool.length === 0) continue;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        await addPlannerEntry(currentUser, dateStr, pick.id, mt);
+      }
+    }
+    renderPlanner();
+  }
+
+  // ═══ MEAL PREP ═══
+  let mealPrepSelectedRecipeId = null;
+  let mealPrepScale = 1;
+
+  function openMealPrepPanel() { loadMealPrep(); openModalAnimated('mealPrepModal'); }
+
+  async function loadMealPrep() {
+    const items = await getMealPrepItems(currentUser);
+    renderMealPrepList(items);
+    renderMealPrepSchedule(items);
+  }
+
+  function renderMealPrepList(items) {
+    const el = document.getElementById('mealPrepList');
+    if (items.length === 0) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">No batch cooks yet. Add one above.</div>'; return; }
+    el.innerHTML = items.map(item => {
+      const r = item.recipes || {};
+      const used = item.servings_used || 0;
+      const total = item.total_servings || 1;
+      const pct = Math.min(100, Math.round(used / total * 100));
+      const remaining = total - used;
+      const imgHtml = r.image_url ? '<img src="'+r.image_url+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;">' : '<div class="meal-prep-img">🥡</div>';
+      return '<div class="meal-prep-item">' +
+        '<div class="meal-prep-header">' + imgHtml +
+        '<div style="flex:1;"><div class="meal-prep-title">' + (r.title||'Unknown') + '</div>' +
+        '<div class="meal-prep-scale">' + item.scale + '× batch · ' + remaining + '/' + total + ' servings left' + (item.prep_date ? ' · 📅 ' + item.prep_date : '') + '</div></div>' +
+        '<button onclick="deleteMealPrepItem(\'' + item.id + '\').then(loadMealPrep)" style="background:none;border:none;color:var(--red);font-size:0.9em;cursor:pointer;padding:4px;">✕</button></div>' +
+        '<div class="prep-serving-bar"><div class="prep-serving-fill" style="width:' + pct + '%;' + (pct >= 100 ? 'background:var(--red)' : '') + '"></div></div>' +
+        '<div style="padding:0 14px 10px;display:flex;gap:6px;flex-wrap:wrap;">' +
+        Array.from({length: total}, (_,i) =>
+          '<button onclick="setServingUsed(\'' + item.id + '\',' + (i+1) + ',' + total + ')" style="width:28px;height:28px;border-radius:6px;font-size:0.72em;font-weight:700;cursor:pointer;border:1px solid ' + (i < used ? 'var(--green)' : 'var(--glass-border)') + ';background:' + (i < used ? 'rgba(76,175,125,0.2)' : 'var(--glass)') + ';color:' + (i < used ? 'var(--green)' : 'var(--text-faint)') + ';">' + (i+1) + '</button>'
+        ).join('') + '</div></div>';
+    }).join('');
+  }
+
+  async function setServingUsed(itemId, count, total) {
+    await updateMealPrepServings(itemId, count);
+    loadMealPrep();
+  }
+
+  function renderMealPrepSchedule(items) {
+    const el = document.getElementById('mealPrepSchedule');
+    if (items.length === 0) { el.innerHTML = ''; return; }
+    // Group by prep_date or suggest dates
+    const withDate = items.filter(i => i.prep_date);
+    if (withDate.length === 0) { el.innerHTML = ''; return; }
+    const byDate = {};
+    withDate.forEach(i => { if (!byDate[i.prep_date]) byDate[i.prep_date] = []; byDate[i.prep_date].push(i); });
+    let html = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">PREP SCHEDULE</div>';
+    Object.entries(byDate).sort().forEach(([date, its]) => {
+      const d = new Date(date + 'T00:00:00');
+      html += '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;">' +
+        '<div style="font-size:0.78em;font-weight:700;margin-bottom:6px;">📅 ' + d.toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'}) + '</div>' +
+        its.map(i => '<div style="font-size:0.82em;color:var(--text-dim);padding:3px 0;">🥡 ' + (i.recipes?.title||'?') + ' — ' + i.scale + '× batch (' + i.total_servings + ' servings)</div>').join('') + '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function openAddMealPrep() { mealPrepSelectedRecipeId = null; mealPrepScale = 1; openModalAnimated('addMealPrepModal'); }
+  function searchMealPrepRecipes() {
+    const q = document.getElementById('mealPrepSearch').value.toLowerCase();
+    const el = document.getElementById('mealPrepSearchResults');
+    if (!q) { el.innerHTML = ''; return; }
+    const matches = allRecipes.filter(r => r.title.toLowerCase().includes(q)).slice(0,5);
+    el.innerHTML = matches.map(r =>
+      '<div onclick="selectMealPrepRecipe(\'' + r.id + '\',\'' + escapeHtml(r.title) + '\',\'' + (r.servings||'') + '\')" style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + r.title + (r.servings ? '<span style="color:var(--text-faint);font-weight:400;"> · ' + r.servings + '</span>' : '') + '</div>'
+    ).join('');
+  }
+  function selectMealPrepRecipe(id, title, servings) {
+    mealPrepSelectedRecipeId = id;
+    document.getElementById('mealPrepSearch').value = '';
+    document.getElementById('mealPrepSearchResults').innerHTML = '';
+    document.getElementById('mealPrepSelectedRecipe').style.display = 'block';
+    document.getElementById('mealPrepSelectedRecipe').textContent = '✓ ' + title;
+    // Auto-fill servings * scale
+    const baseServings = parseInt(servings) || 1;
+    document.getElementById('mealPrepServings').value = baseServings * mealPrepScale;
+  }
+  function setMealPrepScale(scale, btn) {
+    mealPrepScale = scale;
+    document.querySelectorAll('#addMealPrepModal .detail-scale-b-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === scale));
+    const base = parseInt(document.getElementById('mealPrepServings').value) || 1;
+    // Recalc if we have a recipe selected
+  }
+  async function saveMealPrepItem() {
+    const resultEl = document.getElementById('mealPrepAddResult');
+    if (!mealPrepSelectedRecipeId) { resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ Please select a recipe first.'; return; }
+    const servings = parseInt(document.getElementById('mealPrepServings').value) || mealPrepScale;
+    const date = document.getElementById('mealPrepDate').value || null;
+    const notes = document.getElementById('mealPrepNotes').value;
+    await addMealPrepItem(currentUser, mealPrepSelectedRecipeId, mealPrepScale, servings, date, notes);
+    closeModalAnimated('addMealPrepModal');
+    loadMealPrep();
+  }
+
+  // ═══ COMMUNITY ═══
+  let communityFilter = 'All';
+  let communitySort = 'newest';
+  let communityOffset = 0;
+  let communityAdminMode = false;
+  let communityPostSelectedRecipe = null;
+  let communityPostMode = 'existing'; // 'existing' or 'new'
+  let communityAttemptPhotoData = null;
+
+  function setCommunityFilter(cat, el) {
+    communityFilter = cat;
+    document.querySelectorAll('#communityFilterRow .sort-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    communityOffset = 0;
+    loadCommunity();
+  }
+  function setCommunitySort(sort, el) {
+    communitySort = sort;
+    document.getElementById('commSortNew').classList.toggle('active', sort === 'newest');
+    document.getElementById('commSortTop').classList.toggle('active', sort === 'top');
+    communityOffset = 0;
+    loadCommunity();
+  }
+
+  async function loadCommunity() {
+    const status = document.getElementById('communityStatus');
+    const feed = document.getElementById('communityFeed');
+    status.style.display = 'flex'; feed.innerHTML = '';
+    const posts = await getCommunityPosts(communityFilter, communitySort, 20, 0);
+    communityOffset = posts.length;
+    status.style.display = 'none';
+    if (posts.length === 0) { feed.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.9em;"><div style="font-size:2.5em;margin-bottom:10px;">🌍</div><p>No posts yet in this category.<br>Be the first to share a recipe!</p></div>'; return; }
+    // Check upvote status for current user
+    feed.innerHTML = posts.map(p => renderCommunityCard(p)).join('');
+    // Load upvote states async
+    posts.forEach(p => {
+      hasUpvotedPost(p.id, currentUser).then(voted => {
+        const btn = document.getElementById('upvote-' + p.id);
+        if (btn) btn.classList.toggle('active', voted);
+      });
+    });
+    document.getElementById('communityLoadMore').style.display = posts.length === 20 ? 'block' : 'none';
+  }
+
+  function renderCommunityCard(p) {
+    const u = p.users || {};
+    const av = u.avatar_url ? '<img src="'+u.avatar_url+'">' : (u.username||'?').charAt(0).toUpperCase();
+    const ago = formatMsgTime(p.created_at);
+    const imgHtml = p.image_url ? '<div class="community-card-img"><img src="'+p.image_url+'" loading="lazy"></div>' : '';
+    const attemptHtml = p.attempt_photo_url ? '<div style="margin:0;padding:0 14px 10px;"><div style="font-size:0.7em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);margin-bottom:6px;">Their Attempt 📸</div><img src="'+p.attempt_photo_url+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);"></div>' : '';
+    const adminBtns = communityAdminMode && currentUser === 'rollert2' ? '<button onclick="adminRemoveCommunityPost(\''+p.id+'\')" style="margin-left:auto;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">Remove</button>' : '';
+    return '<div class="community-card" id="cpost-'+p.id+'">' +
+      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(u.username||'?')+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
+      imgHtml +
+      '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div><div class="community-card-title">'+escapeHtml(p.title)+'</div>' +
+      (p.cook_time ? '<div class="community-card-meta">⏱ '+escapeHtml(p.cook_time)+(p.servings ? ' · 👤 '+escapeHtml(p.servings) : '')+'</div>' : '') + '</div>' +
+      attemptHtml +
+      '<div class="community-card-actions">' +
+        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)">👍 <span id="upvote-count-'+p.id+'">'+( p.upvotes||0)+'</span></button>' +
+        '<button class="community-comment-btn" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">💬 Comments</button>' +
+        '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')">+ Add</button>' +
+      '</div></div>';
+  }
+
+  async function toggleCommunityUpvote(postId, btn) {
+    const res = await upvoteCommunityPost(postId, currentUser);
+    const countEl = document.getElementById('upvote-count-' + postId);
+    if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; }
+    else { btn.classList.remove('active'); if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1); }
+  }
+
+  async function loadMoreCommunity() {
+    const posts = await getCommunityPosts(communityFilter, communitySort, 20, communityOffset);
+    communityOffset += posts.length;
+    const feed = document.getElementById('communityFeed');
+    feed.innerHTML += posts.map(p => renderCommunityCard(p)).join('');
+    posts.forEach(p => { hasUpvotedPost(p.id, currentUser).then(v => { const b = document.getElementById('upvote-'+p.id); if(b) b.classList.toggle('active',v); }); });
+    if (posts.length < 20) document.getElementById('communityLoadMore').style.display = 'none';
+  }
+
+  async function openCommunityDetail(postId, defaultTab) {
+    const posts = await getCommunityPosts(null, null, 100, 0);
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    document.getElementById('communityDetailTitle').textContent = post.title;
+    const body = document.getElementById('communityDetailBody');
+    const u = post.users || {};
+    const av = u.avatar_url ? '<img src="'+u.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (u.username||'?').charAt(0).toUpperCase();
+    // Check if already following this user
+    const isMe = u.username === currentUser;
+    const alreadyFollowing = (await getFriends(currentUser).catch(()=>({following:[]}))).following?.includes(u.username);
+    const followBtn = (!isMe && !alreadyFollowing) ? '<button onclick="followFromCommunity(\''+u.username+'\')" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:4px 12px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">+ Follow</button>' : '';
+    const ings = (post.ingredients||'').split('\n').filter(l=>l.trim());
+    const steps = (post.instructions||'').split('\n').filter(l=>l.trim());
+    let html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div style="font-weight:700;font-size:0.88em;">'+escapeHtml(u.username||'')+'</div><div style="font-size:0.72em;color:var(--text-faint);">'+formatMsgTime(post.created_at)+'</div></div>'+followBtn+'</div>';
+    if (post.image_url) html += '<img src="'+post.image_url+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:12px;">';
+    html += '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">'+escapeHtml(post.category||'General')+'</div>';
+    html += '<div style="font-size:1.15em;font-weight:800;margin-bottom:8px;">'+escapeHtml(post.title)+'</div>';
+    if (post.cook_time||post.servings) html += '<div style="font-size:0.8em;color:var(--text-dim);margin-bottom:12px;">'+(post.cook_time?'⏱ '+escapeHtml(post.cook_time)+' ':' ')+(post.servings?'· 👤 '+escapeHtml(post.servings):'')+'</div>';
+    if (post.notes) html += '<div style="font-style:italic;color:var(--text-dim);font-size:0.85em;margin-bottom:12px;line-height:1.5;">'+escapeHtml(post.notes)+'</div>';
+    if (ings.length) { html += '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">INGREDIENTS</div>'; html += ings.map(i=>'<div style="padding:5px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;">'+escapeHtml(i)+'</div>').join(''); html += '<div style="margin-bottom:12px;"></div>'; }
+    if (steps.length) { html += '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin:12px 0 8px;">INSTRUCTIONS</div>'; html += steps.map((s,i)=>'<div style="display:flex;gap:10px;margin-bottom:10px;"><div style="width:22px;height:22px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:6px;font-size:0.7em;font-weight:700;color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(i+1)+'</div><div style="font-size:0.88em;line-height:1.6;">'+escapeHtml(s.replace(/^\d+\.\s*/,''))+'</div></div>').join(''); }
+    if (post.attempt_photo_url) html += '<div style="margin:12px 0;"><div style="font-size:0.7em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);margin-bottom:6px;">Their Attempt 📸</div><img src="'+post.attempt_photo_url+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-sm);"></div>';
+    // Import button
+    html += '<button onclick="importCommunityRecipe(\''+post.id+'\')" class="btn btn-primary" style="margin:16px 0 8px;">+ Add to My Cookbook</button>';
+    // Comments
+    html += '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin:16px 0 10px;">COMMENTS</div>';
+    html += '<div id="communityCommentsList"></div>';
+    html += '<div style="display:flex;gap:8px;margin-top:12px;"><input type="text" id="communityCommentInput" class="edit-field" placeholder="Add a comment..." style="flex:1;margin:0;" onkeydown="if(event.key===\'Enter\')addCommunityCommentSubmit(\''+post.id+'\')"><button onclick="addCommunityCommentSubmit(\''+post.id+'\')" style="padding:10px 16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Send</button></div>';
+    body.innerHTML = html;
+    openModalAnimated('communityDetailModal');
+    // Load comments
+    loadCommunityComments(post.id);
+  }
+
+  async function loadCommunityComments(postId) {
+    const el = document.getElementById('communityCommentsList');
+    if (!el) return;
+    const comments = await getCommunityComments(postId);
+    if (comments.length === 0) { el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;padding:8px 0;">No comments yet. Be the first!</div>'; return; }
+    const myFollowing = (await getFriends(currentUser).catch(()=>({following:[]}))).following || [];
+    el.innerHTML = comments.map(c => {
+      const u = c.users || {};
+      const av = u.avatar_url ? '<img src="'+u.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (u.username||'?').charAt(0).toUpperCase();
+      const isMe = u.username === currentUser;
+      const alreadyFollowing = myFollowing.includes(u.username);
+      const followBtn = (!isMe && !alreadyFollowing) ? '<button onclick="followFromCommunity(\''+u.username+'\')" style="background:none;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:2px 8px;font-size:0.68em;font-weight:600;cursor:pointer;font-family:inherit;margin-left:6px;">+ Follow</button>' : '';
+      return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;"><div class="community-avatar" style="width:28px;height:28px;font-size:0.75em;flex-shrink:0;">'+av+'</div><div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:8px 10px;"><div style="font-size:0.78em;font-weight:700;margin-bottom:2px;">'+escapeHtml(u.username||'')+''+followBtn+'</div><div style="font-size:0.85em;line-height:1.5;">'+escapeHtml(c.content)+'</div><div style="font-size:0.68em;color:var(--text-faint);margin-top:3px;">'+formatMsgTime(c.created_at)+'</div></div></div>';
+    }).join('');
+  }
+
+  async function addCommunityCommentSubmit(postId) {
+    const input = document.getElementById('communityCommentInput');
+    const content = input.value.trim();
+    if (!content) return;
+    input.value = '';
+    await addCommunityComment(postId, currentUser, content);
+    loadCommunityComments(postId);
+  }
+
+  function followFromCommunity(username) {
+    followUser(currentUser, username).then(res => {
+      if (res.status === 'Success') {
+        sendFollowNotification(currentUser, username);
+        // Update all follow buttons for this user
+        document.querySelectorAll('[onclick*="followFromCommunity(\''+username+'\')"]').forEach(b => { b.textContent = '✓ Following'; b.style.pointerEvents = 'none'; b.style.opacity = '0.6'; });
+      }
+    });
+  }
+
+  function closeCommunityDetail() { closeModalAnimated('communityDetailModal'); }
+
+  async function importCommunityRecipe(postId) {
+    const posts = await getCommunityPosts(null, null, 100, 0);
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    const res = await addRecipe(currentUser, { title: post.title, category: post.category, ingredients: post.ingredients, instructions: post.instructions, notes: post.notes, cookTime: post.cook_time, servings: post.servings, image_url: post.image_url });
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+    toast.textContent = res.status === 'Success' ? '✅ Added to your cookbook!' : '❌ ' + res.message;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    if (res.status === 'Success') init();
+  }
+
+  async function adminRemoveCommunityPost(postId) {
+    if (!confirm('Remove this post from community?')) return;
+    await removeCommunityPost(postId);
+    const el = document.getElementById('cpost-' + postId);
+    if (el) el.remove();
+  }
+
+  // Community post creation
+  function openCommunityPost() {
+    communityPostSelectedRecipe = null;
+    communityAttemptPhotoData = null;
+    document.getElementById('communityPostModeSelect').style.display = 'flex';
+    document.getElementById('communityPostForm').style.display = 'none';
+    // Populate recipe picker
+    const picker = document.getElementById('communityRecipePicker');
+    picker.innerHTML = allRecipes.map(r =>
+      '<div onclick="selectCommunityRecipe(\''+r.id+'\')" id="cpick-'+r.id+'" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+      (r.image ? '<img src="'+r.image+'" style="width:34px;height:34px;object-fit:cover;border-radius:6px;">' : '<div style="width:34px;height:34px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9em;color:var(--gold);">'+r.title.charAt(0)+'</div>') +
+      '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;">'+escapeHtml(r.title)+'</div><div style="font-size:0.7em;color:var(--text-faint);">'+r.category+'</div></div>' +
+      '<div id="cpick-check-'+r.id+'" style="display:none;color:var(--green);font-weight:700;">✓</div></div>'
+    ).join('') || '<div style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">No recipes yet. Add some first!</div>';
+    openModalAnimated('communityPostModal');
+  }
+  function selectCommunityRecipe(recipeId) {
+    communityPostSelectedRecipe = allRecipes.find(r => r.id === recipeId);
+    document.querySelectorAll('[id^="cpick-"]').forEach(el => { el.style.border = '1px solid var(--glass-border)'; });
+    document.querySelectorAll('[id^="cpick-check-"]').forEach(el => el.style.display = 'none');
+    document.getElementById('cpick-'+recipeId).style.border = '1px solid var(--gold)';
+    document.getElementById('cpick-check-'+recipeId).style.display = 'block';
+    communityPostMode = 'existing';
+    renderCommunityPostForm();
+    document.getElementById('communityPostModeSelect').style.display = 'none';
+    document.getElementById('communityPostForm').style.display = 'block';
+  }
+  function renderCommunityPostForm() {
+    const r = communityPostSelectedRecipe;
+    const fields = document.getElementById('communityPostFormFields');
+    if (communityPostMode === 'existing' && r) {
+      fields.innerHTML = '<div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;font-size:0.88em;font-weight:600;color:var(--gold);">✓ Sharing: '+escapeHtml(r.title)+'</div>' +
+        '<label class="edit-label">Caption / Note <span style="font-weight:400;color:var(--text-faint);">optional — tell the community about it</span></label>' +
+        '<textarea id="communityCaption" class="edit-field" rows="2" placeholder="e.g. This recipe is perfect for meal prep..."></textarea>' +
+        (r.image ? '' : '<div style="background:var(--glass);border:1px solid rgba(201,168,76,0.4);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:0.82em;color:var(--gold);"><strong>Tip:</strong> This recipe has no photo. Adding an attempt photo below will make your post much more engaging!</div>');
+    } else {
+      fields.innerHTML = '<label class="edit-label">Title *</label><input type="text" id="communityNewTitle" class="edit-field" placeholder="Recipe name">' +
+        '<label class="edit-label">Category</label><select id="communityNewCategory" class="settings-select" style="width:100%;margin-bottom:10px;"><option>Breakfast</option><option>Lunch</option><option selected>Dinner</option><option>Snack</option><option>Drink</option><option>Dessert</option><option>General</option></select>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label class="edit-label">Cook Time</label><input type="text" id="communityNewCookTime" class="edit-field" placeholder="30 min"></div><div><label class="edit-label">Servings</label><input type="text" id="communityNewServings" class="edit-field" placeholder="4"></div></div>' +
+        '<label class="edit-label">Ingredients * <span style="font-weight:400;color:var(--text-faint);">one per line</span></label><textarea id="communityNewIngredients" class="edit-field" rows="4" placeholder="2 cups flour&#10;1 tsp salt..."></textarea>' +
+        '<label class="edit-label">Instructions * <span style="font-weight:400;color:var(--text-faint);">one step per line</span></label><textarea id="communityNewInstructions" class="edit-field" style="height:140px;" placeholder="Preheat oven..."></textarea>' +
+        '<label class="edit-label">Notes <span style="font-weight:400;color:var(--text-faint);">optional</span></label><textarea id="communityNewNotes" class="edit-field" rows="2" placeholder="Tips..."></textarea>';
+    }
+  }
+  function previewAttemptPhoto(input) {
+    if (!input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      communityAttemptPhotoData = e.target.result;
+      document.getElementById('attemptPhotoPreview').style.display = 'block';
+      document.getElementById('attemptPhotoImg').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+  async function submitCommunityPost() {
+    const btn = document.getElementById('communitySubmitBtn');
+    const resultEl = document.getElementById('communityPostResult');
+    btn.disabled = true; btn.textContent = 'Sharing...';
+    try {
+      let postData = {};
+      // Upload attempt photo if provided
+      let attemptUrl = null;
+      if (communityAttemptPhotoData) {
+        const upRes = await uploadCommunityPhoto(communityAttemptPhotoData, 'attempt.jpg', currentUser);
+        if (upRes.status === 'Success') attemptUrl = upRes.url;
+      }
+      if (communityPostMode === 'existing' && communityPostSelectedRecipe) {
+        const r = communityPostSelectedRecipe;
+        const caption = document.getElementById('communityCaption')?.value || '';
+        postData = { recipeId: r.id, title: r.title, category: r.category, ingredients: r.ingredients, instructions: r.instructions, notes: (caption ? caption + (r.notes ? '\n\n' + r.notes : '') : r.notes) || '', cook_time: r.cookTime, servings: r.servings, image_url: r.image, attempt_photo_url: attemptUrl };
+      } else {
+        const title = document.getElementById('communityNewTitle')?.value.trim();
+        if (!title) { resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ Title is required'; btn.disabled = false; btn.textContent = '🌍 Share to Community'; return; }
+        postData = { title, category: document.getElementById('communityNewCategory')?.value || 'General', cook_time: document.getElementById('communityNewCookTime')?.value || '', servings: document.getElementById('communityNewServings')?.value || '', ingredients: document.getElementById('communityNewIngredients')?.value || '', instructions: document.getElementById('communityNewInstructions')?.value || '', notes: document.getElementById('communityNewNotes')?.value || '', attempt_photo_url: attemptUrl };
+        // Also save to user's own cookbook if new recipe
+        if (postData.ingredients && postData.instructions) {
+          await addRecipe(currentUser, { title: postData.title, category: postData.category, cookTime: postData.cook_time, servings: postData.servings, ingredients: postData.ingredients, instructions: postData.instructions, notes: postData.notes });
+          init();
+        }
+      }
+      const res = await createCommunityPost(currentUser, postData);
+      if (res.status === 'Success') {
+        closeModalAnimated('communityPostModal');
+        loadCommunity();
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+        toast.textContent = '✅ Shared to Community!';
+        document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+      } else {
+        resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ ' + res.message;
+      }
+    } catch(e) { resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ ' + e.message; }
+    btn.disabled = false; btn.textContent = '🌍 Share to Community';
+  }
+  function closeCommunityPost() { closeModalAnimated('communityPostModal'); }
+
 </script>
 </body>
 </html>
