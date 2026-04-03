@@ -989,9 +989,10 @@
     </div>
     <!-- Edit mode -->
     <div id="editMode" style="display:none;" class="modal-body">
-      <div class="modal-header" style="position:sticky;top:0;z-index:10;margin:-20px -18px 18px;">
-        <button class="modal-back" onclick="exitEditMode()">← Cancel</button>
-        <h2>Edit Recipe</h2>
+      <div class="modal-header" style="position:sticky;top:0;z-index:10;margin:-20px -18px 18px;display:flex;align-items:center;gap:8px;">
+        <button class="modal-back" onclick="exitEditModeWithCheck()">← Back</button>
+        <h2 style="flex:1;">Edit Recipe</h2>
+        <button onclick="saveEdit()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 16px;border-radius:20px;font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Save ✓</button>
       </div>
       <input type="hidden" id="editId">
       <label class="edit-label">Title</label><input type="text" id="editTitle" class="edit-field">
@@ -2324,14 +2325,45 @@
     document.getElementById('editSourceUrl').value = r.sourceUrl||'';
     document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
     document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
+    // Snapshot original values for change detection
+    window._editSnapshot = {
+      title: r.title, category: r.category, cookTime: r.cookTime||'', servings: r.servings||'',
+      sourceUrl: r.sourceUrl||'', ingredients: r.ingredients, instructions: r.instructions, notes: r.notes||''
+    };
   }
-  function exitEditMode() { document.getElementById('editMode').style.display = 'none'; document.getElementById('viewMode').style.display = 'block'; }
+  function editHasChanges() {
+    const snap = window._editSnapshot;
+    if (!snap) return false;
+    const currentCat = document.getElementById('editCategory').value === '__other__'
+      ? document.getElementById('editCategoryCustom').value.trim()
+      : document.getElementById('editCategory').value;
+    return document.getElementById('editTitle').value !== snap.title ||
+      currentCat !== snap.category ||
+      document.getElementById('editCookTime').value !== snap.cookTime ||
+      document.getElementById('editServings').value !== snap.servings ||
+      document.getElementById('editSourceUrl').value !== snap.sourceUrl ||
+      document.getElementById('editIngredients').value !== snap.ingredients ||
+      document.getElementById('editInstructions').value !== snap.instructions ||
+      document.getElementById('editNotes').value !== snap.notes ||
+      document.getElementById('imageInput').files.length > 0;
+  }
+  function exitEditModeWithCheck() {
+    if (editHasChanges()) {
+      if (!confirm('You have unsaved changes. Go back without saving?')) return;
+    }
+    exitEditMode();
+  }
+  function exitEditMode() {
+    document.getElementById('editMode').style.display = 'none';
+    document.getElementById('viewMode').style.display = 'block';
+    window._editSnapshot = null;
+  }
   function saveEdit() {
     const rId = document.getElementById('editId').value; const fileIn = document.getElementById('imageInput'); const sBtn = document.getElementById('saveEditBtn');
     sBtn.innerHTML = 'Saving...'; sBtn.disabled = true;
     const item = {id:rId,title:document.getElementById('editTitle').value,category:(document.getElementById('editCategory').value==='__other__'?document.getElementById('editCategoryCustom').value.trim()||'General':document.getElementById('editCategory').value),cookTime:document.getElementById('editCookTime').value,servings:document.getElementById('editServings').value,sourceUrl:document.getElementById('editSourceUrl').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
     const r = allRecipes.find(x => x.id === rId); if (r) Object.assign(r, item);
-    const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; exitEditMode(); renderDetailContent(); renderRecipes(); }); };
+    const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; window._editSnapshot = null; exitEditMode(); renderDetailContent(); renderRecipes(); }); };
     if (fileIn.files.length > 0) { const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, fileIn.files[0].name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
     else { finish(); }
   }
@@ -4145,18 +4177,33 @@
   async function renderPlanner() {
     const weekStart = getWeekStart(plannerWeekOffset);
     const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
-    const startStr = weekStart.toISOString().slice(0,10);
-    const endStr = weekEnd.toISOString().slice(0,10);
     const opts = { month:'short', day:'numeric' };
     const labelEl = document.getElementById('plannerWeekLabel');
-    if (labelEl) labelEl.textContent = weekStart.toLocaleDateString('en',opts) + ' – ' + weekEnd.toLocaleDateString('en',opts);
-    // Render skeleton immediately so days show even before data loads
-    renderWeekView(weekStart);
+
+    let fetchStart, fetchEnd;
+    if (plannerView === 'calendar') {
+      // Fetch the whole displayed month
+      const refDate = plannerWeekOffset === 0 ? new Date() : getWeekStart(plannerWeekOffset);
+      const year = refDate.getFullYear();
+      const month = refDate.getMonth();
+      fetchStart = new Date(year, month, 1).toISOString().slice(0,10);
+      fetchEnd = new Date(year, month + 1, 0).toISOString().slice(0,10);
+      if (labelEl) labelEl.textContent = refDate.toLocaleDateString('en', { month: 'long', year: 'numeric' });
+    } else {
+      fetchStart = weekStart.toISOString().slice(0,10);
+      fetchEnd = weekEnd.toISOString().slice(0,10);
+      if (labelEl) labelEl.textContent = weekStart.toLocaleDateString('en',opts) + ' – ' + weekEnd.toLocaleDateString('en',opts);
+    }
+
+    // Render skeleton immediately
+    if (plannerView === 'week') renderWeekView(weekStart);
     adjustHeaderPadding();
-    // Then fetch data and re-render with recipe chips
+
+    // Fetch data for the correct range
     try {
-      plannerData = await getPlannerRange(currentUser, startStr, endStr);
+      plannerData = await getPlannerRange(currentUser, fetchStart, fetchEnd);
     } catch(e) { plannerData = []; }
+
     if (plannerView === 'week') renderWeekView(weekStart);
     else renderCalendarView(weekStart);
     renderWeeklySummary(weekStart);
@@ -4435,24 +4482,61 @@
     if (!confirm('Shuffle recipes into this week? Existing entries will be replaced.')) return;
     const ws = getWeekStart(plannerWeekOffset);
     const [startStr, endStr] = getPlannerDateRange();
-    // Delete all existing entries for this week first
+    // Delete all existing entries first
     const existing = await getPlannerRange(currentUser, startStr, endStr);
-    for (const e of existing) {
-      await removePlannerEntry(e.id);
+    for (const e of existing) await removePlannerEntry(e.id);
+
+    // Build pools per meal type
+    const pools = {
+      Breakfast: allRecipes.filter(r => ['Breakfast'].includes(r.category)),
+      Lunch: allRecipes.filter(r => ['Lunch','Snack'].includes(r.category)),
+      Dinner: allRecipes.filter(r => ['Dinner','General'].includes(r.category))
+    };
+
+    // Check if any pool is too small to fill 7 days without repeats
+    const needsRepeat = Object.entries(pools).some(([mt, pool]) => pool.length > 0 && pool.length < 7);
+    let allowRepeats = false;
+    if (needsRepeat) {
+      allowRepeats = confirm('You don\'t have enough variety in some categories to avoid repeats. Allow the same recipe to appear multiple times this week?\n\n(It will be spaced out as much as possible)');
+      if (!allowRepeats) {
+        // Re-insert the old entries since user cancelled
+        for (const e of existing) await addPlannerEntry(currentUser, e.date, e.recipe_id, e.meal_type || 'Dinner');
+        renderPlanner();
+        return;
+      }
     }
-    // Add new shuffled entries
+
+    // Shuffle each pool
+    const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+    const shuffled = {
+      Breakfast: shuffle(pools.Breakfast),
+      Lunch: shuffle(pools.Lunch),
+      Dinner: shuffle(pools.Dinner)
+    };
+    const used = { Breakfast: 0, Lunch: 0, Dinner: 0 };
+
     for (let i = 0; i < 7; i++) {
       const d = new Date(ws); d.setDate(d.getDate() + i);
       const dateStr = d.toISOString().slice(0,10);
       for (const mt of MEAL_TYPES) {
-        const pool = allRecipes.filter(r => {
-          if (mt === 'Breakfast') return ['Breakfast'].includes(r.category);
-          if (mt === 'Lunch') return ['Lunch','Snack'].includes(r.category);
-          return ['Dinner','General'].includes(r.category);
-        });
-        if (pool.length === 0) continue;
-        const pick = pool[Math.floor(Math.random() * pool.length)];
-        await addPlannerEntry(currentUser, dateStr, pick.id, mt);
+        const pool = shuffled[mt];
+        if (!pool || pool.length === 0) continue;
+        let idx;
+        if (allowRepeats) {
+          // Space out repeats: cycle through pool
+          idx = used[mt] % pool.length;
+          // Try to space — if we're about to repeat and there are other options for this slot, skip ahead
+          if (used[mt] >= pool.length) {
+            // Reshuffle for next cycle to avoid same order
+            const reshuffled = shuffle(pools[mt]);
+            shuffled[mt].push(...reshuffled);
+          }
+        } else {
+          idx = used[mt];
+          if (idx >= pool.length) continue; // shouldn't happen since we checked
+        }
+        await addPlannerEntry(currentUser, dateStr, pool[idx].id, mt);
+        used[mt]++;
       }
     }
     renderPlanner();
