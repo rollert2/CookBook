@@ -870,15 +870,6 @@
     <iframe id="previewIframe" style="width:100%;height:calc(100vh - 80px);border:none;" loading="lazy"></iframe>
   </div>
 
-  <!-- Planner recipe picker -->
-  <div class="panel-overlay" id="plannerPickerOverlay" onclick="closePlannerPicker()"></div>
-  <div class="planner-picker" id="plannerPicker">
-    <div class="panel-handle"></div>
-    <h3 style="margin:0 0 14px;font-size:1em;">Choose a Recipe</h3>
-    <input type="text" class="planner-picker-search" id="plannerPickerSearch" placeholder="Search recipes..." oninput="renderPlannerPicker()">
-    <div id="plannerPickerList"></div>
-  </div>
-
   <!-- DETAIL MODAL -->
   <div id="detailModal" class="modal-overlay">
     <div id="viewMode">
@@ -4216,14 +4207,17 @@
     for (let i = 0; i < startOffset; i++) {
       html += '<div></div>';
     }
+    // Current real week for highlight
+    const realWeekStart = getWeekStart(0);
+    const realWeekEnd = new Date(realWeekStart.getTime() + 6 * 86400000);
+
     // Day cells
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const cellDate = new Date(year, month, d);
       const dateStr = cellDate.toISOString().slice(0,10);
       const isPast = cellDate < today;
       const isToday = cellDate.getTime() === today.getTime();
-      const inCurrentWeek = dateStr >= weekStart.toISOString().slice(0,10) &&
-        dateStr <= new Date(weekStart.getTime() + 6*86400000).toISOString().slice(0,10);
+      const inCurrentWeek = cellDate >= realWeekStart && cellDate <= realWeekEnd;
       const totalMeals = plannerData.filter(p => p.date === dateStr).length;
       const dotHtml = totalMeals > 0
         ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' +
@@ -4235,7 +4229,7 @@
     }
     html += '</div>';
 
-    // Mini week legend below
+
     html += '<div style="padding:10px 12px 4px;font-size:0.7em;color:var(--text-faint);display:flex;gap:10px;align-items:center;">' +
       '<div style="width:10px;height:10px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Current week &nbsp;' +
       '<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div><div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Meals planned</div>';
@@ -4302,48 +4296,82 @@
 
   let plannerPickerCallback = null;
   function openPlannerRecipePicker(dateStr, mealType) {
-    // Show a sheet to pick a recipe
-    const existing = document.getElementById('plannerPickerSheet');
-    if (existing) existing.remove();
+    // Remove any existing picker
+    document.getElementById('plannerPickerSheet')?.remove();
+    document.getElementById('plannerPickerOverlay')?.remove();
+
+    // Split recipes into matching category and everything else
+    const categoryMatch = {
+      Breakfast: ['Breakfast'],
+      Lunch: ['Lunch', 'Snack'],
+      Dinner: ['Dinner', 'General', 'Snack', 'Cocktail', 'Dessert']
+    };
+    const preferred = categoryMatch[mealType] || [];
+    const matching = allRecipes.filter(r => preferred.includes(r.category));
+    const others = allRecipes.filter(r => !preferred.includes(r.category));
+    window._allPlannerPickerRecipes = { matching, others, dateStr, mealType };
+
     const overlay = document.createElement('div');
     overlay.id = 'plannerPickerOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:500;';
+    overlay.onclick = () => { document.getElementById('plannerPickerSheet')?.remove(); overlay.remove(); };
+
     const sheet = document.createElement('div');
     sheet.id = 'plannerPickerSheet';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:501;padding:20px 16px 50px;max-height:75vh;overflow-y:auto;animation:slideUp 0.25s ease;';
-    const mealRecipes = allRecipes.filter(r => {
-      if (mealType === 'Breakfast') return ['Breakfast','Snack'].includes(r.category);
-      if (mealType === 'Lunch') return ['Lunch','Snack','General'].includes(r.category);
-      return !['Breakfast'].includes(r.category);
-    });
-    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">' + MEAL_EMOJIS[mealType] + ' Pick a recipe for ' + mealType + '</div>' +
-      '<input type="text" placeholder="Search..." class="edit-field" style="margin-bottom:10px;" oninput="filterPickerList(this.value)">' +
-      '<div id="plannerPickerList">' + mealRecipes.map(r =>
-        '<div onclick="selectPlannerRecipe(\'' + r.id + '\',\'' + dateStr + '\',\'' + mealType + '\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
-        (r.image ? '<img src="'+r.image+'" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">' : '<div style="width:36px;height:36px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;">' + r.title.charAt(0) + '</div>') +
-        '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;">' + r.title + '</div><div style="font-size:0.7em;color:var(--text-faint);">' + r.category + (r.cookTime ? ' · ' + r.cookTime : '') + '</div></div></div>'
-      ).join('') + '</div>';
-    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:501;padding:16px 16px 50px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+
+    sheet.innerHTML =
+      '<div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 14px;"></div>' +
+      '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">' + (MEAL_EMOJIS[mealType]||'🍽️') + ' Pick a recipe for ' + mealType + '</div>' +
+      '<input type="text" placeholder="Search all recipes..." class="edit-field" style="margin-bottom:12px;" oninput="filterPickerList(this.value)">' +
+      '<div id="plannerPickerList">' + buildPickerList(matching, others, dateStr, mealType) + '</div>';
+
     document.body.appendChild(overlay);
     document.body.appendChild(sheet);
-    window._allPlannerPickerRecipes = mealRecipes;
   }
+
+  function buildPickerList(matching, others, dateStr, mealType) {
+    let html = '';
+    if (matching.length > 0) {
+      html += matching.map(r => pickerItemHtml(r, dateStr, mealType)).join('');
+    }
+    if (others.length > 0) {
+      html += '<div style="padding:10px 0 6px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);border-top:1px solid var(--glass-border);margin-top:6px;">Other recipes</div>';
+      html += others.map(r => pickerItemHtml(r, dateStr, mealType)).join('');
+    }
+    if (matching.length === 0 && others.length === 0) {
+      html = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">No recipes in your cookbook yet.</div>';
+    }
+    return html;
+  }
+
+  function pickerItemHtml(r, dateStr, mealType) {
+    return '<div onclick="selectPlannerRecipe(\''+r.id+'\',\''+dateStr+'\',\''+mealType+'\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+      (r.image ? '<img src="'+r.image+'" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<div style="width:38px;height:38px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;color:var(--gold);">'+r.title.charAt(0)+'</div>') +
+      '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.title+'</div><div style="font-size:0.7em;color:var(--text-faint);">'+r.category+(r.cookTime?' · '+r.cookTime:'')+'</div></div></div>';
+  }
+
   function filterPickerList(q) {
     const list = document.getElementById('plannerPickerList');
-    if (!list) return;
-    const filtered = (window._allPlannerPickerRecipes || []).filter(r => r.title.toLowerCase().includes(q.toLowerCase()));
-    list.innerHTML = filtered.map(r =>
-      '<div onclick="selectPlannerRecipe(\'' + r.id + '\',\'' + plannerCurrentDay + '\',\'\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
-      '<div style="font-size:0.88em;font-weight:600;">' + r.title + '</div></div>'
-    ).join('');
+    if (!list || !window._allPlannerPickerRecipes) return;
+    const { matching, others, dateStr, mealType } = window._allPlannerPickerRecipes;
+    const filtered = [...matching, ...others].filter(r => r.title.toLowerCase().includes(q.toLowerCase()));
+    list.innerHTML = filtered.length ? filtered.map(r => pickerItemHtml(r, dateStr, mealType)).join('') : '<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:0.85em;">No matches</div>';
   }
+
   async function selectPlannerRecipe(recipeId, dateStr, mealType) {
+    // Close picker immediately
     document.getElementById('plannerPickerSheet')?.remove();
     document.getElementById('plannerPickerOverlay')?.remove();
-    await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
-    plannerData = await getPlannerRange(currentUser, ...getPlannerDateRange());
-    renderPlannerDayBody(dateStr);
-    renderPlanner();
+    // Show brief loading feedback on the chip
+    try {
+      await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
+      const [startStr, endStr] = getPlannerDateRange();
+      plannerData = await getPlannerRange(currentUser, startStr, endStr);
+      if (plannerView === 'week') renderWeekView(getWeekStart(plannerWeekOffset));
+      else renderCalendarView(getWeekStart(plannerWeekOffset));
+      renderWeeklySummary(getWeekStart(plannerWeekOffset));
+    } catch(e) { console.error('selectPlannerRecipe error:', e); }
   }
   async function removePlannerSlot(entryId, dateStr) {
     await removePlannerEntry(entryId);
