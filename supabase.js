@@ -879,3 +879,163 @@ async function getOrSetRotd(username) {
   await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, { rotd_recipe_id: pick.id, rotd_date: today });
   return pick;
 }
+
+// ── PLANNER (EXTENDED) ────────────────────────────────────────
+
+async function getPlannerWeek(username, weekStart) {
+  const userId = await getUserId(username);
+  if (!userId) return [];
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const endStr = weekEnd.toISOString().slice(0,10);
+  const data = await sbFetch('GET', 'planner', null,
+    `user_id=eq.${userId}&date=gte.${weekStart}&date=lte.${endStr}&select=*,recipes(id,title,image_url,cook_time,category,ingredients,instructions,notes,servings)&order=date.asc`);
+  return data || [];
+}
+
+async function addPlannerEntry(username, date, recipeId, mealType) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error' };
+  await sbFetch('POST', 'planner', { user_id: userId, date, recipe_id: recipeId, meal_type: mealType });
+  return { status: 'Success' };
+}
+
+async function removePlannerEntry(entryId) {
+  await sbFetch('DELETE', `planner?id=eq.${entryId}`, null);
+  return { status: 'Success' };
+}
+
+async function getPlannerRange(username, startDate, endDate) {
+  const userId = await getUserId(username);
+  if (!userId) return [];
+  const data = await sbFetch('GET', 'planner', null,
+    `user_id=eq.${userId}&date=gte.${startDate}&date=lte.${endDate}&select=*,recipes(id,title,image_url,cook_time,category)&order=date.asc`);
+  return data || [];
+}
+
+// ── MEAL PREP ─────────────────────────────────────────────────
+
+async function getMealPrepItems(username) {
+  const userId = await getUserId(username);
+  if (!userId) return [];
+  const data = await sbFetch('GET', 'meal_prep', null,
+    `user_id=eq.${userId}&select=*,recipes(id,title,image_url,ingredients,instructions,servings,cook_time)&order=created_at.desc`);
+  return data || [];
+}
+
+async function addMealPrepItem(username, recipeId, scale, totalServings, prepDate, notes) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error' };
+  await sbFetch('POST', 'meal_prep', {
+    user_id: userId, recipe_id: recipeId,
+    scale: scale || 1, total_servings: totalServings || 1,
+    servings_used: 0, prep_date: prepDate || null, notes: notes || ''
+  });
+  return { status: 'Success' };
+}
+
+async function updateMealPrepServings(itemId, servingsUsed) {
+  await sbFetch('PATCH', `meal_prep?id=eq.${itemId}`, { servings_used: servingsUsed });
+  return { status: 'Success' };
+}
+
+async function deleteMealPrepItem(itemId) {
+  await sbFetch('DELETE', `meal_prep?id=eq.${itemId}`, null);
+  return { status: 'Success' };
+}
+
+// ── COMMUNITY ─────────────────────────────────────────────────
+
+async function getCommunityPosts(category, sortBy, limit, offset) {
+  let query = `removed=eq.false&select=*,users!community_posts_user_id_fkey(username,avatar_url)`;
+  if (category && category !== 'All') query += `&category=eq.${encodeURIComponent(category)}`;
+  if (sortBy === 'top') query += `&order=upvotes.desc,created_at.desc`;
+  else query += `&order=created_at.desc`;
+  query += `&limit=${limit || 20}&offset=${offset || 0}`;
+  const data = await sbFetch('GET', 'community_posts', null, query);
+  return data || [];
+}
+
+async function createCommunityPost(username, postData) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error', message: 'User not found' };
+  await sbFetch('POST', 'community_posts', {
+    user_id: userId,
+    recipe_id: postData.recipeId || null,
+    title: postData.title,
+    category: postData.category || 'General',
+    image_url: postData.image_url || null,
+    attempt_photo_url: postData.attempt_photo_url || null,
+    ingredients: postData.ingredients || '',
+    instructions: postData.instructions || '',
+    notes: postData.notes || '',
+    cook_time: postData.cook_time || '',
+    servings: postData.servings || ''
+  });
+  return { status: 'Success' };
+}
+
+async function upvoteCommunityPost(postId, username) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error' };
+  // Check if already upvoted
+  const existing = await sbFetch('GET', 'community_upvotes', null, `post_id=eq.${postId}&user_id=eq.${userId}&select=id`);
+  if (existing && existing.length > 0) {
+    // Remove upvote (toggle)
+    await sbFetch('DELETE', `community_upvotes?post_id=eq.${postId}&user_id=eq.${userId}`, null);
+    await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: -1 }); // decremented server-side ideally
+    return { status: 'Success', action: 'removed' };
+  }
+  await sbFetch('POST', 'community_upvotes', { post_id: postId, user_id: userId });
+  // Increment upvote count
+  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=upvotes`);
+  if (post && post[0]) {
+    await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: (post[0].upvotes || 0) + 1 });
+  }
+  return { status: 'Success', action: 'added' };
+}
+
+async function hasUpvotedPost(postId, username) {
+  const userId = await getUserId(username);
+  if (!userId) return false;
+  const data = await sbFetch('GET', 'community_upvotes', null, `post_id=eq.${postId}&user_id=eq.${userId}&select=id`);
+  return data && data.length > 0;
+}
+
+async function getCommunityComments(postId) {
+  const data = await sbFetch('GET', 'community_comments', null,
+    `post_id=eq.${postId}&select=*,users!community_comments_user_id_fkey(username,avatar_url)&order=created_at.asc`);
+  return data || [];
+}
+
+async function addCommunityComment(postId, username, content) {
+  const userId = await getUserId(username);
+  if (!userId) return { status: 'Error' };
+  await sbFetch('POST', 'community_comments', { post_id: postId, user_id: userId, content });
+  return { status: 'Success' };
+}
+
+async function removeCommunityPost(postId) {
+  await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { removed: true });
+  return { status: 'Success' };
+}
+
+async function uploadCommunityPhoto(base64Data, filename, username) {
+  try {
+    const parts = base64Data.split(',');
+    const byteString = atob(parts[1]);
+    const mimeString = parts[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mimeString });
+    const path = `community/${username}_${Date.now()}.jpg`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/recipe-images/${path}`, {
+      method: 'PUT',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+      body: blob
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return { status: 'Success', url: `${SUPABASE_URL}/storage/v1/object/public/recipe-images/${path}` };
+  } catch(e) { return { status: 'Error', message: e.message }; }
+}
