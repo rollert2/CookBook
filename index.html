@@ -4127,6 +4127,15 @@
     renderPlanner();
   }
 
+  function changePlannerWeek(dir) {
+    if (plannerView === 'calendar') {
+      plannerWeekOffset += dir * 4; // jump by month in calendar view
+    } else {
+      plannerWeekOffset += dir;
+    }
+    renderPlanner();
+  }
+
   async function renderPlanner() {
     const weekStart = getWeekStart(plannerWeekOffset);
     const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
@@ -4168,12 +4177,14 @@
         const entry = plannerData.find(p => p.date === dateStr && (p.meal_type||'Dinner') === mt);
         const r = entry?.recipes;
         const chip = r
-          ? '<div class="planner-meal-chip filled">' + (r.image_url ? '<img src="'+r.image_url+'">' : '') + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + r.title + '</span></div>'
-          : '<div class="planner-meal-chip" style="color:var(--text-faint);font-size:0.75em;">+ Add</div>';
-        mealsHtml += '<div class="planner-meal-row"><span class="planner-meal-label">' + MEAL_EMOJIS[mt] + ' ' + mt + '</span>' + chip + '</div>';
+          ? '<div class="planner-meal-chip filled" onclick="event.stopPropagation();openPlannerDay(\''+dateStr+'\',\''+days[i]+'\')">'+
+            (r.image_url ? '<img src="'+r.image_url+'">' : '') +
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.title+'</span></div>'
+          : '<div class="planner-meal-chip" onclick="event.stopPropagation();openPlannerRecipePicker(\''+dateStr+'\',\''+mt+'\')" style="color:var(--text-faint);font-size:0.75em;justify-content:center;">+ Add</div>';
+        mealsHtml += '<div class="planner-meal-row"><span class="planner-meal-label">'+MEAL_EMOJIS[mt]+' '+mt+'</span>'+chip+'</div>';
       }
-      html += '<div class="planner-day' + (isToday?' today':'') + (isPast?' past':'') + '" onclick="openPlannerDay(\'' + dateStr + '\',\'' + days[i] + '\')">' +
-        '<div class="planner-day-header"><div class="planner-day-name">' + days[i] + (isToday ? '<span class="planner-today-badge">Today</span>' : '') + '</div><div class="planner-day-date">' + dateLabel + '</div></div>' +
+      html += '<div class="planner-day' + (isToday?' today':'') + (isPast?' past':'') + '">' +
+        '<div class="planner-day-header" onclick="openPlannerDay(\''+dateStr+'\',\''+days[i]+'\')"><div class="planner-day-name">' + days[i] + (isToday ? '<span class="planner-today-badge">Today</span>' : '') + '</div><div class="planner-day-date">' + dateLabel + '</div><div style="color:var(--text-faint);font-size:0.8em;">›</div></div>' +
         '<div class="planner-meals">' + mealsHtml + '</div></div>';
     }
     document.getElementById('plannerWeekView').innerHTML = '<div style="padding:8px 0;">' + html + '</div>';
@@ -4183,24 +4194,53 @@
     document.getElementById('plannerWeekView').style.display = 'none';
     document.getElementById('plannerCalendarView').style.display = 'block';
     const today = new Date(); today.setHours(0,0,0,0);
-    const dayLetters = ['M','T','W','T','F','S','S'];
-    let header = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:8px 12px 4px;">';
-    dayLetters.forEach(l => { header += '<div style="text-align:center;font-size:0.65em;font-weight:700;color:var(--text-faint);">' + l + '</div>'; });
-    header += '</div>';
-    let grid = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 12px;">';
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().slice(0,10);
-      const isPast = d < today;
-      const isToday = d.getTime() === today.getTime();
-      const totalMeals = plannerData.filter(p => p.date === dateStr).length;
-      const bg = isToday ? 'background:var(--gold-dim);border-color:var(--gold);' : '';
-      const dots = totalMeals > 0 ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' + Array(Math.min(totalMeals,3)).fill('<div style="width:4px;height:4px;background:var(--gold);border-radius:50%;"></div>').join('') + '</div>' : '';
-      grid += '<div onclick="openPlannerDay(\'' + dateStr + '\',\'\')" style="border:1px solid var(--glass-border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;' + bg + (isPast?'opacity:0.5;':'') + '">' +
-        '<div style="font-size:0.88em;font-weight:700;">' + d.getDate() + '</div>' + dots + '</div>';
+
+    // Show the full month containing weekStart
+    const monthDate = new Date(weekStart);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const monthName = monthDate.toLocaleDateString('en', { month: 'long', year: 'numeric' });
+
+    // Day-of-week offset (Mon=0)
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+
+    const dayLetters = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    let html = '<div style="padding:12px 12px 6px;font-size:0.88em;font-weight:800;text-align:center;">' + monthName + '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 10px;">';
+    // Headers
+    dayLetters.forEach(l => { html += '<div style="text-align:center;font-size:0.62em;font-weight:700;color:var(--text-faint);padding-bottom:6px;">' + l + '</div>'; });
+    // Empty cells before month start
+    for (let i = 0; i < startOffset; i++) {
+      html += '<div></div>';
     }
-    grid += '</div>';
-    document.getElementById('plannerCalendarView').innerHTML = header + grid;
+    // Day cells
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const cellDate = new Date(year, month, d);
+      const dateStr = cellDate.toISOString().slice(0,10);
+      const isPast = cellDate < today;
+      const isToday = cellDate.getTime() === today.getTime();
+      const inCurrentWeek = dateStr >= weekStart.toISOString().slice(0,10) &&
+        dateStr <= new Date(weekStart.getTime() + 6*86400000).toISOString().slice(0,10);
+      const totalMeals = plannerData.filter(p => p.date === dateStr).length;
+      const dotHtml = totalMeals > 0
+        ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' +
+          Array(Math.min(totalMeals,3)).fill('<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;"></div>').join('') + '</div>'
+        : '<div style="height:9px;"></div>';
+      const bg = isToday ? 'background:var(--gold);color:var(--bg);' : inCurrentWeek ? 'background:var(--gold-dim);border-color:var(--gold);' : '';
+      html += '<div onclick="openPlannerDay(\''+dateStr+'\',\'\')" style="border:1px solid var(--glass-border);border-radius:8px;padding:6px 2px;text-align:center;cursor:pointer;min-height:42px;'+bg+(isPast&&!isToday?'opacity:0.45;':'') + '">' +
+        '<div style="font-size:0.85em;font-weight:700;">' + d + '</div>' + dotHtml + '</div>';
+    }
+    html += '</div>';
+
+    // Mini week legend below
+    html += '<div style="padding:10px 12px 4px;font-size:0.7em;color:var(--text-faint);display:flex;gap:10px;align-items:center;">' +
+      '<div style="width:10px;height:10px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Current week &nbsp;' +
+      '<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div><div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Meals planned</div>';
+
+    document.getElementById('plannerCalendarView').innerHTML = html;
   }
 
   function renderWeeklySummary(weekStart) {
