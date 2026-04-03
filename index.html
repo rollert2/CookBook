@@ -1827,8 +1827,6 @@
     });
   }
   function closeProfileAnimated() { closeModalAnimated('profileModal'); }
-  function closeSyncModalAnimated() { closeModalAnimated('syncModal', () => { document.getElementById('exportOutput').style.display = 'none'; document.getElementById('copyExportBtn').style.display = 'none'; document.getElementById('exportResult').style.display = 'none'; }); }
-
   // ═══ CATEGORIES ═══
   function renderCategories() {
     const cats = ['All', '⭐ Fav', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
@@ -2295,27 +2293,6 @@
   function executeDelete() { if (!confirm('Delete this recipe?')) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); }); }
 
   // ═══ SHARE ═══
-  function openSharePanel() {
-    document.getElementById('shareUsernameInput').value = '';
-    document.getElementById('shareUserResult').style.display = 'none';
-    document.getElementById('shareLinkResult').style.display = 'none';
-    document.getElementById('copyLinkBtn').style.display = 'none';
-    document.getElementById('featureResult').style.display = 'none';
-    shareLinkUrl = '';
-    const featSection = document.getElementById('featuredShareSection');
-    if (featSection) featSection.style.display = currentUser === 'rollert2' ? 'block' : 'none';
-    const chipsEl = document.getElementById('shareFriendChips');
-    getFriends(currentUser).then(res => {
-      if (res.status === 'Success' && res.following && res.following.length > 0) {
-        chipsEl.style.display = 'flex';
-        chipsEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);width:100%;margin-bottom:4px;">Quick send to friends</div>' +
-          res.following.map(u => '<div onclick="quickSendToFriend(\'' + u + '\')" style="padding:7px 14px;border-radius:20px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-size:0.78em;font-weight:600;cursor:pointer;">' + u + '</div>').join('');
-      } else { chipsEl.style.display = 'none'; }
-    });
-    document.getElementById('sharePanel').classList.add('open');
-    document.getElementById('shareOverlay').classList.add('open');
-  }
-
   function quickSendToFriend(username) {
     const el = document.getElementById('shareUserResult');
     el.style.display = 'block'; el.className = 'ai-result'; el.innerHTML = 'Sending to ' + username + '...';
@@ -2340,8 +2317,6 @@
     el.className = 'ai-result success'; el.innerHTML = '🔗 Link ready!';
     document.getElementById('copyLinkBtn').style.display = 'block';
   }
-  function copyShareLink() { if (!shareLinkUrl) return; const ta = document.createElement('textarea'); ta.value = shareLinkUrl; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); document.getElementById('copyLinkBtn').innerHTML = '✅ Copied!'; setTimeout(() => document.getElementById('copyLinkBtn').innerHTML = 'Copy Link', 2000); }
-
   // ═══ INBOX ═══
   function checkInbox() { getInbox(currentUser).then(res => { if (res.status !== 'Success') return; inboxItems = res.items||[]; const badge = document.getElementById('inboxBadge'); if (inboxItems.length > 0) { badge.style.display = 'flex'; badge.textContent = inboxItems.length; } else badge.style.display = 'none'; }); }
   function openInbox() {
@@ -3245,14 +3220,6 @@
     {targetId:'userBadge',title:'Your Profile',desc:'Tap your username to open your profile — see your stats, follow friends, and browse their cookbooks.',position:'below'},
   ];
 
-  function checkTour() {
-    getUserSettings(currentUser).then(res => {
-      if (res.settings && res.settings.tutorial_complete) return;
-      if (localStorage.getItem("tourDone_"+currentUser+"_v3")) return;
-      setTimeout(startTour, 800);
-    });
-  }
-  function startTour() { tourStepIndex=0; document.getElementById('tourOverlay').classList.add('active'); showTourStep(0); }
   function showTourStep(idx) {
     const step = tourSteps[idx]; const el = document.getElementById(step.targetId);
     if (!el) { tourStep(1); return; }
@@ -4304,7 +4271,7 @@
     const categoryMatch = {
       Breakfast: ['Breakfast'],
       Lunch: ['Lunch', 'Snack'],
-      Dinner: ['Dinner', 'General', 'Snack', 'Cocktail', 'Dessert']
+      Dinner: ['Dinner']  // Only Dinner first, others in second group
     };
     const preferred = categoryMatch[mealType] || [];
     const matching = allRecipes.filter(r => preferred.includes(r.category));
@@ -4326,6 +4293,16 @@
       '<input type="text" placeholder="Search all recipes..." class="edit-field" style="margin-bottom:12px;" oninput="filterPickerList(this.value)">' +
       '<div id="plannerPickerList">' + buildPickerList(matching, others, dateStr, mealType) + '</div>';
 
+    // Delegated click — avoids all inline onclick quoting issues
+    sheet.addEventListener('click', e => {
+      const row = e.target.closest('.planner-picker-item-row');
+      if (!row) return;
+      const rid = row.dataset.recipeId;
+      const dt = row.dataset.date;
+      const mt = row.dataset.meal;
+      if (rid && dt) selectPlannerRecipe(rid, dt, mt);
+    });
+
     document.body.appendChild(overlay);
     document.body.appendChild(sheet);
   }
@@ -4346,9 +4323,10 @@
   }
 
   function pickerItemHtml(r, dateStr, mealType) {
-    return '<div onclick="selectPlannerRecipe(\''+r.id+'\',\''+dateStr+'\',\''+mealType+'\')" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+    const safeTitle = escapeHtml(r.title);
+    return '<div class="planner-picker-item-row" data-recipe-id="'+r.id+'" data-date="'+dateStr+'" data-meal="'+mealType+'" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
       (r.image ? '<img src="'+r.image+'" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<div style="width:38px;height:38px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;color:var(--gold);">'+r.title.charAt(0)+'</div>') +
-      '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.title+'</div><div style="font-size:0.7em;color:var(--text-faint);">'+r.category+(r.cookTime?' · '+r.cookTime:'')+'</div></div></div>';
+      '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+safeTitle+'</div><div style="font-size:0.7em;color:var(--text-faint);">'+r.category+(r.cookTime?' · '+r.cookTime:'')+'</div></div></div>';
   }
 
   function filterPickerList(q) {
@@ -4360,18 +4338,28 @@
   }
 
   async function selectPlannerRecipe(recipeId, dateStr, mealType) {
-    // Close picker immediately
     document.getElementById('plannerPickerSheet')?.remove();
     document.getElementById('plannerPickerOverlay')?.remove();
-    // Show brief loading feedback on the chip
+    // Show brief toast so user knows it's working
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--glass-border);color:var(--text-dim);padding:8px 16px;border-radius:20px;font-size:0.82em;z-index:9999;white-space:nowrap;';
+    toast.textContent = 'Adding...';
+    document.body.appendChild(toast);
     try {
-      await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
+      const res = await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
       const [startStr, endStr] = getPlannerDateRange();
       plannerData = await getPlannerRange(currentUser, startStr, endStr);
       if (plannerView === 'week') renderWeekView(getWeekStart(plannerWeekOffset));
       else renderCalendarView(getWeekStart(plannerWeekOffset));
       renderWeeklySummary(getWeekStart(plannerWeekOffset));
-    } catch(e) { console.error('selectPlannerRecipe error:', e); }
+      toast.textContent = '✅ Added!';
+      toast.style.borderColor = 'var(--green)'; toast.style.color = 'var(--green)';
+    } catch(e) {
+      toast.textContent = '❌ Failed: ' + e.message;
+      toast.style.borderColor = 'var(--red)'; toast.style.color = 'var(--red)';
+      console.error('selectPlannerRecipe error:', e);
+    }
+    setTimeout(() => toast.remove(), 2000);
   }
   async function removePlannerSlot(entryId, dateStr) {
     await removePlannerEntry(entryId);
