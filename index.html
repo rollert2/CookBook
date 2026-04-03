@@ -481,32 +481,6 @@
     .preview-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:299; background:rgba(0,0,0,0.4); }
     .preview-overlay.open { display:block; }
 
-    /* ── PLANNER ── */
-    .planner-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; padding:0 4px; }
-    .planner-week-label { font-size:0.9em; font-weight:700; color:var(--text); }
-    .planner-nav-btn { background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); border-radius:var(--radius-sm); padding:8px 14px; font-size:0.82em; font-weight:600; cursor:pointer; }
-    .planner-grid { display:flex; flex-direction:column; gap:10px; }
-    .planner-day { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-sm); overflow:hidden; }
-    .planner-day-header { padding:10px 14px; background:rgba(201,168,76,0.08); display:flex; align-items:center; justify-content:space-between; }
-    .planner-day-name { font-size:0.8em; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px; }
-    .planner-day-date { font-size:0.75em; color:var(--text-dim); font-weight:500; }
-    .planner-slots { padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
-    .planner-slot { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:var(--surface2); border:1px dashed var(--glass-border); cursor:pointer; transition:all 0.15s; min-height:44px; }
-    .planner-slot.filled { background:var(--glass); border:1px solid var(--glass-border); border-style:solid; }
-    .planner-slot:active { border-color:var(--gold); }
-    .planner-slot-meal { font-size:0.6em; color:var(--gold); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; flex-shrink:0; width:50px; }
-    .planner-slot-recipe { font-size:0.82em; font-weight:600; flex:1; }
-    .planner-slot-empty { font-size:0.78em; color:var(--text-faint); font-style:italic; }
-    .planner-slot-clear { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:0.9em; padding:2px 4px; }
-    .planner-picker { display:none; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--glass-border); border-radius:20px 20px 0 0; z-index:450; padding:20px 20px 50px; max-height:70vh; overflow-y:auto; transform:translateY(100%); transition:transform 0.3s ease; }
-    .planner-picker.open { display:block; transform:translateY(0); }
-    .planner-picker-search { width:100%; padding:11px 14px; background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-radius:var(--radius-sm); font-size:0.9em; margin-bottom:14px; }
-    .planner-picker-search:focus { outline:none; border-color:var(--gold); }
-    .planner-picker-item { padding:12px 14px; border-radius:var(--radius-sm); background:var(--glass); border:1px solid var(--glass-border); margin-bottom:8px; cursor:pointer; }
-    .planner-picker-item:active { border-color:var(--gold); }
-    .planner-picker-title { font-size:0.9em; font-weight:600; }
-    .planner-picker-meta { font-size:0.7em; color:var(--gold); margin-top:2px; }
-
     /* ── PROFILE ── */
     .profile-hero { background:linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.05)); padding:30px 20px 24px; text-align:center; border-bottom:1px solid var(--glass-border); }
     .profile-avatar { width:72px; height:72px; border-radius:20px; background:var(--gold); color:var(--bg); font-size:2em; font-weight:900; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; text-transform:uppercase; }
@@ -1792,7 +1766,7 @@
       if (sortFilterRow) sortFilterRow.style.display = 'none';
     }
     setTimeout(adjustHeaderPadding, 50);
-    if (tab === 'planner') renderPlanner();
+    if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
     if (tab === 'discover') renderSeasonalCard();
     if (tab === 'featured') {
       loadCommunity();
@@ -2840,17 +2814,6 @@
   function closeFriendRecipes() { document.getElementById('friendRecipesSection').style.display = 'none'; document.getElementById('friendsList').style.display = 'block'; }
 
   // ═══ MEAL PLANNER ═══
-  function getWeekStart(offset) {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(now.getFullYear(), now.getMonth(), diff);
-    const y = monday.getFullYear();
-    const m = String(monday.getMonth() + 1).padStart(2, '0');
-    const d = String(monday.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + d;
-  }
-
   // ═══ SEASONAL CARD ═══
   function renderSeasonalCard() {
     const now = new Date(); const month = now.getMonth()+1; const day = now.getDate();
@@ -4169,15 +4132,20 @@
     const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
     const startStr = weekStart.toISOString().slice(0,10);
     const endStr = weekEnd.toISOString().slice(0,10);
-    // Label
     const opts = { month:'short', day:'numeric' };
-    document.getElementById('plannerWeekLabel').textContent =
-      weekStart.toLocaleDateString('en',opts) + ' – ' + weekEnd.toLocaleDateString('en',opts);
-    // Fetch
-    plannerData = await getPlannerRange(currentUser, startStr, endStr);
+    const labelEl = document.getElementById('plannerWeekLabel');
+    if (labelEl) labelEl.textContent = weekStart.toLocaleDateString('en',opts) + ' – ' + weekEnd.toLocaleDateString('en',opts);
+    // Render skeleton immediately so days show even before data loads
+    renderWeekView(weekStart);
+    adjustHeaderPadding();
+    // Then fetch data and re-render with recipe chips
+    try {
+      plannerData = await getPlannerRange(currentUser, startStr, endStr);
+    } catch(e) { plannerData = []; }
     if (plannerView === 'week') renderWeekView(weekStart);
     else renderCalendarView(weekStart);
     renderWeeklySummary(weekStart);
+    adjustHeaderPadding();
   }
 
   const MEAL_TYPES = ['Breakfast','Lunch','Dinner'];
