@@ -1001,20 +1001,16 @@ async function createCommunityPost(username, postData) {
 async function upvoteCommunityPost(postId, username) {
   const userId = await getUserId(username);
   if (!userId) return { status: 'Error' };
-  // Check if already upvoted
   const existing = await sbFetch('GET', 'community_upvotes', null, `post_id=eq.${postId}&user_id=eq.${userId}&select=id`);
+  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=upvotes`);
+  const currentCount = (post && post[0]) ? (post[0].upvotes || 0) : 0;
   if (existing && existing.length > 0) {
-    // Remove upvote (toggle)
     await sbFetch('DELETE', `community_upvotes?post_id=eq.${postId}&user_id=eq.${userId}`, null);
-    await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: -1 }); // decremented server-side ideally
+    await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: Math.max(0, currentCount - 1) });
     return { status: 'Success', action: 'removed' };
   }
   await sbFetch('POST', 'community_upvotes', { post_id: postId, user_id: userId });
-  // Increment upvote count
-  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=upvotes`);
-  if (post && post[0]) {
-    await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: (post[0].upvotes || 0) + 1 });
-  }
+  await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { upvotes: currentCount + 1 });
   return { status: 'Success', action: 'added' };
 }
 
