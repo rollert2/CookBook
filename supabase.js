@@ -856,7 +856,7 @@ async function getOrSetRotd(username) {
   if (!userId) return null;
   const today = new Date().toISOString().slice(0, 10);
 
-  // Check admin override first
+  // Check admin override first (defensive — columns may not exist yet)
   try {
     const adminRes = await getAdminSettings();
     const s = adminRes.settings || {};
@@ -864,19 +864,24 @@ async function getOrSetRotd(username) {
       const r = await sbFetch('GET', 'recipes', null, `id=eq.${s.rotd_override_id}&select=*`);
       if (r && r[0]) return r[0];
     }
-  } catch(e) {}
+  } catch(e) { /* ignore — columns may not exist */ }
 
   // Fall back to per-user ROTD
-  const settings = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=rotd_recipe_id,rotd_date`);
-  if (settings && settings[0] && settings[0].rotd_date === today && settings[0].rotd_recipe_id) {
-    const r = await sbFetch('GET', 'recipes', null, `id=eq.${settings[0].rotd_recipe_id}&select=*`);
-    return r && r[0] ? r[0] : null;
-  }
+  try {
+    const settings = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=rotd_recipe_id,rotd_date`);
+    if (settings && settings[0] && settings[0].rotd_date === today && settings[0].rotd_recipe_id) {
+      const r = await sbFetch('GET', 'recipes', null, `id=eq.${settings[0].rotd_recipe_id}&select=*`);
+      if (r && r[0]) return r[0];
+    }
+  } catch(e) { /* ignore */ }
+
   // Pick a new random recipe for today from THIS user's cookbook
   const recipes = await sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`);
   if (!recipes || recipes.length === 0) return null;
   const pick = recipes[Math.floor(Math.random() * recipes.length)];
-  await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, { rotd_recipe_id: pick.id, rotd_date: today });
+  try {
+    await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, { rotd_recipe_id: pick.id, rotd_date: today });
+  } catch(e) { /* ignore if columns missing */ }
   return pick;
 }
 
