@@ -701,6 +701,8 @@
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Dinner','🍽️')">🍽️ Dinner</button>
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Snack','🍿')">🍿 Snacks</button>
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Drink','🥤')">🥤 Drinks</button>
+        <button class="sort-chip" onclick="showDiscoverQuickPicks('Sides','🥘')">🥘 Sides</button>
+        <button class="sort-chip" onclick="showDiscoverQuickPicks('Sides','🍟')">🍟 Sides</button>
       </div>
     </div>
     <div id="discoverQuickPicks" style="display:none;margin:10px 0 6px;"></div>
@@ -958,12 +960,21 @@
         </div>
         <div id="friendRatingsList" style="display:none;"></div>
       </div>
-      <!-- Scale -->
-      <div class="detail-scale-b">
-        <div class="detail-scale-b-btn" data-scale="0.5" onclick="changeScale(0.5)">½×</div>
-        <div class="detail-scale-b-btn active" data-scale="1" onclick="changeScale(1)">1×</div>
-        <div class="detail-scale-b-btn" data-scale="2" onclick="changeScale(2)">2×</div>
-        <div class="detail-scale-b-btn" data-scale="3" onclick="changeScale(3)">3×</div>
+      <!-- Servings Scaler -->
+      <div style="padding:10px 18px 4px;" id="servingsScalerWrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:0.72em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Servings</span>
+          <span id="servingsDisplay" style="font-size:0.88em;font-weight:700;color:var(--text);min-width:60px;text-align:right;"></span>
+        </div>
+        <input type="range" id="servingsSlider" min="0.25" max="10" step="0.25" value="1"
+          oninput="onServingsSlider(this.value)"
+          style="width:100%;accent-color:var(--gold);cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;margin-top:3px;">
+          <span style="font-size:0.65em;color:var(--text-faint);">¼×</span>
+          <span style="font-size:0.65em;color:var(--text-faint);">1×</span>
+          <span style="font-size:0.65em;color:var(--text-faint);">5×</span>
+          <span style="font-size:0.65em;color:var(--text-faint);">10×</span>
+        </div>
       </div>
       <!-- Converter -->
       <div class="converter-wrap" id="converterWrap">
@@ -994,6 +1005,20 @@
         <div class="detail-section-title">Notes</div>
         <div class="detail-section-body" style="color:var(--text-dim);font-style:italic;font-size:0.9em;line-height:1.7;" id="notesBody"></div>
       </div>
+      <!-- Macros card -->
+      <div id="macrosSection" style="margin:10px 18px 0;">
+        <div onclick="toggleMacrosCard()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;">
+          <span style="font-size:0.8em;font-weight:700;">📊 Estimated Macros <span style="font-weight:400;color:var(--text-faint);font-size:0.85em;">(per serving)</span></span>
+          <span id="macrosChevron" style="color:var(--text-faint);font-size:0.8em;">▼</span>
+        </div>
+        <div id="macrosBody" style="display:none;padding:12px 14px;background:var(--glass);border:1px solid var(--glass-border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);">
+          <div id="macrosContent" style="color:var(--text-faint);font-size:0.82em;">Tap to load estimates</div>
+        </div>
+      </div>
+      <!-- Ingredient substitution -->
+      <div style="padding:10px 18px 0;">
+        <button onclick="openSubstitutionHelper()" style="width:100%;padding:11px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">🔄 Missing an ingredient? Get substitutes</button>
+      </div>
       <!-- Swipe nav -->
       <div class="swipe-nav">
         <button class="swipe-btn" id="prevBtn" onclick="swipeRecipe(-1)">← Prev</button>
@@ -1020,6 +1045,8 @@
         <option value="Snack">🍿 Snack</option>
         <option value="Drink">🥤 Drink</option>
         <option value="Dessert">🍰 Dessert</option>
+        <option value="Sides">🍟 Sides</option>
+        <option value="Sides">🥘 Sides</option>
         <option value="General">📦 General</option>
         <option value="__other__">✏️ Other (type your own)</option>
       </select>
@@ -1115,6 +1142,8 @@
           <option value="Snack">🍿 Snack</option>
           <option value="Drink">🥤 Drink</option>
           <option value="Dessert">🍰 Dessert</option>
+          <option value="Sides">🍟 Sides</option>
+          <option value="Sides">🥘 Sides</option>
           <option value="General">📦 General</option>
           <option value="__other__">✏️ Other (type your own)</option>
         </select>
@@ -2161,6 +2190,18 @@
       '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, currentScale)) + '</div>'
     ).join('');
 
+    // Init servings slider
+    const slider = document.getElementById('servingsSlider');
+    if (slider) {
+      slider.value = currentScale;
+      updateServingsDisplay(currentScale, r);
+    }
+    // Reset macros card
+    const macrosBody = document.getElementById('macrosBody');
+    const macrosContent = document.getElementById('macrosContent');
+    if (macrosBody) { macrosBody.style.display = 'none'; document.getElementById('macrosChevron').textContent = '▼'; }
+    if (macrosContent) { macrosContent.innerHTML = '<span style="color:var(--text-faint);">Tap above to load estimates</span>'; macrosContent.dataset.loaded = ''; }
+
     // Steps
     const steps = r.instructions.split('\n').filter(s => s.trim());
     document.getElementById('stepsList').innerHTML = steps.map((step, i) => {
@@ -2405,7 +2446,7 @@
     const r = allRecipes[activeRecipeIndex];
     document.getElementById('viewMode').style.display = 'none'; document.getElementById('editMode').style.display = 'block';
     document.getElementById('editId').value = r.id; document.getElementById('editTitle').value = r.title;
-    const knownCats = ['Breakfast','Lunch','Dinner','Snack','Drink','Dessert','General'];
+    const knownCats = ['Breakfast','Lunch','Dinner','Snack','Sides','Drink','Dessert','General'];
     const catEl = document.getElementById('editCategory');
     const customCatEl = document.getElementById('editCategoryCustom');
     if (knownCats.includes(r.category)) {
@@ -2690,19 +2731,6 @@
 
   // ═══ SHOPPING ═══
   function saveShop() { localStorage.setItem('shopItems_'+currentUser, JSON.stringify(shopItems)); }
-  function addIngredientsToShop(ings, groupLabel) { shopItems = [...ings.map(text => ({text,checked:false,group:groupLabel||'Other'})), ...shopItems]; saveShop(); renderShopList(); }
-  function renderShopList() {
-    const list = document.getElementById('shopList'); const empty = document.getElementById('shopEmpty'); const clearRow = document.getElementById('shopClearRow'); const badge = document.getElementById('shopBadge');
-    const unchecked = shopItems.filter(i => !i.checked).length;
-    badge.style.display = unchecked>0?'':'none'; if (unchecked>0) badge.textContent = unchecked;
-    if (shopItems.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; clearRow.style.display = 'none'; return; }
-    empty.style.display = 'none'; clearRow.style.display = 'flex';
-    const groups = {};
-    shopItems.forEach((item,i) => { const g = item.group||'Other'; if (!groups[g]) groups[g] = []; groups[g].push({...item,idx:i}); });
-    let html = '';
-    for (const [gn, items] of Object.entries(groups)) { html += '<div class="shop-group-label">📦 '+gn+'</div>'; html += items.map(item => '<div class="shop-item"><div class="shop-check '+(item.checked?'checked':'')+'" onclick="toggleShopItem('+item.idx+')"></div><div class="shop-item-text '+(item.checked?'checked':'')+'">'+item.text+'</div><button class="shop-delete" onclick="deleteShopItem('+item.idx+')">✕</button></div>').join(''); }
-    list.innerHTML = html;
-  }
   function addShopItem() { const input = document.getElementById('shopInput'); const text = input.value.trim(); if (!text) return; shopItems.unshift({text,checked:false,group:'Other'}); input.value = ''; saveShop(); renderShopList(); }
   function toggleShopItem(i) { shopItems[i].checked = !shopItems[i].checked; saveShop(); renderShopList(); }
   function deleteShopItem(i) { shopItems.splice(i,1); saveShop(); renderShopList(); }
@@ -4473,6 +4501,7 @@
     const categoryMatch = {
       Breakfast: ['Breakfast'],
       Lunch: ['Lunch', 'Snack'],
+      Sides: ['Sides'],
       Dinner: ['Dinner']  // Only Dinner first, others in second group
     };
     const preferred = categoryMatch[mealType] || [];
@@ -4986,7 +5015,7 @@
         (r.image ? '' : '<div style="background:var(--glass);border:1px solid rgba(201,168,76,0.4);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:0.82em;color:var(--gold);"><strong>Tip:</strong> This recipe has no photo. Adding an attempt photo below will make your post much more engaging!</div>');
     } else {
       fields.innerHTML = '<label class="edit-label">Title *</label><input type="text" id="communityNewTitle" class="edit-field" placeholder="Recipe name">' +
-        '<label class="edit-label">Category</label><select id="communityNewCategory" class="settings-select" style="width:100%;margin-bottom:10px;"><option>Breakfast</option><option>Lunch</option><option selected>Dinner</option><option>Snack</option><option>Drink</option><option>Dessert</option><option>General</option></select>' +
+        '<label class="edit-label">Category</label><select id="communityNewCategory" class="settings-select" style="width:100%;margin-bottom:10px;"><option>Breakfast</option><option>Lunch</option><option selected>Dinner</option><option>Sides</option><option>Snack</option><option>Drink</option><option>Dessert</option><option>General</option></select>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div><label class="edit-label">Cook Time</label><input type="text" id="communityNewCookTime" class="edit-field" placeholder="30 min"></div><div><label class="edit-label">Servings</label><input type="text" id="communityNewServings" class="edit-field" placeholder="4"></div></div>' +
         '<label class="edit-label">Ingredients * <span style="font-weight:400;color:var(--text-faint);">one per line</span></label><textarea id="communityNewIngredients" class="edit-field" rows="4" placeholder="2 cups flour&#10;1 tsp salt..."></textarea>' +
         '<label class="edit-label">Instructions * <span style="font-weight:400;color:var(--text-faint);">one step per line</span></label><textarea id="communityNewInstructions" class="edit-field" style="height:140px;" placeholder="Preheat oven..."></textarea>' +
@@ -5253,7 +5282,7 @@
   }
 
   function showBatchCategoryPicker(recipeIds) {
-    const cats = ['Breakfast','Lunch','Dinner','Snack','Drink','Dessert','General'];
+    const cats = ['Breakfast','Lunch','Dinner','Sides','Snack','Drink','Dessert','General'];
     const sheet = document.createElement('div');
     sheet.id = 'batchCatSheet';
     sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
@@ -5493,6 +5522,21 @@
       'Stuffed Mushrooms','Spinach Dip','Nachos','Deviled Eggs','Spring Rolls',
       'Mini Sliders','Caprese Skewers','Buffalo Wings','Pita and Tzatziki','Popcorn Mix'
     ],
+    Sides: [
+      'Garlic Bread','Mashed Potatoes','Caesar Salad','Coleslaw','Roasted Vegetables',
+      'Mac and Cheese','French Fries','Onion Rings','Corn on the Cob','Potato Wedges',
+      'Steamed Rice','Dinner Rolls','Baked Beans','Creamed Spinach','Sweet Potato Fries'
+    ],
+    Sides: [
+      'Garlic Mashed Potatoes','Roasted Vegetables','Caesar Salad','Coleslaw','Corn on the Cob',
+      'Garlic Bread','Steamed Broccoli','Mac and Cheese','Roasted Potatoes','Green Beans Almondine',
+      'Caprese Salad','Cucumber Salad','Dinner Rolls','Creamed Spinach','Sweet Potato Fries'
+    ],
+    Sides: [
+      'Garlic Mashed Potatoes','Roasted Vegetables','Caesar Salad','Coleslaw','Corn on the Cob',
+      'Garlic Bread','Steamed Broccoli','Mac and Cheese','Roasted Potatoes','Green Beans Almondine',
+      'Caprese Salad','Cucumber Salad','Dinner Rolls','Creamed Spinach','Sweet Potato Fries'
+    ],
     Drink: [
       'Classic Lemonade','Iced Coffee','Mango Smoothie','Strawberry Daiquiri','Margarita',
       'Moscow Mule','Gin and Tonic','Pina Colada','Kombucha','Green Detox Smoothie',
@@ -5534,6 +5578,261 @@
     document.querySelectorAll('#discoverContent .sort-chip').forEach(b => b.classList.remove('active'));
     runDiscoverSearch();
   }
+
+  // ═══ SERVINGS SLIDER ═══
+  function onServingsSlider(val) {
+    const scale = parseFloat(val);
+    currentScale = scale;
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    // Update ingredient amounts live
+    const ings = parseIngredients(r.ingredients);
+    document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
+      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, scale)) + '</div>'
+    ).join('');
+    updateServingsDisplay(scale, r);
+  }
+
+  function updateServingsDisplay(scale, r) {
+    const el = document.getElementById('servingsDisplay');
+    if (!el) return;
+    const baseNum = r && r.servings ? parseFloat(r.servings) : null;
+    if (baseNum && !isNaN(baseNum)) {
+      const scaled = Math.round(baseNum * scale * 10) / 10;
+      el.textContent = scaled + ' serving' + (scaled !== 1 ? 's' : '') + ' (' + formatScale(scale) + ')';
+    } else {
+      el.textContent = formatScale(scale);
+    }
+  }
+
+  function formatScale(scale) {
+    if (scale === 0.25) return '¼×';
+    if (scale === 0.5) return '½×';
+    if (scale === 0.75) return '¾×';
+    if (Number.isInteger(scale)) return scale + '×';
+    return scale.toFixed(2).replace(/\.?0+$/, '') + '×';
+  }
+
+  // ═══ MACROS ESTIMATOR ═══
+  let macrosLoading = false;
+  function toggleMacrosCard() {
+    const body = document.getElementById('macrosBody');
+    const chevron = document.getElementById('macrosChevron');
+    const content = document.getElementById('macrosContent');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    chevron.textContent = isOpen ? '▼' : '▲';
+    if (!isOpen && !content.dataset.loaded && !macrosLoading) {
+      estimateMacros();
+    }
+  }
+
+  async function estimateMacros() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r || !r.ingredients) return;
+    macrosLoading = true;
+    const content = document.getElementById('macrosContent');
+    content.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:0.82em;"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Estimating...</div>';
+    try {
+      const servings = parseFloat(r.servings) || 1;
+      const prompt = `Given these ingredients for a recipe called "${r.title}" (serves ${servings}):
+${r.ingredients}
+
+Estimate the nutritional macros PER SERVING. Reply ONLY with a JSON object like:
+{"calories":350,"protein_g":25,"carbs_g":40,"fat_g":12,"fiber_g":4,"note":"Estimates only — actual values vary"}
+No markdown, no explanation, just the JSON.`;
+
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, maxTokens: 300 })
+      });
+      const data = await res.json();
+      const text = (data.text || '').trim();
+      const clean = text.replace(/```json|```/g, '').trim();
+      const m = JSON.parse(clean);
+      const scaledCal = Math.round((m.calories || 0) * currentScale);
+      const scaledProt = Math.round((m.protein_g || 0) * currentScale);
+      const scaledCarbs = Math.round((m.carbs_g || 0) * currentScale);
+      const scaledFat = Math.round((m.fat_g || 0) * currentScale);
+      const scaledFiber = Math.round((m.fiber_g || 0) * currentScale);
+      content.innerHTML =
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">' +
+        macroBox('🔥', 'Calories', scaledCal, '') +
+        macroBox('💪', 'Protein', scaledProt, 'g') +
+        macroBox('🌾', 'Carbs', scaledCarbs, 'g') +
+        macroBox('🧈', 'Fat', scaledFat, 'g') +
+        macroBox('🥦', 'Fiber', scaledFiber, 'g') +
+        '</div>' +
+        '<div style="font-size:0.7em;color:var(--text-faint);line-height:1.4;">' + (m.note || 'AI estimates only — actual values vary based on brands and preparation.') + '</div>';
+      content.dataset.loaded = '1';
+    } catch(e) {
+      content.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not estimate macros. Check your connection and try again.</div>';
+    }
+    macrosLoading = false;
+  }
+
+  function macroBox(emoji, label, val, unit) {
+    return '<div style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;padding:8px;text-align:center;">' +
+      '<div style="font-size:1em;">' + emoji + '</div>' +
+      '<div style="font-size:1em;font-weight:800;color:var(--text);">' + val + unit + '</div>' +
+      '<div style="font-size:0.65em;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</div></div>';
+  }
+
+  // ═══ INGREDIENT SUBSTITUTION HELPER ═══
+  function openSubstitutionHelper() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    const ings = parseIngredients(r.ingredients).filter(l => l.trim());
+    const sheet = document.createElement('div');
+    sheet.id = 'subSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    sheet.innerHTML =
+      '<div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 14px;"></div>' +
+      '<div style="font-size:0.88em;font-weight:800;margin-bottom:4px;">🔄 Missing an ingredient?</div>' +
+      '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;">Tap an ingredient to get substitutes</div>' +
+      '<div id="subIngList">' +
+      ings.map((ing, i) => '<div class="sub-ing-item" data-idx="'+i+'" style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.85em;">'+escapeHtml(ing)+'</div>').join('') +
+      '</div>' +
+      '<div id="subResult" style="display:none;margin-top:14px;"></div>';
+    sheet.addEventListener('click', e => {
+      const item = e.target.closest('.sub-ing-item');
+      if (!item) return;
+      const ing = ings[parseInt(item.dataset.idx)];
+      getSubstitutes(ing, r.title);
+    });
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function getSubstitutes(ingredient, recipeName) {
+    const result = document.getElementById('subResult');
+    if (!result) return;
+    result.style.display = 'block';
+    result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:0.82em;"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Finding substitutes for "' + escapeHtml(ingredient) + '"...</div>';
+    try {
+      const prompt = `I'm making "${recipeName}" and I'm missing this ingredient: "${ingredient}"
+
+Give me 3 practical substitutes with ratio adjustments. Reply ONLY with JSON:
+{"ingredient":"${ingredient}","substitutes":[{"name":"butter","ratio":"use equal amount","note":"adds richness"},{"name":"...","ratio":"...","note":"..."}]}
+No markdown, no explanation, just JSON.`;
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, maxTokens: 500 })
+      });
+      const data = await res.json();
+      const text = (data.text || '').trim();
+      const clean = text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+      const subs = parsed.substitutes || [];
+      result.innerHTML =
+        '<div style="font-size:0.75em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">Substitutes for: ' + escapeHtml(ingredient) + '</div>' +
+        subs.map(s =>
+          '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;">' +
+          '<div style="font-weight:700;font-size:0.88em;margin-bottom:2px;">🔄 ' + escapeHtml(s.name) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--gold);margin-bottom:3px;">📐 ' + escapeHtml(s.ratio) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--text-faint);">' + escapeHtml(s.note) + '</div></div>'
+        ).join('') +
+        '<div style="font-size:0.7em;color:var(--text-faint);margin-top:6px;">Results may vary based on the recipe.</div>';
+    } catch(e) {
+      result.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not fetch substitutes. Try again.</div>';
+    }
+  }
+
+  // ═══ SMART SHOPPING LIST ═══
+  const AISLE_MAP = {
+    produce: ['lettuce','spinach','kale','arugula','tomato','onion','garlic','ginger','carrot','celery','broccoli','cauliflower','zucchini','cucumber','pepper','mushroom','potato','sweet potato','avocado','lemon','lime','apple','banana','strawberry','blueberry','mango','corn','peas','herbs','basil','cilantro','parsley','rosemary','thyme','mint','chive','scallion','leek','shallot','asparagus','eggplant'],
+    meat: ['chicken','beef','pork','lamb','turkey','bacon','sausage','ham','steak','ground beef','ground turkey','ground pork','salmon','tuna','shrimp','fish','cod','tilapia','crab','lobster','duck','veal','brisket','ribs'],
+    dairy: ['milk','butter','cream','cheese','yogurt','sour cream','cheddar','mozzarella','parmesan','cream cheese','half and half','heavy cream','whipping cream','brie','feta','gouda','cottage cheese','egg','eggs'],
+    bakery: ['bread','bagel','roll','bun','tortilla','pita','naan','croissant','muffin','cake','flour','breadcrumbs','panko'],
+    pantry: ['olive oil','vegetable oil','coconut oil','soy sauce','vinegar','honey','sugar','brown sugar','salt','pepper','cumin','paprika','cinnamon','oregano','chili','garlic powder','onion powder','curry','turmeric','coriander','pasta','rice','quinoa','oats','lentil','chickpea','bean','broth','stock','tomato sauce','tomato paste','diced tomato','coconut milk','baking powder','baking soda','vanilla','cornstarch','breadcrumb','mayonnaise','ketchup','mustard','hot sauce','worcestershire','fish sauce','oyster sauce'],
+    frozen: ['frozen','ice cream','frozen peas','frozen corn','frozen spinach'],
+    drinks: ['juice','soda','wine','beer','broth','stock','water'],
+    other: []
+  };
+
+  function classifyIngredientAisle(text) {
+    const lower = text.toLowerCase();
+    for (const [aisle, keywords] of Object.entries(AISLE_MAP)) {
+      if (keywords.some(kw => lower.includes(kw))) return aisle;
+    }
+    return 'other';
+  }
+
+  const AISLE_LABELS = {
+    produce: '🥦 Produce',
+    meat: '🥩 Meat & Seafood',
+    dairy: '🧀 Dairy & Eggs',
+    bakery: '🍞 Bakery',
+    pantry: '🥫 Pantry',
+    frozen: '🧊 Frozen',
+    drinks: '🥤 Drinks',
+    other: '📦 Other'
+  };
+
+  // Override addIngredientsToShop to use smart aisle grouping + dedup
+  function addIngredientsToShop(ings, groupLabel) {
+    // Strip leading quantity/units from an ingredient for comparison
+    function getIngredientCore(text) {
+      return text.toLowerCase()
+        .replace(/^\d+[\d\/\.\s]*(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|kg|ml|liter|l|bunch|clove|cloves|can|cans|jar|slice|slices|piece|pieces|pinch|dash|handful|medium|large|small|whole|fresh|dried|chopped|minced|sliced|diced|shredded|grated)s?\b[\s,]*/i, '')
+        .replace(/^\d+[\d\/\.\s]+/,'')
+        .trim();
+    }
+    const newItems = ings.map(text => ({
+      text,
+      checked: false,
+      group: AISLE_LABELS[classifyIngredientAisle(text)] || '📦 Other',
+      recipeLabel: groupLabel || null,
+      _core: getIngredientCore(text)
+    }));
+    const existingCores = shopItems.map(i => getIngredientCore(i.text));
+    const toAdd = newItems.filter(item => !existingCores.includes(item._core));
+    shopItems = [...toAdd.map(({_core, ...rest}) => rest), ...shopItems];
+    saveShop();
+    renderShopList();
+  }
+
+  function renderShopList() {
+    const list = document.getElementById('shopList');
+    const empty = document.getElementById('shopEmpty');
+    const clearRow = document.getElementById('shopClearRow');
+    const badge = document.getElementById('shopBadge');
+    const unchecked = shopItems.filter(i => !i.checked).length;
+    badge.style.display = unchecked > 0 ? '' : 'none';
+    if (unchecked > 0) badge.textContent = unchecked;
+    if (shopItems.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; clearRow.style.display = 'none'; return; }
+    empty.style.display = 'none'; clearRow.style.display = 'flex';
+    // Group by aisle
+    const aisleOrder = ['🥦 Produce','🥩 Meat & Seafood','🧀 Dairy & Eggs','🍞 Bakery','🥫 Pantry','🧊 Frozen','🥤 Drinks','📦 Other'];
+    const groups = {};
+    shopItems.forEach((item, i) => {
+      const g = item.group || '📦 Other';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push({ ...item, idx: i });
+    });
+    let html = '';
+    // Render in aisle order, then any unexpected groups
+    const allGroups = [...aisleOrder, ...Object.keys(groups).filter(g => !aisleOrder.includes(g))];
+    for (const gn of allGroups) {
+      const items = groups[gn];
+      if (!items || items.length === 0) continue;
+      html += '<div class="shop-group-label">' + gn + '</div>';
+      html += items.map(item =>
+        '<div class="shop-item">' +
+        '<div class="shop-check ' + (item.checked ? 'checked' : '') + '" onclick="toggleShopItem(' + item.idx + ')"></div>' +
+        '<div class="shop-item-text ' + (item.checked ? 'checked' : '') + '">' + item.text + (item.recipeLabel ? '<span style="font-size:0.7em;color:var(--text-faint);margin-left:6px;">' + item.recipeLabel + '</span>' : '') + '</div>' +
+        '<button class="shop-delete" onclick="deleteShopItem(' + item.idx + ')">✕</button></div>'
+      ).join('');
+    }
+    list.innerHTML = html;
+  }
+
+
 
 
 
