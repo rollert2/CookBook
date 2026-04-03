@@ -4079,15 +4079,18 @@
   }
 
   function togglePlannerView() {
-    plannerView = plannerView === 'week' ? 'calendar' : 'week';
+    const wasCalendar = plannerView === 'calendar';
+    plannerView = wasCalendar ? 'week' : 'calendar';
     localStorage.setItem('plannerView', plannerView);
     document.getElementById('plannerViewToggle').textContent = plannerView === 'week' ? '📆 Calendar' : '📋 Week';
+    // Switching back to week always returns to current real week
+    if (wasCalendar) plannerWeekOffset = 0;
     renderPlanner();
   }
 
   function changePlannerWeek(dir) {
     if (plannerView === 'calendar') {
-      plannerWeekOffset += dir * 4; // jump by month in calendar view
+      plannerWeekOffset += dir * 4; // jump by ~month in calendar view
     } else {
       plannerWeekOffset += dir;
     }
@@ -4153,32 +4156,27 @@
     document.getElementById('plannerCalendarView').style.display = 'block';
     const today = new Date(); today.setHours(0,0,0,0);
 
-    // Show the full month containing weekStart
-    const monthDate = new Date(weekStart);
-    const year = monthDate.getFullYear();
-    const month = monthDate.getMonth();
+    // Always base the displayed month on TODAY's date when offset=0,
+    // otherwise shift by the same number of months as the week offset implies
+    const refDate = plannerWeekOffset === 0 ? today : getWeekStart(plannerWeekOffset);
+    const year = refDate.getFullYear();
+    const month = refDate.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const monthName = monthDate.toLocaleDateString('en', { month: 'long', year: 'numeric' });
+    const monthName = refDate.toLocaleDateString('en', { month: 'long', year: 'numeric' });
 
-    // Day-of-week offset (Mon=0)
     let startOffset = firstDay.getDay() - 1;
     if (startOffset < 0) startOffset = 6;
+
+    const realWeekStart = getWeekStart(0);
+    const realWeekEnd = new Date(realWeekStart.getTime() + 6 * 86400000);
 
     const dayLetters = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     let html = '<div style="padding:12px 12px 6px;font-size:0.88em;font-weight:800;text-align:center;">' + monthName + '</div>';
     html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 10px;">';
-    // Headers
     dayLetters.forEach(l => { html += '<div style="text-align:center;font-size:0.62em;font-weight:700;color:var(--text-faint);padding-bottom:6px;">' + l + '</div>'; });
-    // Empty cells before month start
-    for (let i = 0; i < startOffset; i++) {
-      html += '<div></div>';
-    }
-    // Current real week for highlight
-    const realWeekStart = getWeekStart(0);
-    const realWeekEnd = new Date(realWeekStart.getTime() + 6 * 86400000);
+    for (let i = 0; i < startOffset; i++) { html += '<div></div>'; }
 
-    // Day cells
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const cellDate = new Date(year, month, d);
       const dateStr = cellDate.toISOString().slice(0,10);
@@ -4190,17 +4188,17 @@
         ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' +
           Array(Math.min(totalMeals,3)).fill('<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;"></div>').join('') + '</div>'
         : '<div style="height:9px;"></div>';
-      const bg = isToday ? 'background:var(--gold);color:var(--bg);' : inCurrentWeek ? 'background:var(--gold-dim);border-color:var(--gold);' : '';
+      const bg = isToday
+        ? 'background:var(--gold);color:var(--bg);font-weight:900;'
+        : inCurrentWeek ? 'background:var(--gold-dim);border-color:var(--gold);' : '';
       html += '<div onclick="openPlannerDay(\''+dateStr+'\',\'\')" style="border:1px solid var(--glass-border);border-radius:8px;padding:6px 2px;text-align:center;cursor:pointer;min-height:42px;'+bg+(isPast&&!isToday?'opacity:0.45;':'') + '">' +
         '<div style="font-size:0.85em;font-weight:700;">' + d + '</div>' + dotHtml + '</div>';
     }
     html += '</div>';
-
-
     html += '<div style="padding:10px 12px 4px;font-size:0.7em;color:var(--text-faint);display:flex;gap:10px;align-items:center;">' +
-      '<div style="width:10px;height:10px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Current week &nbsp;' +
-      '<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div><div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Meals planned</div>';
-
+      '<div style="width:10px;height:10px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Today &nbsp;' +
+      '<div style="width:10px;height:10px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:3px;flex-shrink:0;"></div> This week &nbsp;' +
+      '<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0;"></div> Meal planned</div>';
     document.getElementById('plannerCalendarView').innerHTML = html;
   }
 
