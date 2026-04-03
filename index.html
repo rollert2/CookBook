@@ -216,6 +216,8 @@
     .prep-serving-bar { height:6px; background:var(--glass-border); border-radius:3px; margin:0 14px 12px; overflow:hidden; }
     .prep-serving-fill { height:100%; background:var(--green); border-radius:3px; transition:width 0.3s; }
 
+    .glass-card.batch-selected { outline:2px solid var(--gold); box-shadow:0 0 0 4px rgba(201,168,76,0.25); }
+    .glass-card.batch-tap-glow { outline:1.5px solid rgba(201,168,76,0.5); transition:outline 0.15s; }
     /* ── COOK MODE ── */
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap');
     .cook-mode-content { font-family:'Noto Sans',system-ui,sans-serif; }
@@ -783,11 +785,25 @@
     <div class="context-item" onclick="contextShop()">🛒 Add to Shopping</div>
     <div class="context-item" onclick="contextShare()">📤 Share</div>
     <div class="context-item" onclick="contextAddToCollection()">📁 Add to Collection</div>
-    <div class="context-item" onclick="contextDupe()">⧉ Duplicate</div>
+    <div class="context-item" onclick="contextSelect()">☑️ Select</div>
     <div class="context-item" onclick="contextOpen()">↗ Open Recipe</div>
     <div class="context-item danger" onclick="contextDelete()">🗑 Delete</div>
   </div>
   <div id="contextOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:499;" onclick="closeContextMenu()"></div>
+
+  <!-- Batch select action bar -->
+  <div id="batchBar" style="position:fixed;top:0;left:0;right:0;z-index:150;background:var(--surface);border-bottom:2px solid var(--gold);padding:10px 14px;display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+    <div style="font-size:0.82em;font-weight:700;color:var(--gold);flex-shrink:0;"><span id="batchCount">0</span> selected</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1;">
+      <button onclick="batchFav()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;">⭐ Fav</button>
+      <button onclick="batchShop()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;">🛒 Shop</button>
+      <button onclick="batchCollection()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;">📁 Collection</button>
+      <button onclick="batchShare()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;">📤 Share</button>
+      <button onclick="batchCategory()" style="padding:6px 12px;border-radius:20px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">🏷 Category</button>
+      <button onclick="batchDelete()" style="padding:6px 12px;border-radius:20px;background:rgba(224,85,85,0.1);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">🗑 Delete</button>
+    </div>
+    <button onclick="exitBatchSelect()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;flex-shrink:0;">✕ Cancel</button>
+  </div>
 
   <!-- Share Panel -->
   <div class="panel-overlay" id="shareOverlay" onclick="closeSharePanel()"></div>
@@ -1567,6 +1583,8 @@
   let userCollections = [];
   let plannerPickerTarget = null;
   let currentFriendView = null;
+  let batchSelectMode = false;
+  let batchSelectedIds = new Set();
 
   window.onload = function() {
     // Apply theme instantly to avoid flash
@@ -1764,6 +1782,7 @@
 
   // ═══ TAB ═══
   function switchTab(tab) {
+    if (batchSelectMode) exitBatchSelect();
     currentTab = tab;
     ['recipes','featured','discover','planner'].forEach(t => {
       const el = document.getElementById(t === 'recipes' ? 'mainContent' : t + 'Content');
@@ -1968,12 +1987,30 @@
         '</div>');
     }
     container.innerHTML = cards.join('');
+    // Apply batch selection styling if in batch mode
+    if (batchSelectMode) {
+      const cardEls = container.querySelectorAll('.glass-card');
+      allRecipes.forEach((r, i) => {
+        if (cardEls[i] && batchSelectedIds.has(r.id)) cardEls[i].classList.add('batch-selected');
+      });
+    }
   }
 
   // ═══ LONG PRESS ═══
-  function startLongPress(e, idx) { longPressActivated = false; longPressTimer = setTimeout(() => { longPressActivated = true; showContextMenu(e, idx); }, 500); }
+  function startLongPress(e, idx) {
+    longPressActivated = false;
+    longPressTimer = setTimeout(() => {
+      longPressActivated = true;
+      if (batchSelectMode) return; // already in batch mode, long press does nothing extra
+      showContextMenu(e, idx);
+    }, 500);
+  }
+  function handleCardClick(idx) {
+    if (longPressActivated) { longPressActivated = false; return; }
+    if (batchSelectMode) { toggleBatchCard(idx); return; }
+    openDetails(idx);
+  }
   function cancelLongPress() { clearTimeout(longPressTimer); }
-  function handleCardClick(idx) { if (longPressActivated) { longPressActivated = false; return; } openDetails(idx); }
   function showContextMenu(e, idx) {
     contextTargetIndex = idx;
     const r = allRecipes[idx];
@@ -1988,7 +2025,6 @@
   function closeContextMenu() { document.getElementById('contextMenu').classList.remove('visible'); document.getElementById('contextOverlay').style.display = 'none'; }
   function contextFav() { closeContextMenu(); const r = allRecipes[contextTargetIndex]; toggleFavourite(r.id, currentUser).then(res => { if (res.status === 'Success') { r.favourite = res.favourite; renderRecipes(); } }); }
   function contextShop() { closeContextMenu(); const r = allRecipes[contextTargetIndex]; addIngredientsToShop(parseIngredients(r.ingredients), r.category); openShopPanel(); }
-  function contextAddToCollection() { closeContextMenu(); openAddToColPanel(contextTargetIndex); }
   function contextShare() { closeContextMenu(); openDetails(contextTargetIndex); setTimeout(openSharePanel, 300); }
   function contextOpen() { closeContextMenu(); openDetails(contextTargetIndex); }
   function contextDelete() { closeContextMenu(); if (!confirm('Delete this recipe?')) return; const idx = contextTargetIndex; deleteRecipe(allRecipes[idx].id).then(() => { allRecipes.splice(idx,1); renderRecipes(); }); }
@@ -2942,16 +2978,20 @@
   }
 
   function showPreviewSheet(r) {
+    // Attach active quick browse category as suggestion
+    if (activeQuickPickCategory) r._suggestedCategory = activeQuickPickCategory;
     // Show a slide-up panel with site info + open/add buttons
     const existing = document.getElementById('discoverPreviewSheet');
     if (existing) existing.remove();
     const sheet = document.createElement('div');
     sheet.id = 'discoverPreviewSheet';
     sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--glass-border);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;display:flex;flex-direction:column;';
+    const catBadge = r._suggestedCategory ? `<div style="display:inline-block;margin-bottom:8px;padding:3px 10px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:10px;font-size:0.7em;font-weight:700;color:var(--gold);">Will be saved as: ${escapeHtml(r._suggestedCategory)}</div>` : '';
     sheet.innerHTML = `
       <div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;flex-shrink:0;"></div>
       <div style="font-size:0.65em;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;flex-shrink:0;">${escapeHtml(r.site)}</div>
       <div style="font-size:1em;font-weight:700;margin-bottom:8px;line-height:1.3;flex-shrink:0;">${escapeHtml(r.title)}</div>
+      ${catBadge}
       <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:20px;line-height:1.5;flex:1;">${escapeHtml(r.snippet)}</div>
       <div style="flex-shrink:0;">
         <button onclick="addFromPreviewUrl('${escapeHtml(r.url)}')" id="sheetAddBtn" style="width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:1em;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:-0.2px;">✨ Add to Cookbook</button>
@@ -2984,20 +3024,23 @@
     const btn = document.getElementById('sheetAddBtn');
     if (btn) { btn.innerHTML = 'Importing...'; btn.disabled = true; }
     const domain = getDomainFromUrl(url);
+    // Check for quick browse category suggestion
+    const result = (window._discoverResults || []).find(r => r.url === url);
+    const suggestedCat = result?._suggestedCategory || activeQuickPickCategory || null;
     scrapeRecipeWithAI(url, currentUser).then(async res => {
       if (res.status === 'Success' && res.recipe) {
+        // Apply category override if from quick browse
+        if (suggestedCat) res.recipe.category = suggestedCat;
         const saveRes = await addRecipe(currentUser, res.recipe);
         if (saveRes.status === 'Success') {
           document.getElementById('discoverPreviewSheet')?.remove();
           document.getElementById('discoverSheetOverlay')?.remove();
-          // Show toast
           const toast = document.createElement('div');
           toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
           toast.textContent = '✅ ' + saveRes.message;
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3000);
           init();
-          // If onboarding sent them to discover, re-open at the manual add step
           const ob = document.getElementById('onboardingOverlay');
           if (ob) { onboardingStep = 2; ob.classList.add('active'); showOnboardingStep(); }
         } else {
@@ -4343,12 +4386,26 @@
       }
       html += '</div>';
     }
+    // Clear day button (only if there are entries)
+    if (dayEntries.length > 0) {
+      html += '<button onclick="clearPlannerDay(\'' + dateStr + '\')" style="width:100%;padding:11px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;">🗑 Clear Whole Day</button>';
+    }
     // Shopping list button
     const dayRecipes = dayEntries.filter(e => e.recipes).map(e => e.recipes);
     if (dayRecipes.length > 0) {
-      html += '<button onclick="addDayToShopList(\'' + dateStr + '\')" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;margin-top:4px;">🛒 Add Day\'s Ingredients to Shopping List</button>';
+      html += '<button onclick="addDayToShopList(\'' + dateStr + '\')" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">🛒 Add Day\'s Ingredients to Shopping List</button>';
     }
     body.innerHTML = html;
+  }
+
+  async function clearPlannerDay(dateStr) {
+    if (!confirm('Remove all meals from this day?')) return;
+    const dayEntries = plannerData.filter(p => p.date === dateStr);
+    for (const e of dayEntries) await removePlannerEntry(e.id);
+    plannerData = plannerData.filter(p => p.date !== dateStr);
+    renderPlannerDayBody(dateStr);
+    if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
+    else renderWeekView(getWeekStart(plannerWeekOffset));
   }
 
   let plannerPickerCallback = null;
@@ -4430,32 +4487,45 @@
   async function selectPlannerRecipe(recipeId, dateStr, mealType) {
     document.getElementById('plannerPickerSheet')?.remove();
     document.getElementById('plannerPickerOverlay')?.remove();
-    // Show brief toast so user knows it's working
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--glass-border);color:var(--text-dim);padding:8px 16px;border-radius:20px;font-size:0.82em;z-index:9999;white-space:nowrap;';
     toast.textContent = 'Adding...';
     document.body.appendChild(toast);
     try {
-      const res = await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
-      const [startStr, endStr] = getPlannerDateRange();
-      plannerData = await getPlannerRange(currentUser, startStr, endStr);
+      await addPlannerEntry(currentUser, dateStr, recipeId, mealType || 'Dinner');
+      // Fetch the month containing dateStr to keep data consistent
+      const d = new Date(dateStr + 'T00:00:00');
+      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+      const monthEnd = new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().slice(0,10);
+      plannerData = await getPlannerRange(currentUser, monthStart, monthEnd);
       if (plannerView === 'week') renderWeekView(getWeekStart(plannerWeekOffset));
       else renderCalendarView(getWeekStart(plannerWeekOffset));
       renderWeeklySummary(getWeekStart(plannerWeekOffset));
+      // If day panel is open, refresh it
+      if (document.getElementById('plannerDayModal').classList.contains('active')) {
+        renderPlannerDayBody(dateStr);
+      }
       toast.textContent = '✅ Added!';
       toast.style.borderColor = 'var(--green)'; toast.style.color = 'var(--green)';
     } catch(e) {
       toast.textContent = '❌ Failed: ' + e.message;
       toast.style.borderColor = 'var(--red)'; toast.style.color = 'var(--red)';
-      console.error('selectPlannerRecipe error:', e);
     }
     setTimeout(() => toast.remove(), 2000);
   }
   async function removePlannerSlot(entryId, dateStr) {
     await removePlannerEntry(entryId);
-    plannerData = await getPlannerRange(currentUser, ...getPlannerDateRange());
+    // Remove from local plannerData immediately (avoid stale refetch)
+    plannerData = plannerData.filter(p => p.id !== entryId);
     renderPlannerDayBody(dateStr);
-    renderPlanner();
+    // Also refresh background data for the correct range
+    const d = new Date(dateStr + 'T00:00:00');
+    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+    const monthEnd = new Date(d.getFullYear(), d.getMonth()+1, 0).toISOString().slice(0,10);
+    getPlannerRange(currentUser, monthStart, monthEnd).then(data => {
+      plannerData = data;
+      if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
+    });
   }
   function getPlannerDateRange() {
     const ws = getWeekStart(plannerWeekOffset);
@@ -4903,6 +4973,252 @@
     btn.disabled = false; btn.textContent = '🌍 Share to Community';
   }
   function closeCommunityPost() { closeModalAnimated('communityPostModal'); }
+
+  // ═══ CONTEXT MENU - SELECT ═══
+  function contextSelect() {
+    closeContextMenu();
+    enterBatchSelect(contextTargetIndex);
+  }
+
+  // ═══ BATCH SELECT MODE ═══
+  function enterBatchSelect(initialIdx) {
+    batchSelectMode = true;
+    batchSelectedIds = new Set();
+    if (initialIdx !== undefined && initialIdx >= 0) {
+      batchSelectedIds.add(allRecipes[initialIdx].id);
+    }
+    updateBatchBar();
+    renderRecipes(); // re-render with selection state
+  }
+
+  function exitBatchSelect() {
+    batchSelectMode = false;
+    batchSelectedIds.clear();
+    document.getElementById('batchBar').style.display = 'none';
+    adjustHeaderPadding();
+    renderRecipes();
+  }
+
+  function toggleBatchCard(idx) {
+    const r = allRecipes[idx];
+    if (!r) return;
+    if (batchSelectedIds.has(r.id)) {
+      batchSelectedIds.delete(r.id);
+    } else {
+      batchSelectedIds.add(r.id);
+    }
+    // Update visual on the card without full re-render
+    const card = document.querySelector('.glass-card:nth-child(' + (idx + 1) + ')');
+    updateBatchBar();
+    renderRecipes(); // simpler to just re-render
+  }
+
+  function updateBatchBar() {
+    const bar = document.getElementById('batchBar');
+    const count = batchSelectedIds.size;
+    bar.style.display = count > 0 || batchSelectMode ? 'flex' : 'none';
+    document.getElementById('batchCount').textContent = count;
+    adjustHeaderPadding();
+  }
+
+  function getBatchRecipes() {
+    return allRecipes.filter(r => batchSelectedIds.has(r.id));
+  }
+
+
+
+  async function batchFav() {
+    const recipes = getBatchRecipes();
+    for (const r of recipes) {
+      const res = await toggleFavourite(r.id, currentUser);
+      if (res.status === 'Success') r.favourite = res.favourite;
+    }
+    renderRecipes();
+  }
+
+  function batchShop() {
+    const recipes = getBatchRecipes();
+    recipes.forEach(r => addIngredientsToShop(parseIngredients(r.ingredients), r.category));
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Added ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + ' to shopping list!';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  function batchShare() {
+    const recipes = getBatchRecipes();
+    if (recipes.length === 0) return;
+    // Show share options sheet
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:16px;">Share ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '</div>' +
+      '<button onclick="batchShareFriend()" style="width:100%;padding:13px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;text-align:left;">📨 Send to a Friend</button>' +
+      '<button onclick="batchEnableLinks()" style="width:100%;padding:13px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;text-align:left;">🔗 Enable Public Links</button>' +
+      '<div style="font-size:0.75em;color:var(--text-faint);padding:6px 0 10px;line-height:1.4;">Community sharing must be done one recipe at a time from each recipe\'s share panel.</div>' +
+      '<button onclick="this.closest(\'div\').remove();document.querySelector(\'[data-batchoverlay]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+    overlay.setAttribute('data-batchoverlay','1');
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function batchShareFriend() {
+    document.querySelector('[data-batchoverlay]')?.remove();
+    const username = prompt('Send to username:');
+    if (!username) return;
+    const recipes = getBatchRecipes();
+    let sent = 0;
+    for (const r of recipes) {
+      const res = await sendRecipe(currentUser, username.toLowerCase(), r);
+      if (res.status === 'Success') sent++;
+    }
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Sent ' + sent + ' recipe' + (sent > 1 ? 's' : '') + ' to ' + username;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  async function batchEnableLinks() {
+    document.querySelector('[data-batchoverlay]')?.remove();
+    const recipes = getBatchRecipes();
+    let enabled = 0;
+    for (const r of recipes) {
+      await setShareActive(r.id, currentUser, true);
+      enabled++;
+    }
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Enabled public links for ' + enabled + ' recipe' + (enabled > 1 ? 's' : '');
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  function batchCollection() {
+    const recipes = getBatchRecipes();
+    if (recipes.length === 0) return;
+    showBatchCollectionPicker(recipes.map(r => r.id));
+  }
+
+  function showBatchCollectionPicker(recipeIds, singleIdx) {
+    // singleIdx = optional, if from single card context menu
+    const ids = singleIdx !== undefined ? [allRecipes[singleIdx].id] : recipeIds;
+    const sheet = document.createElement('div');
+    sheet.id = 'batchColSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;max-height:70vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.id = 'batchColOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    const cols = userCollections || [];
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">Add to Collection</div>' +
+      '<button onclick="createCollectionFromBatch(' + JSON.stringify(ids) + ',this)" style="width:100%;padding:12px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);color:var(--gold);font-size:0.85em;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:12px;">+ Create New Collection</button>' +
+      '<div id="batchColResult" style="margin-bottom:8px;"></div>' +
+      (cols.length === 0 ? '<div style="color:var(--text-faint);font-size:0.85em;padding:8px 0;">No collections yet.</div>' :
+        cols.map(c => '<div onclick="addBatchToCollection(\'' + c.id + '\',' + JSON.stringify(ids) + ',\'' + escapeHtml(c.name) + '\')" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">📁 ' + escapeHtml(c.name) + '</div>').join('')) +
+      '<button onclick="document.getElementById(\'batchColSheet\').remove();document.getElementById(\'batchColOverlay\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:8px;">Cancel</button>';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function createCollectionFromBatch(recipeIds, btn) {
+    const name = prompt('New collection name:');
+    if (!name) return;
+    btn.textContent = 'Creating...'; btn.disabled = true;
+    const res = await createCollectionWithVisibility(currentUser, name, false);
+    if (res.status === 'Success') {
+      await loadCollections();
+      const newCol = userCollections.find(c => c.name === name);
+      if (newCol && recipeIds.length > 0) {
+        const addAll = confirm('Add ' + recipeIds.length + ' selected recipe' + (recipeIds.length > 1 ? 's' : '') + ' to "' + name + '"?');
+        if (addAll) {
+          for (const id of recipeIds) await addRecipeToCollection(newCol.id, id, currentUser);
+          const resultEl = document.getElementById('batchColResult');
+          if (resultEl) { resultEl.style.display = 'block'; resultEl.className = 'ai-result success'; resultEl.innerHTML = '✅ Added to "' + name + '"'; }
+        }
+      }
+      btn.textContent = '✅ Created!';
+    } else { btn.textContent = '❌ Failed'; btn.disabled = false; }
+  }
+
+  async function addBatchToCollection(colId, recipeIds, colName) {
+    for (const id of recipeIds) await addRecipeToCollection(colId, id, currentUser);
+    document.getElementById('batchColSheet')?.remove();
+    document.getElementById('batchColOverlay')?.remove();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Added ' + recipeIds.length + ' recipe' + (recipeIds.length > 1 ? 's' : '') + ' to ' + colName;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  function batchCategory() {
+    const recipes = getBatchRecipes();
+    if (recipes.length === 0) return;
+    showBatchCategoryPicker(recipes.map(r => r.id));
+  }
+
+  function showBatchCategoryPicker(recipeIds) {
+    const cats = ['Breakfast','Lunch','Dinner','Snack','Drink','Dessert','General'];
+    const sheet = document.createElement('div');
+    sheet.id = 'batchCatSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.id = 'batchCatOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">Change category for ' + recipeIds.length + ' recipe' + (recipeIds.length > 1 ? 's' : '') + '</div>' +
+      cats.map(c => '<div onclick="applyBatchCategory(\'' + c + '\',' + JSON.stringify(recipeIds) + ')" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + c + '</div>').join('') +
+      '<div onclick="customBatchCategory(' + JSON.stringify(recipeIds) + ')" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">✏️ Custom...</div>' +
+      '<button onclick="document.getElementById(\'batchCatSheet\').remove();document.getElementById(\'batchCatOverlay\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:4px;">Cancel</button>';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function applyBatchCategory(category, recipeIds) {
+    document.getElementById('batchCatSheet')?.remove();
+    document.getElementById('batchCatOverlay')?.remove();
+    for (const id of recipeIds) {
+      await updateRecipe(id, { category });
+      const r = allRecipes.find(x => x.id === id);
+      if (r) r.category = category;
+    }
+    renderRecipes();
+    renderCategories();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Changed ' + recipeIds.length + ' recipe' + (recipeIds.length > 1 ? 's' : '') + ' to ' + category;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  async function customBatchCategory(recipeIds) {
+    document.querySelectorAll('[style*="position:fixed"][style*="z-index:600"]').forEach(el => el.remove());
+    document.querySelectorAll('[style*="position:fixed"][style*="z-index:599"]').forEach(el => el.remove());
+    const cat = prompt('Enter custom category:');
+    if (!cat) return;
+    await applyBatchCategory(cat, recipeIds);
+  }
+
+  async function batchDelete() {
+    const recipes = getBatchRecipes();
+    if (recipes.length === 0) return;
+    if (!confirm('Delete ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
+    for (const r of recipes) {
+      await deleteRecipe(r.id);
+      const idx = allRecipes.findIndex(x => x.id === r.id);
+      if (idx >= 0) allRecipes.splice(idx, 1);
+    }
+    exitBatchSelect();
+  }
+
+  // Context menu → Add to Collection (single) with new collection option
+  function contextAddToCollection() {
+    closeContextMenu();
+    showBatchCollectionPicker(null, contextTargetIndex);
+  }
+
+  // ═══ QUICK BROWSE CATEGORY OVERRIDE ═══
+  let quickBrowseActiveCategory = null;
+  // Category override is handled directly in showPreviewSheet and addFromPreviewUrl above
 
   // ═══ CATEGORY DROPDOWN HANDLERS ═══
   function handleEditCategoryChange(sel) {
