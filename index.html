@@ -743,7 +743,7 @@
   </div>
 
   <!-- Planner tab -->
-  <div id="plannerContent" style="display:none; padding-bottom:100px; overflow-y:auto;">
+  <div id="plannerContent" style="display:none; padding-bottom:100px;">
     <!-- Planner top bar -->
     <div style="padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;">📅 Meal Planner</div>
@@ -1787,32 +1787,31 @@
   // ═══ SCROLL-TO-HIDE HEADER ═══
   function initScrollHideHeader() {
     const header = document.getElementById('appHeader');
-    let lastScrollY = 0;
+    let lastScrollY = window.scrollY;
     let headerHidden = false;
     let ticking = false;
 
-    function onScroll() {
+    window.addEventListener('scroll', () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        // Find the currently visible scrollable content
-        const scrollEl = ['mainContent','discoverContent','featuredContent','plannerContent']
-          .map(id => document.getElementById(id))
-          .find(el => el && el.style.display !== 'none' && el.offsetParent !== null);
-        if (!scrollEl) { ticking = false; return; }
-        const scrollY = scrollEl.scrollTop;
-        const headerH = header.getBoundingClientRect().height;
+        const scrollY = window.scrollY;
+        const headerH = header.offsetHeight;
         const delta = scrollY - lastScrollY;
+
         if (delta > 4 && scrollY > headerH) {
-          // Scrolling down — hide header
+          // Scrolling down past header — hide it
           if (!headerHidden) {
             header.style.transform = 'translateY(-100%)';
             headerHidden = true;
-            // Collapse padding so content fills screen
-            scrollEl.style.paddingTop = '0px';
+            // Shrink padding so content uses the freed space
+            ['mainContent','discoverContent','featuredContent','plannerContent'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el && el.style.display !== 'none') el.style.paddingTop = '0px';
+            });
           }
-        } else if (delta < -4 || scrollY < 10) {
-          // Scrolling up or near top — show header
+        } else if (delta < -6 || scrollY < 10) {
+          // Scrolling up or near top — reveal header
           if (headerHidden) {
             header.style.transform = 'translateY(0)';
             headerHidden = false;
@@ -1822,17 +1821,8 @@
         lastScrollY = scrollY;
         ticking = false;
       });
-    }
+    }, { passive: true });
 
-    // Attach to all content scroll containers
-    ['mainContent','discoverContent','featuredContent','plannerContent'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('scroll', onScroll, { passive: true });
-    });
-
-    // Always show header when switching tabs
-    const origSwitchTab = switchTab;
-    // We patch below at call sites instead of wrapping to avoid recursion
     window._revealHeader = () => {
       header.style.transform = 'translateY(0)';
       headerHidden = false;
