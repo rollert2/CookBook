@@ -809,10 +809,10 @@
   <div class="panel-overlay" id="shareOverlay" onclick="closeSharePanel()"></div>
   <div class="slide-panel" id="sharePanel">
     <div class="panel-handle"></div>
-    <div id="featuredShareSection" style="display:none;">
-      <div class="panel-section-title">⭐ Feature This Recipe</div>
-      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">Add this recipe to the Featured tab so all users can see and import it.</p>
-      <button class="btn btn-primary" style="margin-bottom:6px;" onclick="doFeatureRecipe()">⭐ Add to Featured</button>
+    <div id="featuredShareSection">
+      <div class="panel-section-title">🌍 Share to Community</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">Share this recipe to the Community tab so other users can discover and add it.</p>
+      <button class="btn btn-primary" style="margin-bottom:6px;" onclick="doShareToCommunity()">🌍 Share to Community</button>
       <div class="ai-result" id="featureResult" style="margin-bottom:10px;"></div>
     </div>
     <div class="panel-section-title">📤 Send to a User</div>
@@ -1610,7 +1610,7 @@
   // Handle back gesture / back button — close topmost open modal
   window.addEventListener('popstate', function(e) {
     // Find the topmost active modal and close it
-    const modals = ['detailModal','syncModal','profileModal','friendRecipeModal'];
+    const modals = ['communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal','communityPostModal','adminModal','settingsModal','detailModal','syncModal','profileModal','friendRecipeModal'];
     for (const id of modals) {
       const el = document.getElementById(id);
       if (el && el.classList.contains('active')) {
@@ -1976,7 +1976,7 @@
       const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
       const colHtml = colName ? '<span class="card-collection">📁 ' + colName + '</span>' : '';
       const metaHtml = hasImg ? '' : '<div style="font-size:0.6em;color:var(--gold);text-transform:uppercase;font-weight:700;letter-spacing:0.8px;margin-bottom:2px;">' + r.category + '</div>';
-      return '<div class="glass-card" onclick="handleCardClick(' + globalIdx + ')" ontouchstart="startLongPress(event,' + globalIdx + ')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()" oncontextmenu="showContextMenu(event,' + globalIdx + ');return false;" style="animation-delay:' + (i*0.025) + 's">' + favHtml + '<div class="card-img-wrap">' + imgContent + '</div><div class="card-info">' + metaHtml + '<div class="card-title">' + r.title + '</div><div class="card-footer">' + timeHtml + ratingHtml + colHtml + '</div></div></div>';
+      return '<div class="glass-card" data-idx="' + globalIdx + '" onclick="handleCardClick(' + globalIdx + ')" ontouchstart="startLongPress(event,' + globalIdx + ')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()" oncontextmenu="showContextMenu(event,' + globalIdx + ');return false;" style="animation-delay:' + (i*0.025) + 's">' + favHtml + '<div class="card-img-wrap">' + imgContent + '</div><div class="card-info">' + metaHtml + '<div class="card-title">' + r.title + '</div><div class="card-footer">' + timeHtml + ratingHtml + colHtml + '</div></div></div>';
     });
     // Add "empty slot" add card if fewer than 6 recipes and no search/filter active
     if (allRecipes.length < 6 && activeCategories.has('All') && !showFavsOnly && !q) {
@@ -2562,7 +2562,7 @@
       // If it's an admin override recipe the user doesn't own, use share link to view it
       const cookBtnHtml = isOwn
         ? '<button class="rotd-cook-btn" onclick="openDetails(' + globalIdx + ')">Cook Today</button>'
-        : '<button class="rotd-cook-btn" onclick="addRecipeFromPublicLink(\'' + r.id + '\',\'' + currentUser + '\').then(res=>{if(res.status===\'Success\'){init().then(()=>{const idx=allRecipes.findIndex(x=>x.id===\'' + r.id + '\');if(idx>=0)openDetails(idx);})}})">+ Add & Cook</button>';
+        : '<button class="rotd-cook-btn" onclick="addRecipeFromPublicLink(\'' + r.id + '\',\'' + currentUser + '\').then(res=>{if(res.status===\'Success\'){dismissRotd({stopPropagation:()=>{}});init().then(()=>{const idx=allRecipes.findIndex(x=>x.id===\'' + r.id + '\');if(idx>=0)openDetails(idx);})}})">+ Add & Cook</button>';
       const imgHtml = recipe.image
         ? '<img src="' + recipe.image + '" class="rotd-img"><div class="rotd-gradient"></div>'
         : '<div class="rotd-img-placeholder">🍽️</div>';
@@ -3041,8 +3041,9 @@
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 3000);
           init();
+          // Only re-open onboarding if it was already active (user is in onboarding flow)
           const ob = document.getElementById('onboardingOverlay');
-          if (ob) { onboardingStep = 2; ob.classList.add('active'); showOnboardingStep(); }
+          if (ob && ob.classList.contains('active')) { onboardingStep = 2; showOnboardingStep(); }
         } else {
           if (btn) { btn.innerHTML = '❌ ' + saveRes.message; btn.disabled = false; }
         }
@@ -3366,7 +3367,7 @@
     document.getElementById('featureResult') && (document.getElementById('featureResult').style.display = 'none');
     shareLinkUrl = '';
     const featSection = document.getElementById('featuredShareSection');
-    if (featSection) featSection.style.display = currentUser === 'rollert2' ? 'block' : 'none';
+    if (featSection) featSection.style.display = 'block'; // Available to all users
     // Load share status for this recipe
     const r = allRecipes[activeRecipeIndex];
     if (r) {
@@ -3845,9 +3846,9 @@
       const banner = document.getElementById('broadcastBanner');
       if (!banner) return;
       if (!s.broadcast_active || !s.broadcast_message) { banner.classList.remove('visible'); return; }
-      const dismissed = localStorage.getItem('broadcastDismissed_' + (s.updated_at || ''));
+      const dismissKey = s.broadcast_message ? 'bd_' + s.broadcast_message.length + '_' + s.broadcast_message.slice(0,20).replace(/\s/g,'') : ''; const dismissed = dismissKey && localStorage.getItem('broadcastDismissed_' + dismissKey);
       if (dismissed) { banner.classList.remove('visible'); return; }
-      let html = '<button class="broadcast-banner-close" onclick="dismissBroadcast(\'' + (s.updated_at||'') + '\')">✕</button>';
+      let html = '<button class="broadcast-banner-close" onclick="dismissBroadcast(\'' + dismissKey + '\')">✕</button>';
       html += '<div class="broadcast-banner-text">' + s.broadcast_message + '</div>';
       if (s.broadcast_button_enabled && s.broadcast_button_label) {
         html += '<button class="broadcast-banner-btn" onclick="handleBroadcastAction(\'' + s.broadcast_button_action + '\',\'' + (s.broadcast_button_url||'') + '\')">' + s.broadcast_button_label + '</button>';
@@ -3868,12 +3869,6 @@
     else if (action === 'tab_discover') { switchTab('discover'); }
     else if (action === 'tab_planner') { switchTab('planner'); }
     else if (action === 'add_recipe') { openAddModal(); }
-  }
-  async function loadAdminUsers() {
-    const el = document.getElementById('adminUserList');
-    el.innerHTML = 'Loading...';
-    const data = await sbFetch('GET', 'users', null, 'select=username,created_at&order=created_at.desc');
-    el.innerHTML = (data||[]).map(u => '<div style="padding:8px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.85em;display:flex;justify-content:space-between;"><span>' + u.username + '</span><span style="color:var(--text-faint);font-size:0.78em;">' + new Date(u.created_at).toLocaleDateString() + '</span></div>').join('');
   }
   async function loadAdminBlacklist() {
     const el = document.getElementById('adminBlacklistList');
@@ -4741,11 +4736,15 @@
     if (posts.length === 0) { feed.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.9em;"><div style="font-size:2.5em;margin-bottom:10px;">🌍</div><p>No posts yet in this category.<br>Be the first to share a recipe!</p></div>'; return; }
     // Check upvote status for current user
     feed.innerHTML = posts.map(p => renderCommunityCard(p)).join('');
-    // Load upvote states async
+    // Load upvote states and comment counts async
     posts.forEach(p => {
       hasUpvotedPost(p.id, currentUser).then(voted => {
         const btn = document.getElementById('upvote-' + p.id);
         if (btn) btn.classList.toggle('active', voted);
+      });
+      getCommunityComments(p.id).then(comments => {
+        const btn = document.getElementById('comm-comment-btn-' + p.id);
+        if (btn) btn.innerHTML = comments.length > 0 ? '💬 ' + comments.length : '💬';
       });
     });
     document.getElementById('communityLoadMore').style.display = posts.length === 20 ? 'block' : 'none';
@@ -4755,18 +4754,23 @@
     const u = p.users || {};
     const av = u.avatar_url ? '<img src="'+u.avatar_url+'">' : (u.username||'?').charAt(0).toUpperCase();
     const ago = formatMsgTime(p.created_at);
-    const imgHtml = p.image_url ? '<div class="community-card-img"><img src="'+p.image_url+'" loading="lazy"></div>' : '';
+    const imgHtml = p.image_url
+      ? '<div class="community-card-img" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;"><img src="'+p.image_url+'" loading="lazy"></div>'
+      : '';
     const attemptHtml = p.attempt_photo_url ? '<div style="margin:0;padding:0 14px 10px;"><div style="font-size:0.7em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);margin-bottom:6px;">Their Attempt 📸</div><img src="'+p.attempt_photo_url+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);"></div>' : '';
     const adminBtns = communityAdminMode && currentUser === 'rollert2' ? '<button onclick="adminRemoveCommunityPost(\''+p.id+'\')" style="margin-left:auto;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">Remove</button>' : '';
+    const commentCount = p._commentCount || 0;
+    const commentLabel = commentCount > 0 ? '💬 ' + commentCount : '💬';
     return '<div class="community-card" id="cpost-'+p.id+'">' +
       '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(u.username||'?')+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
       imgHtml +
-      '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div><div class="community-card-title">'+escapeHtml(p.title)+'</div>' +
+      '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div>' +
+      '<div class="community-card-title" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;">'+escapeHtml(p.title)+'</div>' +
       (p.cook_time ? '<div class="community-card-meta">⏱ '+escapeHtml(p.cook_time)+(p.servings ? ' · 👤 '+escapeHtml(p.servings) : '')+'</div>' : '') + '</div>' +
       attemptHtml +
       '<div class="community-card-actions">' +
-        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)">👍 <span id="upvote-count-'+p.id+'">'+( p.upvotes||0)+'</span></button>' +
-        '<button class="community-comment-btn" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">💬 Comments</button>' +
+        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)">👍 <span id="upvote-count-'+p.id+'">'+(p.upvotes||0)+'</span></button>' +
+        '<button class="community-comment-btn" id="comm-comment-btn-'+p.id+'" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">'+commentLabel+'</button>' +
         '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')">+ Add</button>' +
       '</div></div>';
   }
@@ -4820,22 +4824,6 @@
     openModalAnimated('communityDetailModal');
     // Load comments
     loadCommunityComments(post.id);
-  }
-
-  async function loadCommunityComments(postId) {
-    const el = document.getElementById('communityCommentsList');
-    if (!el) return;
-    const comments = await getCommunityComments(postId);
-    if (comments.length === 0) { el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;padding:8px 0;">No comments yet. Be the first!</div>'; return; }
-    const myFollowing = (await getFriends(currentUser).catch(()=>({following:[]}))).following || [];
-    el.innerHTML = comments.map(c => {
-      const u = c.users || {};
-      const av = u.avatar_url ? '<img src="'+u.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (u.username||'?').charAt(0).toUpperCase();
-      const isMe = u.username === currentUser;
-      const alreadyFollowing = myFollowing.includes(u.username);
-      const followBtn = (!isMe && !alreadyFollowing) ? '<button onclick="followFromCommunity(\''+u.username+'\')" style="background:none;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:2px 8px;font-size:0.68em;font-weight:600;cursor:pointer;font-family:inherit;margin-left:6px;">+ Follow</button>' : '';
-      return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;"><div class="community-avatar" style="width:28px;height:28px;font-size:0.75em;flex-shrink:0;">'+av+'</div><div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:8px 10px;"><div style="font-size:0.78em;font-weight:700;margin-bottom:2px;">'+escapeHtml(u.username||'')+''+followBtn+'</div><div style="font-size:0.85em;line-height:1.5;">'+escapeHtml(c.content)+'</div><div style="font-size:0.68em;color:var(--text-faint);margin-top:3px;">'+formatMsgTime(c.created_at)+'</div></div></div>';
-    }).join('');
   }
 
   async function addCommunityCommentSubmit(postId) {
@@ -4987,16 +4975,30 @@
     if (initialIdx !== undefined && initialIdx >= 0) {
       batchSelectedIds.add(allRecipes[initialIdx].id);
     }
-    updateBatchBar();
-    renderRecipes(); // re-render with selection state
+    // Show bar first, then apply batch styling to existing cards without full re-render
+    const bar = document.getElementById('batchBar');
+    bar.style.display = 'flex';
+    document.getElementById('batchCount').textContent = batchSelectedIds.size;
+    adjustHeaderPadding();
+    // Apply initial selection to cards already in the DOM
+    const main = document.getElementById('mainContent');
+    const scrollY = main ? main.scrollTop : 0;
+    const cards = document.querySelectorAll('.glass-card[data-idx]');
+    cards.forEach(card => {
+      const idx = parseInt(card.dataset.idx);
+      const r = allRecipes[idx];
+      if (r && batchSelectedIds.has(r.id)) card.classList.add('batch-selected');
+    });
+    if (main) requestAnimationFrame(() => { main.scrollTop = scrollY; });
   }
 
   function exitBatchSelect() {
     batchSelectMode = false;
     batchSelectedIds.clear();
     document.getElementById('batchBar').style.display = 'none';
+    // Remove selection styling from all cards without re-render
+    document.querySelectorAll('.glass-card.batch-selected').forEach(c => c.classList.remove('batch-selected'));
     adjustHeaderPadding();
-    renderRecipes();
   }
 
   function toggleBatchCard(idx) {
@@ -5007,18 +5009,28 @@
     } else {
       batchSelectedIds.add(r.id);
     }
-    // Update visual on the card without full re-render
-    const card = document.querySelector('.glass-card:nth-child(' + (idx + 1) + ')');
+    // Update just this card's visual — find it by data attribute
+    const card = document.querySelector('.glass-card[data-idx="' + idx + '"]');
+    if (card) {
+      card.classList.toggle('batch-selected', batchSelectedIds.has(r.id));
+    }
     updateBatchBar();
-    renderRecipes(); // simpler to just re-render
   }
 
   function updateBatchBar() {
     const bar = document.getElementById('batchBar');
     const count = batchSelectedIds.size;
-    bar.style.display = count > 0 || batchSelectMode ? 'flex' : 'none';
+    const wasVisible = bar.style.display === 'flex';
+    const shouldShow = count > 0 || batchSelectMode;
+    bar.style.display = shouldShow ? 'flex' : 'none';
     document.getElementById('batchCount').textContent = count;
-    adjustHeaderPadding();
+    // Only adjust padding when visibility changes, and preserve scroll position
+    if (wasVisible !== shouldShow) {
+      const main = document.getElementById('mainContent');
+      const scrollY = main ? main.scrollTop : 0;
+      adjustHeaderPadding();
+      if (main) requestAnimationFrame(() => { main.scrollTop = scrollY; });
+    }
   }
 
   function getBatchRecipes() {
@@ -5165,10 +5177,21 @@
     const overlay = document.createElement('div');
     overlay.id = 'batchCatOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
+    // Store IDs on the element to avoid inline JSON breaking onclick
+    sheet._batchIds = recipeIds;
     sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">Change category for ' + recipeIds.length + ' recipe' + (recipeIds.length > 1 ? 's' : '') + '</div>' +
-      cats.map(c => '<div onclick="applyBatchCategory(\'' + c + '\',' + JSON.stringify(recipeIds) + ')" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + c + '</div>').join('') +
-      '<div onclick="customBatchCategory(' + JSON.stringify(recipeIds) + ')" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">✏️ Custom...</div>' +
-      '<button onclick="document.getElementById(\'batchCatSheet\').remove();document.getElementById(\'batchCatOverlay\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:4px;">Cancel</button>';
+      cats.map(c => '<div class="batch-cat-option" data-cat="' + c + '" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + c + '</div>').join('') +
+      '<div class="batch-cat-option" data-cat="__custom__" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">✏️ Custom...</div>' +
+      '<button id="batchCatCancel" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:4px;">Cancel</button>';
+    sheet.addEventListener('click', e => {
+      const opt = e.target.closest('.batch-cat-option');
+      if (e.target.id === 'batchCatCancel') { sheet.remove(); overlay.remove(); return; }
+      if (!opt) return;
+      const cat = opt.dataset.cat;
+      const ids = sheet._batchIds;
+      if (cat === '__custom__') { customBatchCategory(ids); }
+      else { applyBatchCategory(cat, ids); }
+    });
     overlay.onclick = () => { sheet.remove(); overlay.remove(); };
     document.body.appendChild(overlay);
     document.body.appendChild(sheet);
@@ -5220,7 +5243,128 @@
   let quickBrowseActiveCategory = null;
   // Category override is handled directly in showPreviewSheet and addFromPreviewUrl above
 
-  // ═══ CATEGORY DROPDOWN HANDLERS ═══
+  // ═══ SHARE TO COMMUNITY FROM RECIPE ═══
+  function doShareToCommunity() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    closeSharePanel();
+    // Pre-select this recipe and open community post modal
+    setTimeout(() => {
+      communityPostSelectedRecipe = r;
+      communityPostMode = 'existing';
+      document.getElementById('communityPostModeSelect').style.display = 'none';
+      document.getElementById('communityPostForm').style.display = 'block';
+      renderCommunityPostForm();
+      openModalAnimated('communityPostModal');
+    }, 300);
+  }
+
+  // ═══ COMMUNITY COMMENT COUNTS & CARD TAP ═══
+  async function loadCommunityWithCounts(posts) {
+    // Fetch comment counts for each post
+    const feed = document.getElementById('communityFeed');
+    if (!feed) return;
+    // Update comment buttons with counts
+    for (const p of posts) {
+      const comments = await getCommunityComments(p.id);
+      const btn = document.getElementById('comm-comment-btn-' + p.id);
+      if (btn) btn.innerHTML = '💬 ' + (comments.length > 0 ? comments.length : '') + ' Comments';
+    }
+  }
+
+  // Updated renderCommunityCard with comment count loading and card tap
+  const _origRenderCommunityCard = renderCommunityCard;
+  // Patch community card to be tappable and show comment counts
+  // This is handled in loadCommunity via the card HTML
+
+  // ═══ COMMUNITY COMMENT DELETION ═══
+  async function deleteCommunityComment(commentId, postId) {
+    if (!confirm('Delete this comment?')) return;
+    await sbFetch('DELETE', `community_comments?id=eq.${commentId}`, null);
+    loadCommunityComments(postId);
+  }
+
+  // Override loadCommunityComments to add delete button
+  const _loadCommunityCommentsOrig = loadCommunityComments;
+  async function loadCommunityComments(postId) {
+    const el = document.getElementById('communityCommentsList');
+    if (!el) return;
+    const comments = await getCommunityComments(postId);
+    if (comments.length === 0) { el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;padding:8px 0;">No comments yet. Be the first!</div>'; return; }
+    const myFollowing = (await getFriends(currentUser).catch(()=>({following:[]}))).following || [];
+    el.innerHTML = await Promise.all(comments.map(async c => {
+      const u = c.users || {};
+      const av = u.avatar_url ? '<img src="'+u.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (u.username||'?').charAt(0).toUpperCase();
+      const isMe = u.username === currentUser;
+      const isAdmin = currentUser === 'rollert2';
+      const alreadyFollowing = myFollowing.includes(u.username);
+      const followBtn = (!isMe && !alreadyFollowing) ? '<button onclick="followFromCommunity(\''+u.username+'\')" style="background:none;border:1px solid var(--gold);color:var(--gold);border-radius:8px;padding:2px 8px;font-size:0.68em;font-weight:600;cursor:pointer;font-family:inherit;margin-left:6px;">+ Follow</button>' : '';
+      const deleteBtn = (isMe || isAdmin) ? '<button onclick="deleteCommunityComment(\''+c.id+'\',\''+postId+'\')" style="background:none;border:none;color:var(--red);font-size:0.75em;cursor:pointer;padding:0 4px;margin-left:4px;">✕</button>' : '';
+      return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;"><div class="community-avatar" style="width:28px;height:28px;font-size:0.75em;flex-shrink:0;">'+av+'</div><div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:8px 10px;"><div style="font-size:0.78em;font-weight:700;margin-bottom:2px;">'+escapeHtml(u.username||'')+''+followBtn+'</div><div style="font-size:0.85em;line-height:1.5;">'+escapeHtml(c.content)+'</div><div style="font-size:0.68em;color:var(--text-faint);margin-top:3px;">'+formatMsgTime(c.created_at)+deleteBtn+'</div></div></div>';
+    })).then(arr => arr.join(''));
+  }
+
+  // ═══ ADMIN USER MANAGEMENT ═══
+  async function loadAdminUsers() {
+    const el = document.getElementById('adminUserList');
+    el.innerHTML = 'Loading...';
+    const data = await sbFetch('GET', 'users', null, 'select=id,username,created_at&order=created_at.desc');
+    el.innerHTML = (data||[]).map(u =>
+      '<div style="padding:8px 0;border-bottom:0.5px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;" onclick="showAdminUserOptions(\''+u.username+'\',\''+u.id+'\')">' +
+      '<div><div style="font-size:0.88em;font-weight:600;">'+u.username+'</div><div style="font-size:0.72em;color:var(--text-faint);">'+new Date(u.created_at).toLocaleDateString()+'</div></div>' +
+      '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>'
+    ).join('');
+  }
+
+  function showAdminUserOptions(username, userId) {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:16px;">👤 '+username+'</div>' +
+      '<div onclick="adminFollowUser(\''+username+'\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow '+username+'</div>' +
+      '<div onclick="adminSendMessage(\''+username+'\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message '+username+'</div>' +
+      '<div onclick="adminDeleteUser(\''+username+'\',\''+userId+'\')" style="padding:13px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid var(--red);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--red);">🗑 Delete '+username+'\'s account</div>' +
+      '<button onclick="this.closest(\'div[style*=fixed]\').previousSibling.remove();this.closest(\'div[style*=fixed]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:4px;">Cancel</button>';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function adminFollowUser(username) {
+    document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+    await followUser(currentUser, username);
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Now following '+username;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  function adminSendMessage(username) {
+    document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+    closeModalAnimated('adminModal');
+    setTimeout(() => openMessaging(username), 350);
+  }
+
+  async function adminDeleteUser(username, userId) {
+    document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+    if (!confirm('Permanently delete user "'+username+'" and all their data? This cannot be undone.')) return;
+    if (!confirm('Are you absolutely sure? Type OK in the next prompt to confirm.')) return;
+    const check = prompt('Type DELETE to confirm:');
+    if (check !== 'DELETE') { alert('Cancelled.'); return; }
+    // Delete user's recipes, settings, planner, follows
+    await sbFetch('DELETE', 'recipes?user_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'user_settings?user_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'planner_entries?user_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'follows?follower_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'follows?followee_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'notifications?to_user_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'users?id=eq.'+userId, null);
+    alert('User "'+username+'" deleted.');
+    loadAdminUsers();
+  }
+
+
   function handleEditCategoryChange(sel) {
     const custom = document.getElementById('editCategoryCustom');
     if (custom) custom.style.display = sel.value === '__other__' ? 'block' : 'none';
