@@ -856,7 +856,7 @@ async function getOrSetRotd(username) {
   if (!userId) return null;
   const today = new Date().toISOString().slice(0, 10);
 
-  // Check admin override first (defensive — columns may not exist yet)
+  // Check admin override first (columns may not exist yet — fully guarded)
   try {
     const adminRes = await getAdminSettings();
     const s = adminRes.settings || {};
@@ -864,24 +864,27 @@ async function getOrSetRotd(username) {
       const r = await sbFetch('GET', 'recipes', null, `id=eq.${s.rotd_override_id}&select=*`);
       if (r && r[0]) return r[0];
     }
-  } catch(e) { /* ignore — columns may not exist */ }
+  } catch(e) {}
 
-  // Fall back to per-user ROTD
+  // Try per-user saved ROTD (columns may not exist — guarded)
   try {
     const settings = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=rotd_recipe_id,rotd_date`);
     if (settings && settings[0] && settings[0].rotd_date === today && settings[0].rotd_recipe_id) {
       const r = await sbFetch('GET', 'recipes', null, `id=eq.${settings[0].rotd_recipe_id}&select=*`);
       if (r && r[0]) return r[0];
     }
-  } catch(e) { /* ignore */ }
+  } catch(e) {}
 
-  // Pick a new random recipe for today from THIS user's cookbook
+  // Always fall back: pick random recipe using date as seed
   const recipes = await sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`);
   if (!recipes || recipes.length === 0) return null;
-  const pick = recipes[Math.floor(Math.random() * recipes.length)];
+  // Deterministic daily pick based on date string
+  const seed = today.split('-').reduce((a, b) => a + parseInt(b), 0);
+  const pick = recipes[seed % recipes.length];
+  // Try to save for today — silently ignore if columns don't exist
   try {
     await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`, { rotd_recipe_id: pick.id, rotd_date: today });
-  } catch(e) { /* ignore if columns missing */ }
+  } catch(e) {}
   return pick;
 }
 
@@ -913,9 +916,18 @@ async function removePlannerEntry(entryId) {
 async function getPlannerRange(username, startDate, endDate) {
   const userId = await getUserId(username);
   if (!userId) return [];
-  const data = await sbFetch('GET', 'planner', null,
-    `user_id=eq.${userId}&date=gte.${startDate}&date=lte.${endDate}&select=*,recipes(id,title,image_url,cook_time,category)&order=date.asc`);
-  return data || [];
+  // First get planner entries
+  const entries = await sbFetch('GET', 'planner', null,
+    `user_id=eq.${userId}&date=gte.${startDate}&date=lte.${endDate}&select=id,date,recipe_id,meal_type&order=date.asc`);
+  if (!entries || entries.length === 0) return [];
+  // Fetch recipes separately to avoid join issues
+  const recipeIds = [...new Set(entries.map(e => e.recipe_id).filter(Boolean))];
+  let recipesMap = {};
+  if (recipeIds.length > 0) {
+    const recipes = await sbFetch('GET', 'recipes', null, `id=in.(${recipeIds.join(',')})&select=id,title,image_url,cook_time,category,ingredients`);
+    (recipes || []).forEach(r => { recipesMap[r.id] = r; });
+  }
+  return entries.map(e => ({ ...e, recipes: recipesMap[e.recipe_id] || null }));
 }
 
 // ── MEAL PREP ─────────────────────────────────────────────────
@@ -923,9 +935,16 @@ async function getPlannerRange(username, startDate, endDate) {
 async function getMealPrepItems(username) {
   const userId = await getUserId(username);
   if (!userId) return [];
-  const data = await sbFetch('GET', 'meal_prep', null,
-    `user_id=eq.${userId}&select=*,recipes(id,title,image_url,ingredients,instructions,servings,cook_time)&order=created_at.desc`);
-  return data || [];
+  const items = await sbFetch('GET', 'meal_prep', null,
+    `user_id=eq.${userId}&select=id,recipe_id,scale,total_servings,servings_used,prep_date,notes,created_at&order=created_at.desc`);
+  if (!items || items.length === 0) return [];
+  const recipeIds = [...new Set(items.map(e => e.recipe_id).filter(Boolean))];
+  let recipesMap = {};
+  if (recipeIds.length > 0) {
+    const recipes = await sbFetch('GET', 'recipes', null, `id=in.(${recipeIds.join(',')})&select=id,title,image_url,ingredients,instructions,servings,cook_time`);
+    (recipes || []).forEach(r => { recipesMap[r.id] = r; });
+  }
+  return items.map(e => ({ ...e, recipes: recipesMap[e.recipe_id] || null }));
 }
 
 async function addMealPrepItem(username, recipeId, scale, totalServings, prepDate, notes) {
