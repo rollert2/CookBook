@@ -702,7 +702,6 @@
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Snack','🍿')">🍿 Snacks</button>
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Drink','🥤')">🥤 Drinks</button>
         <button class="sort-chip" onclick="showDiscoverQuickPicks('Sides','🥘')">🥘 Sides</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Sides','🍟')">🍟 Sides</button>
       </div>
     </div>
     <div id="discoverQuickPicks" style="display:none;margin:10px 0 6px;"></div>
@@ -966,14 +965,11 @@
           <span style="font-size:0.72em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Servings</span>
           <span id="servingsDisplay" style="font-size:0.88em;font-weight:700;color:var(--text);min-width:60px;text-align:right;"></span>
         </div>
-        <input type="range" id="servingsSlider" min="0.25" max="10" step="0.25" value="1"
-          oninput="onServingsSlider(this.value)"
-          style="width:100%;accent-color:var(--gold);cursor:pointer;">
-        <div style="display:flex;justify-content:space-between;margin-top:3px;">
-          <span style="font-size:0.65em;color:var(--text-faint);">¼×</span>
-          <span style="font-size:0.65em;color:var(--text-faint);">1×</span>
-          <span style="font-size:0.65em;color:var(--text-faint);">5×</span>
-          <span style="font-size:0.65em;color:var(--text-faint);">10×</span>
+        <div style="display:flex;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:4px;">
+          <button class="scale-btn active" data-scale="0.5" onclick="changeScale(0.5)">½×</button>
+          <button class="scale-btn" data-scale="1" onclick="changeScale(1)">1×</button>
+          <button class="scale-btn" data-scale="2" onclick="changeScale(2)">2×</button>
+          <button class="scale-btn" data-scale="3" onclick="changeScale(3)">3×</button>
         </div>
       </div>
       <!-- Converter -->
@@ -1045,7 +1041,6 @@
         <option value="Snack">🍿 Snack</option>
         <option value="Drink">🥤 Drink</option>
         <option value="Dessert">🍰 Dessert</option>
-        <option value="Sides">🍟 Sides</option>
         <option value="Sides">🥘 Sides</option>
         <option value="General">📦 General</option>
         <option value="__other__">✏️ Other (type your own)</option>
@@ -1142,7 +1137,6 @@
           <option value="Snack">🍿 Snack</option>
           <option value="Drink">🥤 Drink</option>
           <option value="Dessert">🍰 Dessert</option>
-          <option value="Sides">🍟 Sides</option>
           <option value="Sides">🥘 Sides</option>
           <option value="General">📦 General</option>
           <option value="__other__">✏️ Other (type your own)</option>
@@ -1813,34 +1807,51 @@
     ).join('');
   }
 
-  // ═══ SCROLL-TO-HIDE HEADER ═══
+  // ═══ SCROLL-TO-HIDE HEADER (landscape only) ═══
   function initScrollHideHeader() {
     const header = document.getElementById('appHeader');
     let lastScrollY = window.scrollY;
     let headerHidden = false;
     let ticking = false;
 
+    // Add smooth transition to header
+    header.style.transition = 'transform 0.2s ease';
+
+    function isLandscape() {
+      return window.innerWidth > window.innerHeight;
+    }
+
     window.addEventListener('scroll', () => {
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
+        // Only hide in landscape
+        if (!isLandscape()) {
+          if (headerHidden) {
+            header.style.transform = 'translateY(0)';
+            headerHidden = false;
+            adjustHeaderPadding();
+          }
+          ticking = false;
+          lastScrollY = window.scrollY;
+          return;
+        }
+
         const scrollY = window.scrollY;
-        const headerH = header.offsetHeight;
         const delta = scrollY - lastScrollY;
 
-        if (delta > 4 && scrollY > headerH) {
-          // Scrolling down past header — hide it
+        if (delta > 0 && scrollY > 5) {
+          // Scrolling down even 1px — hide immediately
           if (!headerHidden) {
             header.style.transform = 'translateY(-100%)';
             headerHidden = true;
-            // Shrink padding so content uses the freed space
             ['mainContent','discoverContent','featuredContent','plannerContent'].forEach(id => {
               const el = document.getElementById(id);
               if (el && el.style.display !== 'none') el.style.paddingTop = '0px';
             });
           }
-        } else if (delta < -6 || scrollY < 10) {
-          // Scrolling up or near top — reveal header
+        } else if (delta < 0 || scrollY <= 5) {
+          // Scrolling up — reveal
           if (headerHidden) {
             header.style.transform = 'translateY(0)';
             headerHidden = false;
@@ -1851,6 +1862,16 @@
         ticking = false;
       });
     }, { passive: true });
+
+    // Reset on orientation change
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        header.style.transform = 'translateY(0)';
+        headerHidden = false;
+        lastScrollY = 0;
+        adjustHeaderPadding();
+      }, 100);
+    });
 
     window._revealHeader = () => {
       header.style.transform = 'translateY(0)';
@@ -5648,7 +5669,9 @@ No markdown, no explanation, just the JSON.`;
         body: JSON.stringify({ prompt, maxTokens: 300 })
       });
       const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'API error ' + res.status);
       const text = (data.text || '').trim();
+      if (!text) throw new Error('Empty response from AI');
       const clean = text.replace(/```json|```/g, '').trim();
       const m = JSON.parse(clean);
       const scaledCal = Math.round((m.calories || 0) * currentScale);
@@ -5667,7 +5690,7 @@ No markdown, no explanation, just the JSON.`;
         '<div style="font-size:0.7em;color:var(--text-faint);line-height:1.4;">' + (m.note || 'AI estimates only — actual values vary based on brands and preparation.') + '</div>';
       content.dataset.loaded = '1';
     } catch(e) {
-      content.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not estimate macros. Check your connection and try again.</div>';
+      content.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not estimate macros: ' + e.message + '<br><span style="font-size:0.85em;">Make sure api/ai.js is deployed to Vercel.</span></div>';
     }
     macrosLoading = false;
   }
@@ -5725,7 +5748,9 @@ No markdown, no explanation, just JSON.`;
         body: JSON.stringify({ prompt, maxTokens: 500 })
       });
       const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'API error ' + res.status);
       const text = (data.text || '').trim();
+      if (!text) throw new Error('Empty response from AI');
       const clean = text.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(clean);
       const subs = parsed.substitutes || [];
@@ -5739,7 +5764,7 @@ No markdown, no explanation, just JSON.`;
         ).join('') +
         '<div style="font-size:0.7em;color:var(--text-faint);margin-top:6px;">Results may vary based on the recipe.</div>';
     } catch(e) {
-      result.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not fetch substitutes. Try again.</div>';
+      result.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not fetch substitutes: ' + e.message + '</div>';
     }
   }
 
