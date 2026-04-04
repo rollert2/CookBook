@@ -683,7 +683,6 @@
       </div>
       <div id="categoryFiltersInline" class="category-filter-inner"></div>
     </div>
-    <!-- Cook time filter chips -->
     <div id="cookTimeFilterRow" style="display:flex;gap:7px;padding:6px 16px 4px;overflow-x:auto;scrollbar-width:none;">
       <button class="sort-chip cooktime-filter-chip active" data-mins="0" onclick="setCookTimeFilter(0)">⏱ Any time</button>
       <button class="sort-chip cooktime-filter-chip" data-mins="15" onclick="setCookTimeFilter(15)">≤ 15 min</button>
@@ -966,6 +965,8 @@
           <div class="detail-action-b-label">Cooked</div>
         </div>
       </div>
+      <!-- Tags row -->
+      <div id="detailTagsRow" style="display:none;flex-wrap:wrap;gap:6px;padding:6px 18px 0;"></div>
       <!-- Rating track -->
       <div class="detail-rating-b">
         <div class="detail-rating-b-track" id="ratingTrackB"></div>
@@ -1073,6 +1074,8 @@
       <label class="edit-label">Ingredients (one per line)</label><textarea id="editIngredients" class="edit-field" rows="5"></textarea>
       <label class="edit-label">Instructions (one step per line)</label><textarea id="editInstructions" class="edit-field" style="height:200px;"></textarea>
       <label class="edit-label">Notes</label><textarea id="editNotes" class="edit-field" rows="3"></textarea>
+      <label class="edit-label">Tags <span style="font-weight:400;color:var(--text-faint);font-size:0.85em;">(e.g. #keto #quick #mealprep)</span></label>
+      <input type="text" id="editTags" class="edit-field" placeholder="#tag1 #tag2">
       <button id="saveEditBtn" class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
     </div>
   </div>
@@ -1088,25 +1091,46 @@
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div id="profileHero" class="profile-hero"></div>
-    <div class="profile-section" id="profileNotifSection" style="display:none;">
-      <div class="profile-section-title">🔔 New Followers</div>
-      <div id="profileNotifList"></div>
+    <div style="display:flex;border-bottom:1px solid var(--glass-border);margin:0 0 4px;">
+      <button id="profileTabBtn_profile" onclick="switchProfileTab('profile')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">👤 Profile</button>
+      <button id="profileTabBtn_friends" onclick="switchProfileTab('friends')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-faint);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">👥 Friends</button>
     </div>
-    <div class="profile-section">
-      <div class="profile-section-title">Following</div>
-      <div class="share-input-row" style="margin-bottom:10px;">
-        <input type="text" id="followInput" placeholder="Add friend by username..." autocomplete="off" autocorrect="off" autocapitalize="off">
-        <button class="share-send-btn" onclick="doFollowUser()">Follow</button>
+    <div id="profileTab_profile">
+      <div class="profile-section" id="profileNotifSection" style="display:none;">
+        <div class="profile-section-title">🔔 Notifications</div>
+        <div id="profileNotifList"></div>
       </div>
-      <div class="ai-result" id="followResult"></div>
-      <div id="friendsList"></div>
+      <div class="profile-section">
+        <div class="profile-section-title">Following</div>
+        <div class="share-input-row" style="margin-bottom:10px;">
+          <input type="text" id="followInput" placeholder="Add friend by username..." autocomplete="off" autocorrect="off" autocapitalize="off">
+          <button class="share-send-btn" onclick="doFollowUser()">Follow</button>
+        </div>
+        <div class="ai-result" id="followResult"></div>
+        <div id="friendsList"></div>
+      </div>
+      <div class="profile-section" id="friendRecipesSection" style="display:none;">
+        <div class="profile-section-title" id="friendRecipesTitle"></div>
+        <div class="friend-recipes-grid" id="friendRecipesGrid"></div>
+        <button class="btn btn-secondary" style="margin-top:12px;" onclick="closeFriendRecipes()">← Back to profile</button>
+      </div>
     </div>
-    <div class="profile-section" id="friendRecipesSection" style="display:none;">
-      <div class="profile-section-title" id="friendRecipesTitle"></div>
-      <div class="friend-recipes-grid" id="friendRecipesGrid"></div>
-      <button class="btn btn-secondary" style="margin-top:12px;" onclick="closeFriendRecipes()">← Back to profile</button>
+    <div id="profileTab_friends" style="display:none;">
+      <div style="padding:12px 18px 6px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Activity Feed</div>
+      <div id="activityFeedList" style="padding:0 16px 20px;"></div>
+      <div style="padding:8px 18px 6px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Your Friends</div>
+      <div id="friendsListFull" style="padding:0 16px 30px;"></div>
     </div>
     <div style="height:40px;"></div>
+  </div>
+
+  <!-- PUBLIC USER PROFILE MODAL -->
+  <div id="publicProfileModal" class="modal-overlay" style="z-index:250;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('publicProfileModal')">← Back</button>
+      <h2 id="publicProfileUsername" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></h2>
+    </div>
+    <div id="publicProfileBody" class="modal-body" style="padding-top:0;"></div>
   </div>
 
   <!-- FRIEND RECIPE DETAIL MODAL -->
@@ -1142,6 +1166,14 @@
             <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;">Paste any recipe link and AI extracts it automatically.</div>
           </div>
           <div style="margin-left:auto;color:var(--gold);font-size:1.2em;">›</div>
+        </div>
+        <div onclick="switchSyncTab('paste')" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
+          <div style="font-size:2.2em;flex-shrink:0;">📋</div>
+          <div>
+            <div style="font-size:1em;font-weight:800;margin-bottom:3px;">Paste Text / AI Parse</div>
+            <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;">Paste any text, screenshot transcription or message — AI turns it into a recipe.</div>
+          </div>
+          <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
         </div>
       </div>
 
@@ -1187,6 +1219,13 @@
         <div class="hint-box" style="margin-top:14px;">Works great with: Food Network, BBC Good Food, Simply Recipes, Serious Eats, Sally's Baking Addiction, Budget Bytes, Spend With Pennies, and most recipe blogs.<br><br>⚠️ Sites using heavy JavaScript rendering (AllRecipes, NYT Cooking) are not supported.</div>
       </div>
 
+      <div id="tabPaste" style="display:none;">
+        <button onclick="showAddModeSelect()" style="background:none;border:none;color:var(--text-dim);font-size:0.85em;cursor:pointer;padding:0 0 16px;font-family:inherit;">← Back</button>
+        <p style="color:var(--text-dim);font-size:0.88em;margin-bottom:14px;line-height:1.5;">Paste any recipe text — from a screenshot, a message, a blog post, or just something you wrote. AI will parse it into a recipe.</p>
+        <textarea id="pasteInput" class="edit-field" style="height:200px;" placeholder="e.g. Chicken Pasta&#10;Ingredients: 200g pasta, 1 chicken breast...&#10;Instructions: Boil pasta..."></textarea>
+        <div class="ai-result" id="pasteResult" style="margin-top:10px;display:none;"></div>
+        <button class="btn btn-primary" style="margin-top:10px;" id="parsePasteBtn" onclick="parsePastedRecipe()">✨ Parse with AI</button>
+      </div>
       <!-- Hidden legacy tabs (kept for JSON/bulk export access via direct calls) -->
       <div id="tabJson" style="display:none;">
         <textarea id="syncInput" class="edit-field" style="height:280px;font-family:monospace;font-size:0.82em;" placeholder='{"title":"...","category":"...","ingredients":"...","instructions":"...","notes":"","cookTime":""}'></textarea>
@@ -1225,7 +1264,7 @@
     </div>
   </div>
 
-  <!-- Cook mode completion screen -->
+  <!-- Cook completion screen -->
   <div id="cookCompletionScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0c;z-index:900;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px 50px;text-align:center;">
     <div style="font-size:3.5em;margin-bottom:16px;">🎉</div>
     <div style="font-size:1.4em;font-weight:800;color:#fff;margin-bottom:6px;">Well done!</div>
@@ -1233,7 +1272,7 @@
     <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;">
       <button onclick="markCookedFromCompletion()" style="padding:14px;border-radius:12px;background:var(--gold);border:none;color:#0a0a0c;font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">✅ Mark as Cooked</button>
       <div id="cookCompletionLastCooked" style="font-size:0.78em;color:rgba(255,255,255,0.5);min-height:16px;"></div>
-      <textarea id="cookJournalInput" placeholder="Add a journal note... (how did it go? what would you change?)" style="width:100%;min-height:90px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;padding:12px;font-size:0.88em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+      <textarea id="cookJournalInput" placeholder="Add a journal note... (how did it go?)" style="width:100%;min-height:90px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;padding:12px;font-size:0.88em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
       <div id="cookJournalStatus" style="font-size:0.78em;color:rgba(201,168,76,0.8);min-height:16px;"></div>
       <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:rgba(201,168,76,0.9);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
       <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
@@ -1354,8 +1393,7 @@
       </div>
     </div>
     <div style="height:30px;"></div>
-    <!-- Account Deletion -->
-    <div class="settings-section" id="deletionSection">
+    <div class="settings-section">
       <div class="settings-section-title" style="color:var(--red);">Danger Zone</div>
       <div id="deletionStatusWrap" style="display:none;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
         <div style="font-size:0.82em;color:var(--red);font-weight:700;margin-bottom:4px;">⏳ Account deletion requested</div>
@@ -1363,7 +1401,7 @@
         <button onclick="cancelDeletionFromSettings()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.82em;cursor:pointer;font-family:inherit;">↩ Cancel Deletion Request</button>
       </div>
       <button onclick="requestDeletionFromSettings()" id="requestDeletionBtn" style="width:100%;padding:12px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Request Account Deletion</button>
-      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;line-height:1.5;">Your account will be scheduled for deletion. You have 12 hours to cancel. A notification will be sent to the admin to confirm.</div>
+      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;line-height:1.5;">Your account will be scheduled for deletion. You have 12 hours to cancel.</div>
     </div>
     <div style="height:30px;"></div>
   </div>
@@ -1971,13 +2009,9 @@
     const sortFilterRow = document.getElementById('sortFilterRow');
     if (tab === 'recipes') {
       searchWrap.style.display = ''; filterChips.style.display = '';
-      const ctRow = document.getElementById('cookTimeFilterRow');
-      if (ctRow) ctRow.style.display = 'flex';
       if (sortFilterRow) sortFilterRow.style.display = '';
     } else {
       searchWrap.style.display = 'none'; filterChips.style.display = 'none';
-      const ctRow = document.getElementById('cookTimeFilterRow');
-      if (ctRow) ctRow.style.display = 'none';
       if (sortFilterRow) sortFilterRow.style.display = 'none';
     }
     setTimeout(adjustHeaderPadding, 50);
@@ -2000,14 +2034,6 @@
       if (el) el.style.display = 'none';
     });
   }
-  function switchSyncTab(tab) {
-    document.getElementById('addModeSelect').style.display = 'none';
-    ['manual','url','json','bulk','export'].forEach(t => {
-      const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
-      if (el) el.style.display = t === tab ? 'block' : 'none';
-    });
-  }
-
   // ═══ ANIMATED MODAL OPEN/CLOSE ═══
   function openModalAnimated(id) {
     const el = document.getElementById(id);
@@ -2094,52 +2120,12 @@
       document.removeEventListener('click', closeSortDropdownOutside);
     }
   }
-  let cookTimeFilter = 0; // 0 = off, else max minutes
-
   function setSort(s) {
     currentSort = s;
     document.getElementById('sortDropdown').classList.remove('open');
     document.removeEventListener('click', closeSortDropdownOutside);
     renderSortBar(); renderRecipes();
   }
-
-  function setCookTimeFilter(mins) {
-    cookTimeFilter = mins;
-    renderRecipes();
-    // Update filter chips
-    document.querySelectorAll('.cooktime-filter-chip').forEach(b => {
-      b.classList.toggle('active', parseInt(b.dataset.mins) === mins);
-    });
-  }
-
-  function parseCookMinutes(cookTime) {
-    if (!cookTime) return Infinity;
-    const m = cookTime.match(/(\d+)\s*(h|hr|hour)/i);
-    const min = cookTime.match(/(\d+)\s*(m|min|minute)/i);
-    let total = 0;
-    if (m) total += parseInt(m[1]) * 60;
-    if (min) total += parseInt(min[1]);
-    return total || Infinity;
-  }
-
-  function sortRecipes(arr) {
-    const copy = [...arr];
-    switch(currentSort) {
-      case 'az': return copy.sort((a,b) => a.title.localeCompare(b.title));
-      case 'za': return copy.sort((a,b) => b.title.localeCompare(a.title));
-      case 'top': case 'rating': return copy.sort((a,b) => (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0));
-      case 'fav': case 'favs': return copy.sort((a,b) => (b.favourite?1:0)-(a.favourite?1:0));
-      case 'oldest': return copy.reverse();
-      case 'cooked': return copy.sort((a,b) => {
-        const at = a.lastCooked ? new Date(a.lastCooked).getTime() : 0;
-        const bt = b.lastCooked ? new Date(b.lastCooked).getTime() : 0;
-        return bt - at;
-      });
-      case 'cooktime': return copy.sort((a,b) => parseCookMinutes(a.cookTime) - parseCookMinutes(b.cookTime));
-      default: return copy;
-    }
-  }
-
   // ═══ RENDER RECIPES ═══
   function getRecipeCollection(recipeId) {
     for (const col of userCollections) { if (col.recipeIds.includes(recipeId)) return col.name; }
@@ -2152,8 +2138,7 @@
       const catMatch = activeCategories.has('All') || activeCategories.has(r.category);
       const favMatch = !showFavsOnly || r.favourite;
       const searchMatch = !q || r.title.toLowerCase().includes(q) || r.category.toLowerCase().includes(q) || r.ingredients.toLowerCase().includes(q);
-      const timeMatch = !cookTimeFilter || parseCookMinutes(r.cookTime) <= cookTimeFilter;
-      return catMatch && favMatch && searchMatch && timeMatch;
+      return catMatch && favMatch && searchMatch;
     });
     list = sortRecipes(list);
     filteredRecipes = list;
@@ -2229,137 +2214,7 @@
   function contextDelete() { closeContextMenu(); if (!confirm('Delete this recipe?')) return; const idx = contextTargetIndex; deleteRecipe(allRecipes[idx].id).then(() => { allRecipes.splice(idx,1); renderRecipes(); }); }
 
   // ═══ DETAIL ═══
-  function openDetails(idx) {
-    activeRecipeIndex = idx;
-    // Apply default scale from user settings
-    currentScale = parseFloat(userSettings.default_scale) || 1;
-    // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
-    if (timerStates._recipeIdx !== idx) {
-      Object.values(timerStates).forEach(t => { if (t.interval) clearInterval(t.interval); });
-      timerStates = { _recipeIdx: idx };
-    }
-    renderDetailContent();
-    openModalAnimated('detailModal');
-    document.getElementById('detailModal').scrollTop = 0;
-    adjustHeaderPadding();
-  }
   function swipeRecipe(dir) { const newIdx = activeRecipeIndex + dir; if (newIdx < 0 || newIdx >= allRecipes.length) return; Object.values(timerStates).forEach(t => clearInterval(t.interval)); timerStates = {}; activeRecipeIndex = newIdx; currentScale = 1; renderDetailContent(); document.getElementById('detailModal').scrollTop = 0; }
-
-  function renderDetailContent() {
-    const r = allRecipes[activeRecipeIndex];
-    // Load friend ratings async
-    if (r && r.id) { friendRatingsCache = null; loadFriendRatings(r.id); }
-    // Show/hide source URL button
-    const srcBtn = document.getElementById('sourceUrlBtn');
-    if (srcBtn) { srcBtn.style.display = (r.sourceUrl && r.sourceUrl.trim()) ? 'block' : 'none'; }
-
-    // Style B hero
-    const heroImg = document.getElementById('detailHeroImg');
-    const heroPlaceholder = document.getElementById('detailHeroPlaceholder');
-    if (r.image && r.image.trim()) {
-      heroImg.src = r.image;
-      heroImg.style.display = 'none'; // shown on load
-      heroPlaceholder.style.display = 'flex';
-    } else {
-      heroImg.style.display = 'none';
-      heroPlaceholder.style.display = 'flex';
-      heroPlaceholder.textContent = r.title.charAt(0);
-    }
-
-    // Overlay info
-    document.getElementById('detailCategoryB').textContent = r.category || '';
-    document.getElementById('detailTitleB').textContent = r.title;
-
-    const timeEl = document.getElementById('detailTimeB');
-    if (r.cookTime) { timeEl.style.display = ''; timeEl.textContent = '⏱ ' + r.cookTime; } else timeEl.style.display = 'none';
-
-    const servingsEl = document.getElementById('detailServingsB');
-    if (r.servings) { servingsEl.style.display = ''; servingsEl.textContent = '👤 ' + r.servings; } else servingsEl.style.display = 'none';
-
-    const ratingEl = document.getElementById('detailRatingB');
-    if (r.rating) { ratingEl.style.display = ''; ratingEl.textContent = '★ ' + r.rating + '/10'; } else ratingEl.style.display = 'none';
-
-    // Fav button
-    const favIcon = document.getElementById('favBtnB');
-    favIcon.classList.toggle('fav-active', r.favourite);
-    favIcon.textContent = r.favourite ? '★' : '⭐';
-
-    // Rating track
-    const cur = parseInt(r.rating) || 0;
-    document.getElementById('ratingTrackB').innerHTML = Array.from({length:10},(_,i) =>
-      '<div class="detail-rating-b-pip ' + (i < cur ? 'filled' : '') + '" onclick="handleRating(' + (i+1) + ')"></div>'
-    ).join('');
-    document.getElementById('ratingLabelB').textContent = cur ? cur + '/10' : 'Not rated';
-
-    // Scale buttons
-    document.querySelectorAll('.detail-scale-b-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
-
-    // Ingredients
-    const ings = parseIngredients(r.ingredients);
-    document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
-      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, currentScale)) + '</div>'
-    ).join('');
-
-    // Init servings slider
-    const slider = document.getElementById('servingsSlider');
-    if (slider) {
-      slider.value = currentScale;
-      updateServingsDisplay(currentScale, r);
-    }
-
-    // Steps
-    const steps = r.instructions.split('\n').filter(s => s.trim());
-    document.getElementById('stepsList').innerHTML = steps.map((step, i) => {
-      let html = '<div class="step-item"><input type="checkbox" class="step-checkbox" id="sc-' + i + '" onchange="toggleStep(' + i + ')"><label for="sc-' + i + '" class="step-num">' + (i+1) + '</label><div id="step-c-' + i + '" class="step-content">' + decodeHtml(step);
-      const time = step.match(/(\d+)\s*(min|sec|minute|second)/i);
-      if (time) {
-        const sec = time[2].toLowerCase().includes('min') ? parseInt(time[1])*60 : parseInt(time[1]);
-        html += '<div class="timer-container"><button id="t-btn-' + i + '" class="timer-btn" onclick="handleTimer(' + i + ',' + sec + ')">⏱ Start ' + time[1] + ' ' + time[2] + '</button><button class="timer-reset" onclick="resetTimer(' + i + ',' + sec + ')">↺</button></div>';
-      }
-      html += '</div></div>'; return html;
-    }).join('');
-
-    // Notes
-    const ns = document.getElementById('notesSection');
-    if (r.notes && r.notes.trim()) { ns.style.display = 'block'; document.getElementById('notesBody').textContent = r.notes; } else ns.style.display = 'none';
-    // Reset journal section
-    journalSectionOpen = false;
-    const jb = document.getElementById('journalBody'); if (jb) jb.style.display = 'none';
-    const jc = document.getElementById('journalChevron'); if (jc) jc.textContent = '▼';
-
-    // Prev/next
-    document.getElementById('prevBtn').disabled = activeRecipeIndex <= 0;
-    document.getElementById('nextBtn').disabled = activeRecipeIndex >= allRecipes.length - 1;
-
-    // Sync active timers
-    requestAnimationFrame(() => {
-      Object.entries(timerStates).forEach(([key, t]) => {
-        if (key === '_recipeIdx') return;
-        const btn = document.getElementById('t-btn-' + key);
-        if (!btn) return;
-        if (t.state === 'running') {
-          btn.className = 'timer-btn running';
-          btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
-          clearInterval(t.interval);
-          t.interval = setInterval(() => {
-            t.rem--;
-            btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
-            renderGlobalTimerBar();
-            if (t.rem <= 0) {
-              clearInterval(t.interval); t.state = 'alarm';
-              btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
-              playAlarm(); renderGlobalTimerBar();
-            }
-          }, 1000);
-        } else if (t.state === 'paused') {
-          btn.className = 'timer-btn';
-          btn.innerHTML = 'Resume: ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
-        } else if (t.state === 'alarm') {
-          btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
-        }
-      });
-    });
-  }
 
   function toggleStep(i) { document.getElementById('step-c-' + i).classList.toggle('done', document.getElementById('sc-' + i).checked); }
   function changeScale(s) {
@@ -2551,32 +2406,6 @@
     }
   });
 
-  function enterEditMode() {
-    const r = allRecipes[activeRecipeIndex];
-    document.getElementById('viewMode').style.display = 'none'; document.getElementById('editMode').style.display = 'block';
-    document.getElementById('editId').value = r.id; document.getElementById('editTitle').value = r.title;
-    const knownCats = ['Breakfast','Lunch','Dinner','Snack','Sides','Drink','Dessert','General'];
-    const catEl = document.getElementById('editCategory');
-    const customCatEl = document.getElementById('editCategoryCustom');
-    if (knownCats.includes(r.category)) {
-      catEl.value = r.category;
-      customCatEl.style.display = 'none';
-    } else {
-      catEl.value = '__other__';
-      customCatEl.style.display = 'block';
-      customCatEl.value = r.category || '';
-    }
-    document.getElementById('editCookTime').value = r.cookTime||''; document.getElementById('editPrepTime').value = r.prepTime||'';
-    document.getElementById('editServings').value = r.servings||'';
-    document.getElementById('editSourceUrl').value = r.sourceUrl||'';
-    document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
-    document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
-    // Snapshot original values for change detection
-    window._editSnapshot = {
-      title: r.title, category: r.category, cookTime: r.cookTime||'', prepTime: r.prepTime||'', servings: r.servings||'',
-      sourceUrl: r.sourceUrl||'', ingredients: r.ingredients, instructions: r.instructions, notes: r.notes||''
-    };
-  }
   function editHasChanges() {
     const snap = window._editSnapshot;
     if (!snap) return false;
@@ -2895,22 +2724,6 @@
   function startNotifPolling() {
     if (notifPollInterval) return;
     notifPollInterval = setInterval(checkNotifications, 30000); // every 30s
-  }
-
-  function renderProfileNotifications() {
-    const section = document.getElementById('profileNotifSection');
-    const list = document.getElementById('profileNotifList');
-    if (userNotifications.length === 0) { section.style.display = 'none'; return; }
-    section.style.display = 'block';
-    list.innerHTML = userNotifications.map(n => {
-      if (n.type === 'follow') {
-        return '<div class="friend-item"><div class="friend-avatar">' + n.fromUser.charAt(0) + '</div><div style="flex:1;"><div style="font-weight:600;font-size:0.9em;">' + n.fromUser + '</div><div style="font-size:0.72em;color:var(--text-dim);">Started following you</div></div><button class="inbox-accept" style="flex:0;padding:7px 12px;font-size:0.75em;" onclick="followBackUser(\'' + n.fromUser + '\',\'' + n.notifId + '\')">Follow Back</button><button class="inbox-decline" style="flex:0;padding:7px 10px;font-size:0.75em;margin-left:6px;" onclick="dismissNotif(\'' + n.notifId + '\')">✕</button></div>';
-      }
-      if (n.type === 'follow_back') {
-        return '<div class="friend-item"><div class="friend-avatar">' + n.fromUser.charAt(0) + '</div><div style="flex:1;"><div style="font-weight:600;font-size:0.9em;">' + n.fromUser + '</div><div style="font-size:0.72em;color:var(--gold);">Followed you back ✓</div></div><button class="inbox-decline" style="flex:0;padding:7px 10px;font-size:0.75em;" onclick="dismissNotif(\'' + n.notifId + '\')">✕</button></div>';
-      }
-      return '';
-    }).join('');
   }
 
   function followBackUser(username, notifId) {
@@ -3350,14 +3163,11 @@
 
   let _wakeLock = null;
   async function _requestWakeLock() {
-    try {
-      if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen');
-    } catch(e) {}
+    try { if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
   }
   function _releaseWakeLock() {
     if (_wakeLock) { _wakeLock.release().catch(()=>{}); _wakeLock = null; }
   }
-
   function startCookMode() {
     const r = allRecipes[activeRecipeIndex];
     cookRecipeIndex = activeRecipeIndex;
@@ -3409,85 +3219,21 @@
   function cookStepNav(dir) {
     const next = cookStepIndex + dir;
     if (next < 0) return;
-    if (next >= cookSteps.length) {
-      openCookCompletion();
-      return;
-    }
+    if (next >= cookSteps.length) { openCookCompletion(); return; }
     cookStepIndex = next;
     renderCookStep();
   }
-
-  // Swipe support for cook mode
   function initCookSwipe() {
     const area = document.getElementById('cookStepArea');
     if (!area || area._swipeInit) return;
     area._swipeInit = true;
-    let startX = 0, startY = 0;
-    area.addEventListener('touchstart', e => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    }, { passive: true });
+    let sx = 0, sy = 0;
+    area.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
     area.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        // Swipe right = prev, swipe left = next
-        cookStepNav(dx < 0 ? 1 : -1);
-      }
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) cookStepNav(dx < 0 ? 1 : -1);
     }, { passive: true });
-  }
-
-  // ── COOK MODE COMPLETION ───────────────────────────────────
-  function openCookCompletion() {
-    const r = allRecipes[cookRecipeIndex];
-    if (!r) { closeCookMode(); return; }
-    document.getElementById('cookMode').classList.remove('active');
-    const el = document.getElementById('cookCompletionScreen');
-    if (!el) return;
-    document.getElementById('cookCompletionTitle').textContent = r.title;
-    document.getElementById('cookCompletionLastCooked').textContent = '';
-    document.getElementById('cookJournalInput').value = '';
-    document.getElementById('cookCompletionScreen').style.display = 'flex';
-    _releaseWakeLock();
-    clearInterval(cookTimerInterval); cookTimerInterval = null;
-  }
-
-  async function markCookedFromCompletion() {
-    const r = allRecipes[cookRecipeIndex];
-    if (!r) return;
-    const res = await markRecipeCooked(r.id, currentUser);
-    if (res.status === 'Success') {
-      const ts = document.getElementById('cookCompletionLastCooked');
-      if (ts) ts.textContent = 'Marked as cooked ✅';
-      // Update local recipe data
-      r.lastCooked = res.cookedAt;
-      r.cookCount = (r.cookCount || 0) + 1;
-    }
-  }
-
-  async function saveJournalFromCompletion() {
-    const r = allRecipes[cookRecipeIndex];
-    const text = document.getElementById('cookJournalInput')?.value.trim();
-    if (!r || !text) return;
-    await addJournalEntry(r.id, currentUser, text);
-    document.getElementById('cookJournalInput').value = '';
-    const status = document.getElementById('cookJournalStatus');
-    if (status) { status.textContent = 'Journal entry saved ✅'; setTimeout(() => status.textContent = '', 2000); }
-  }
-
-  function closeCookCompletion() {
-    document.getElementById('cookCompletionScreen').style.display = 'none';
-    cookTimers = {};
-    renderGlobalTimerBar();
-    renderDetailContent();
-  }
-
-  function shareCookCompletionCommunity() {
-    closeCookCompletion();
-    setTimeout(() => {
-      const r = allRecipes[cookRecipeIndex !== undefined ? cookRecipeIndex : activeRecipeIndex];
-      if (r) { communityPostSelectedRecipe = r; openCommunityPostModal(); }
-    }, 300);
   }
 
   function renderCookStep() {
@@ -3905,28 +3651,6 @@
     });
   }
 
-  function openSettingsModal() {
-    getUserSettings(currentUser).then(res => {
-      userSettings = res.settings || {};
-      const ds = document.getElementById('settingDefaultSort');
-      if (ds) ds.value = userSettings.default_sort || 'newest';
-      const dsc = document.getElementById('settingDefaultScale');
-      if (dsc) dsc.value = userSettings.default_scale || '1';
-      const cs = document.getElementById('settingCardSize');
-      if (cs) cs.value = userSettings.card_size || 'normal';
-      // Theme
-      const th = document.getElementById('settingTheme');
-      if (th) th.value = userSettings.theme || localStorage.getItem('rc_theme') || 'dark';
-      setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
-      setToggle('toggleShowRating', userSettings.show_rating !== false);
-      setToggle('toggleAutoShop', userSettings.auto_shop_planner === true);
-      getUserAvatar(currentUser).then(url => {
-        const el = document.getElementById('settingsAvatarPreview');
-        if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
-      });
-      openModalAnimated('settingsModal'); checkDeletionStatus();
-    });
-  }
   function setToggle(id, on) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('on', on);
@@ -5900,37 +5624,401 @@
     list.innerHTML = html;
   }
 
-  // ═══ COOKING JOURNAL ══════════════════════════════════════════
-  let journalSectionOpen = false;
 
+
+
+
+
+
+  // ═══ PROFILE TABS ═════════════════════════════════════════
+  function switchProfileTab(tab) {
+    ['profile','friends'].forEach(t => {
+      const el = document.getElementById('profileTab_' + t);
+      const btn = document.getElementById('profileTabBtn_' + t);
+      if (el) el.style.display = t === tab ? 'block' : 'none';
+      if (btn) {
+        btn.style.borderBottomColor = t === tab ? 'var(--gold)' : 'transparent';
+        btn.style.color = t === tab ? 'var(--gold)' : 'var(--text-faint)';
+        btn.style.fontWeight = t === tab ? '700' : '600';
+      }
+    });
+    if (tab === 'friends') loadActivityFeed();
+  }
+
+  // ═══ ACTIVITY FEED ════════════════════════════════════════
+  async function loadActivityFeed() {
+    const el = document.getElementById('activityFeedList');
+    const friendsEl = document.getElementById('friendsListFull');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;"><div class="spinner" style="margin:0 auto 10px;"></div>Loading...</div>';
+    try {
+      const [feed, friendsRes] = await Promise.all([
+        getActivityFeed(currentUser),
+        getFriends(currentUser)
+      ]);
+      if (!feed || feed.length === 0) {
+        el.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--text-faint);font-size:0.85em;">Nothing yet — follow friends to see their activity here.</div>';
+      } else {
+        el.innerHTML = feed.map(item => {
+          const img = item.recipe_image
+            ? `<img src="${item.recipe_image}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;">`
+            : `<div style="width:44px;height:44px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0;">${item.action_type==='cooked'?'🍳':'🌍'}</div>`;
+          const verb = item.action_type === 'cooked' ? 'cooked' : 'shared to community';
+          const ago = formatMsgTime(item.created_at);
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">
+            ${img}
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.85em;"><strong style="cursor:pointer;" onclick="openPublicProfile('${escapeHtml(item.actor_username)}')">${escapeHtml(item.actor_username)}</strong> ${verb}</div>
+              <div style="font-size:0.82em;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.recipe_title||'')}</div>
+              <div style="font-size:0.7em;color:var(--text-faint);">${ago}</div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+      const following = friendsRes.following || [];
+      const mutuals = friendsRes.mutuals || [];
+      if (friendsEl) {
+        friendsEl.innerHTML = following.length === 0
+          ? '<div style="color:var(--text-faint);font-size:0.85em;">Not following anyone yet.</div>'
+          : following.map(u => {
+              const isMutual = mutuals.includes(u);
+              return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="openPublicProfile('${u}')">
+                <div style="width:36px;height:36px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;">${u.charAt(0).toUpperCase()}</div>
+                <div style="flex:1;"><div style="font-size:0.88em;font-weight:600;">${u}</div>${isMutual?'<div style="font-size:0.7em;color:var(--gold);">⭐ Friends</div>':''}</div>
+                <div style="color:var(--text-faint);font-size:0.8em;">›</div>
+              </div>`;
+            }).join('');
+      }
+    } catch(e) {
+      el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;padding:20px;">Could not load feed.</div>';
+    }
+  }
+
+  // ═══ PUBLIC USER PROFILES ═════════════════════════════════
+  async function openPublicProfile(username) {
+    document.getElementById('publicProfileUsername').textContent = '@' + username;
+    document.getElementById('publicProfileBody').innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div></div>';
+    openModalAnimated('publicProfileModal');
+    try {
+      const [profile, stats, friendsRes, colRes] = await Promise.all([
+        getUserProfile(username),
+        getProfileStats(username),
+        getFriends(currentUser),
+        getPublicCollections(username)
+      ]);
+      const following = friendsRes.following || [];
+      const isMe = username === currentUser;
+      const isFollowing = following.includes(username);
+      const av = profile?.avatar_url
+        ? `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : `<div style="font-size:2em;font-weight:700;color:var(--gold);">${username.charAt(0).toUpperCase()}</div>`;
+      const followBtn = !isMe ? (isFollowing
+        ? `<button onclick="unfollowUser('${currentUser}','${username}').then(()=>openPublicProfile('${username}'))" style="padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;">Following ✓</button>`
+        : `<button onclick="followUser('${currentUser}','${username}').then(()=>{sendFollowNotification('${currentUser}','${username}');openPublicProfile('${username}');})" style="padding:8px 20px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;">+ Follow</button>`) : '';
+      const msgBtn = !isMe
+        ? `<button onclick="closeModalAnimated('publicProfileModal');setTimeout(()=>openMessaging('${username}'),300);" style="padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;">💬 Message</button>` : '';
+      const cols = colRes.collections || [];
+      const colHtml = cols.map(c =>
+        `<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;cursor:pointer;" onclick="viewPublicCollection('${c.id}','${escapeHtml(c.name)}','${username}')">
+          <div style="font-weight:700;font-size:0.88em;">📁 ${escapeHtml(c.name)}</div>
+          ${c.description?`<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">${escapeHtml(c.description)}</div>`:''}
+          <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;">${c.recipeIds.length} recipe${c.recipeIds.length!==1?'s':''}</div>
+        </div>`).join('');
+      document.getElementById('publicProfileBody').innerHTML = `
+        <div style="text-align:center;padding:20px 16px 12px;">
+          <div style="width:80px;height:80px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;">${av}</div>
+          <div style="font-size:1.1em;font-weight:800;margin-bottom:4px;">@${escapeHtml(username)}</div>
+          ${profile?.bio?`<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">${escapeHtml(profile.bio)}</div>`:''}
+          <div style="display:flex;justify-content:center;gap:24px;margin-bottom:14px;">
+            <div><div style="font-size:1.2em;font-weight:800;">${stats.recipeCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Recipes</div></div>
+            <div><div style="font-size:1.2em;font-weight:800;">${stats.followerCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>
+            <div><div style="font-size:1.2em;font-weight:800;">${stats.followingCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;">${followBtn}${msgBtn}</div>
+        </div>
+        ${cols.length?`<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>${colHtml}</div>`:''}
+        <div style="padding:0 16px 20px;margin-top:10px;">
+          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div>
+          <div id="publicProfilePosts">Loading...</div>
+        </div>`;
+      const allPosts = await getCommunityPosts(null,'newest',20,0);
+      const userPosts = allPosts.filter(p => (p.users?.username||'') === username);
+      const postsEl = document.getElementById('publicProfilePosts');
+      if (postsEl) postsEl.innerHTML = userPosts.length === 0 ? '<span style="color:var(--text-faint);font-size:0.85em;">No community posts yet.</span>'
+        : userPosts.map(p => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="openCommunityDetail('${p.id}','recipe')">
+            ${p.image_url?`<img src="${p.image_url}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>`}
+            <div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.title)}</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ${p.upvotes||0}</div></div>
+          </div>`).join('');
+    } catch(e) {
+      document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
+    }
+  }
+
+  async function viewPublicCollection(colId, colName, ownerUsername) {
+    const res = await getFriendCollectionRecipes(colId);
+    const recipes = res.recipes || [];
+    const sheet = document.createElement('div');
+    sheet.id = 'pubColSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 60px;max-height:85vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.id = 'pubColOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    sheet.innerHTML = `<div style="font-weight:800;font-size:1em;margin-bottom:14px;">📁 ${escapeHtml(colName)}</div>` +
+      (recipes.length === 0 ? '<div style="color:var(--text-faint);font-size:0.85em;">No recipes in this collection.</div>' :
+        recipes.map(r => `<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;">
+          ${r.image_url?`<img src="${r.image_url}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;">` : `<div style="width:44px;height:44px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;">${r.title.charAt(0)}</div>`}
+          <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.title)}</div><div style="font-size:0.72em;color:var(--text-faint);">${r.category||''}</div></div>
+          <button onclick="addRecipeFromColSheet('${r.id}','${escapeHtml(r.title)}')" style="padding:6px 12px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">+ Add</button>
+        </div>`).join('')) +
+      `<button onclick="document.getElementById('pubColSheet').remove();document.getElementById('pubColOverlay').remove();" style="width:100%;padding:12px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:8px;">Close</button>`;
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function addRecipeFromColSheet(recipeId, title) {
+    const res = await addRecipeFromPublicLink(recipeId, currentUser);
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = res.status === 'Success' ? '✅ Added to your cookbook!' : '❌ ' + res.message;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    if (res.status === 'Success') init();
+  }
+
+  // ═══ TAGS ════════════════════════════════════════════════
+  let activeTagFilter = '';
+  let cookTimeFilter = 0;
+
+  function renderTagsOnDetail(r) {
+    const el = document.getElementById('detailTagsRow');
+    if (!el) return;
+    if (!r.tags || !r.tags.trim()) { el.style.display = 'none'; return; }
+    const tags = r.tags.split(/\s+/).filter(t => t.startsWith('#') && t.length > 1);
+    if (tags.length === 0) { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
+    el.innerHTML = tags.map(t =>
+      `<span onclick="filterByTag('${escapeHtml(t)}')" style="padding:3px 10px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-size:0.72em;font-weight:600;cursor:pointer;">${escapeHtml(t)}</span>`
+    ).join('');
+  }
+
+  function filterByTag(tag) {
+    activeTagFilter = tag;
+    closeDetailsAnimated();
+    setTimeout(() => {
+      switchTab('recipes');
+      renderRecipes();
+      let ind = document.getElementById('tagFilterIndicator');
+      if (!ind) {
+        ind = document.createElement('div');
+        ind.id = 'tagFilterIndicator';
+        ind.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:0.78em;color:var(--gold);font-weight:600;';
+        ind.innerHTML = `<span></span><button onclick="clearTagFilter()" style="background:none;border:none;color:var(--text-faint);font-size:0.9em;cursor:pointer;">✕</button>`;
+        const ctRow = document.getElementById('cookTimeFilterRow');
+        if (ctRow) ctRow.after(ind);
+      }
+      ind.style.display = 'flex';
+      ind.querySelector('span').textContent = 'Filtering by ' + tag;
+    }, 300);
+  }
+
+  function clearTagFilter() {
+    activeTagFilter = '';
+    const ind = document.getElementById('tagFilterIndicator');
+    if (ind) ind.style.display = 'none';
+    renderRecipes();
+  }
+
+  function setCookTimeFilter(mins) {
+    cookTimeFilter = mins;
+    document.querySelectorAll('.cooktime-filter-chip').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.mins) === mins);
+    });
+    renderRecipes();
+  }
+
+  function parseCookMinutes(cookTime) {
+    if (!cookTime) return Infinity;
+    const h = cookTime.match(/(\d+)\s*(h|hr|hour)/i);
+    const m = cookTime.match(/(\d+)\s*(m|min|minute)/i);
+    let total = 0;
+    if (h) total += parseInt(h[1]) * 60;
+    if (m) total += parseInt(m[1]);
+    return total || Infinity;
+  }
+
+  // Tag + cook time filter wired into the existing renderRecipes via override
+  // We patch the filter function only (renderRecipes itself is already defined)
+  const _buildRecipeFilter = () => {
+    const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+    return r => {
+      const catMatch = activeCategories.has('All') || activeCategories.has(r.category);
+      const favMatch = !showFavsOnly || r.favourite;
+      const searchMatch = !q || r.title.toLowerCase().includes(q) || r.category.toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q);
+      const timeMatch = !cookTimeFilter || parseCookMinutes(r.cookTime) <= cookTimeFilter;
+      const tagMatch = !activeTagFilter || (r.tags||'').toLowerCase().includes(activeTagFilter.toLowerCase());
+      return catMatch && favMatch && searchMatch && timeMatch && tagMatch;
+    };
+  };
+
+  // ═══ SORT ADDITIONS ═══════════════════════════════════════
+  const _origSortRecipes = sortRecipes;
+  function sortRecipes(arr) {
+    const copy = [...arr];
+    if (currentSort === 'cooked') return copy.sort((a,b) => {
+      const at = a.lastCooked ? new Date(a.lastCooked).getTime() : 0;
+      const bt = b.lastCooked ? new Date(b.lastCooked).getTime() : 0;
+      return bt - at;
+    });
+    if (currentSort === 'cooktime') return copy.sort((a,b) => parseCookMinutes(a.cookTime) - parseCookMinutes(b.cookTime));
+    return _origSortRecipes(arr);
+  }
+
+  // ═══ BULK PASTE IMPORT ════════════════════════════════════
+  async function parsePastedRecipe() {
+    const text = document.getElementById('pasteInput')?.value.trim();
+    if (!text) return;
+    const btn = document.getElementById('parsePasteBtn');
+    const result = document.getElementById('pasteResult');
+    btn.textContent = 'Parsing...'; btn.disabled = true;
+    result.style.display = 'none';
+    try {
+      const prompt = `Parse this text into a recipe. Extract: title, category (Breakfast/Lunch/Dinner/Snack/Sides/Drink/Dessert/General), ingredients (one per line), instructions (one step per line), cookTime, prepTime, servings, notes. Reply ONLY with JSON:
+{"title":"...","category":"...","ingredients":"...","instructions":"...","cookTime":"...","prepTime":"...","servings":"...","notes":""}
+
+Text:
+${text}`;
+      const res = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt, maxTokens: 800 }) });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'AI error');
+      const recipe = JSON.parse((data.text||'').replace(/```json|```/g,'').trim());
+      const addRes = await addRecipe(currentUser, recipe);
+      result.style.display = 'block';
+      result.className = addRes.status === 'Success' ? 'ai-result success' : 'ai-result error';
+      result.innerHTML = addRes.status === 'Success' ? '✅ ' + addRes.message : '❌ ' + addRes.message;
+      if (addRes.status === 'Success') { document.getElementById('pasteInput').value = ''; init(); }
+    } catch(e) {
+      result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Parse failed: ' + e.message;
+    }
+    btn.textContent = '✨ Parse with AI'; btn.disabled = false;
+  }
+
+  // ═══ PASTE TAB ROUTING ════════════════════════════════════
+  const _origSwitchSyncTab = switchSyncTab;
+  function switchSyncTab(tab) {
+    if (tab === 'paste') {
+      document.getElementById('addModeSelect').style.display = 'none';
+      ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
+      const tp = document.getElementById('tabPaste'); if (tp) tp.style.display = 'block';
+    } else { _origSwitchSyncTab(tab); }
+  }
+
+  // ═══ OFFLINE CACHE ════════════════════════════════════════
+  const OFFLINE_CACHE_KEY = () => 'rc_offline_' + currentUser;
+  function cacheRecipeViewed(recipe) {
+    if (!recipe || !currentUser) return;
+    try {
+      const key = OFFLINE_CACHE_KEY();
+      let cache = JSON.parse(localStorage.getItem(key) || '[]');
+      cache = cache.filter(r => r.id !== recipe.id);
+      cache.unshift(recipe);
+      if (cache.length > 20) cache = cache.slice(0, 20);
+      localStorage.setItem(key, JSON.stringify(cache));
+    } catch(e) {}
+  }
+  function getCachedRecipes() {
+    try { return JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY()) || '[]'); } catch(e) { return []; }
+  }
+  function checkOfflineMode() {
+    if (!navigator.onLine) {
+      const banner = document.getElementById('broadcastBanner');
+      if (banner) { banner.classList.add('visible'); banner.innerHTML = '<div class="broadcast-banner-text">📶 You\'re offline — showing your last 20 viewed recipes. Some features unavailable.</div>'; }
+      const cached = getCachedRecipes();
+      if (cached.length > 0) { allRecipes = cached; renderRecipes(); renderCategories(); }
+      return true;
+    }
+    return false;
+  }
+  window.addEventListener('online', () => {
+    const b = document.getElementById('broadcastBanner');
+    if (b && b.innerHTML.includes('offline')) b.classList.remove('visible');
+    init();
+  });
+  window.addEventListener('offline', () => checkOfflineMode());
+
+  // ═══ COOK COMPLETION FUNCTIONS ════════════════════════════
+  function openCookCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) { closeCookMode(); return; }
+    document.getElementById('cookMode').classList.remove('active');
+    document.getElementById('cookCompletionScreen').style.display = 'flex';
+    document.getElementById('cookCompletionTitle').textContent = r.title;
+    document.getElementById('cookCompletionLastCooked').textContent = '';
+    document.getElementById('cookJournalInput').value = '';
+    document.getElementById('cookJournalStatus').textContent = '';
+    _releaseWakeLock();
+    clearInterval(cookTimerInterval); cookTimerInterval = null;
+  }
+  async function markCookedFromCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) return;
+    const res = await markRecipeCooked(r.id, currentUser);
+    if (res.status === 'Success') {
+      r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
+      document.getElementById('cookCompletionLastCooked').textContent = 'Marked as cooked ✅';
+    }
+  }
+  async function saveJournalFromCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    const text = document.getElementById('cookJournalInput')?.value.trim();
+    if (!r || !text) return;
+    await addJournalEntry(r.id, currentUser, text);
+    document.getElementById('cookJournalInput').value = '';
+    document.getElementById('cookJournalStatus').textContent = 'Saved ✅';
+  }
+  function closeCookCompletion() {
+    document.getElementById('cookCompletionScreen').style.display = 'none';
+    cookTimers = {}; renderGlobalTimerBar(); renderDetailContent();
+  }
+  function shareCookCompletionCommunity() {
+    closeCookCompletion();
+    setTimeout(() => { const r = allRecipes[cookRecipeIndex]; if (r) { communityPostSelectedRecipe = r; openCommunityPostModal(); } }, 300);
+  }
+  async function markCookedFromDetail() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    const btn = document.getElementById('markCookedBtn');
+    if (btn) { btn.querySelector('.detail-action-b-label').textContent = 'Marking...'; }
+    const res = await markRecipeCooked(r.id, currentUser);
+    if (res.status === 'Success') { r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1; renderDetailContent(); }
+  }
+
+  // ═══ JOURNAL UI ═══════════════════════════════════════════
+  let journalSectionOpen = false;
   function toggleJournalSection() {
     journalSectionOpen = !journalSectionOpen;
     document.getElementById('journalBody').style.display = journalSectionOpen ? 'block' : 'none';
     document.getElementById('journalChevron').textContent = journalSectionOpen ? '▲' : '▼';
     if (journalSectionOpen) loadJournalEntries();
   }
-
   async function loadJournalEntries() {
     const r = allRecipes[activeRecipeIndex];
     if (!r) return;
     const el = document.getElementById('journalEntries');
     el.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Loading...</div>';
     const entries = await getJournalEntries(r.id, currentUser);
-    if (entries.length === 0) {
-      el.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em);padding:4px 0;">No entries yet. Add your first note!</div>';
-      return;
-    }
+    if (entries.length === 0) { el.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;padding:4px 0;">No entries yet.</div>'; return; }
     el.innerHTML = entries.map(e => `
-      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative;" data-journal-id="${e.id}">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;" data-journal-id="${e.id}">
         <div style="font-size:0.7em;color:var(--text-faint);margin-bottom:4px;">${new Date(e.created_at).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'})}</div>
         <div class="journal-entry-text" style="font-size:0.85em;line-height:1.6;white-space:pre-wrap;">${escapeHtml(e.content)}</div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="display:flex;gap:8px;margin-top:6px;">
           <button onclick="editJournalEntry('${e.id}',this)" style="background:none;border:none;color:var(--text-faint);font-size:0.72em;cursor:pointer;padding:0;">✏️ Edit</button>
           <button onclick="deleteJournalEntryUI('${e.id}')" style="background:none;border:none;color:var(--red);font-size:0.72em;cursor:pointer;padding:0;">✕ Delete</button>
         </div>
       </div>`).join('');
   }
-
   async function saveNewJournalEntry() {
     const r = allRecipes[activeRecipeIndex];
     const text = document.getElementById('journalNewEntry')?.value.trim();
@@ -5939,13 +6027,12 @@
     document.getElementById('journalNewEntry').value = '';
     loadJournalEntries();
   }
-
   function editJournalEntry(entryId, btn) {
     const row = btn.closest('[data-journal-id]');
     if (!row) return;
     const textEl = row.querySelector('.journal-entry-text');
-    const current = textEl.textContent;
-    textEl.innerHTML = `<textarea style="width:100%;min-height:60px;background:var(--glass);border:1px solid var(--gold);border-radius:6px;color:var(--text);padding:8px;font-size:0.85em;font-family:inherit;resize:none;box-sizing:border-box;">${escapeHtml(current)}</textarea>`;
+    const cur = textEl.textContent;
+    textEl.innerHTML = `<textarea style="width:100%;min-height:60px;background:var(--glass);border:1px solid var(--gold);border-radius:6px;color:var(--text);padding:8px;font-size:0.85em;font-family:inherit;resize:none;box-sizing:border-box;">${escapeHtml(cur)}</textarea>`;
     btn.textContent = '💾 Save';
     btn.onclick = async () => {
       const newText = textEl.querySelector('textarea').value.trim();
@@ -5954,76 +6041,40 @@
       loadJournalEntries();
     };
   }
-
   async function deleteJournalEntryUI(entryId) {
     if (!confirm('Delete this journal entry?')) return;
     await deleteJournalEntry(entryId);
     loadJournalEntries();
   }
 
-  // ═══ LAST COOKED — detail view button ═════════════════════════
-  async function markCookedFromDetail() {
-    const r = allRecipes[activeRecipeIndex];
-    if (!r) return;
-    const btn = document.getElementById('markCookedBtn');
-    if (btn) { btn.textContent = 'Marking...'; btn.disabled = true; }
-    const res = await markRecipeCooked(r.id, currentUser);
-    if (res.status === 'Success') {
-      r.lastCooked = res.cookedAt;
-      r.cookCount = (r.cookCount || 0) + 1;
-      renderDetailContent();
-    }
-    if (btn) { btn.textContent = '✅ Marked!'; btn.disabled = false; }
-  }
-
-  // ═══ ACCOUNT DELETION ═════════════════════════════════════════
+  // ═══ ACCOUNT DELETION ═════════════════════════════════════
   let _deletionCountdownTimer = null;
-
   async function checkDeletionStatus() {
     const req = await getDeletionRequest(currentUser).catch(() => null);
     const wrap = document.getElementById('deletionStatusWrap');
     const btn = document.getElementById('requestDeletionBtn');
     if (!wrap || !btn) return;
     if (req && !req.cancelled) {
-      wrap.style.display = 'block';
-      btn.style.display = 'none';
-      // Start countdown
+      wrap.style.display = 'block'; btn.style.display = 'none';
       clearInterval(_deletionCountdownTimer);
-      _deletionCountdownTimer = setInterval(() => {
+      const tick = () => {
         const ms = new Date(req.delete_after) - Date.now();
-        if (ms <= 0) {
-          document.getElementById('deletionCountdown').textContent = '0h 0m';
-          clearInterval(_deletionCountdownTimer);
-          return;
-        }
-        const h = Math.floor(ms / 3600000);
-        const m = Math.floor((ms % 3600000) / 60000);
-        document.getElementById('deletionCountdown').textContent = h + 'h ' + m + 'm';
-      }, 5000);
-      // Trigger immediately
-      const ms = new Date(req.delete_after) - Date.now();
-      const h = Math.floor(ms / 3600000);
-      const m = Math.floor((ms % 3600000) / 60000);
-      const cd = document.getElementById('deletionCountdown');
-      if (cd) cd.textContent = h + 'h ' + m + 'm';
-    } else {
-      wrap.style.display = 'none';
-      btn.style.display = 'block';
-    }
+        const h = Math.max(0,Math.floor(ms/3600000));
+        const m = Math.max(0,Math.floor((ms%3600000)/60000));
+        const cd = document.getElementById('deletionCountdown');
+        if (cd) cd.textContent = h + 'h ' + m + 'm';
+      };
+      tick();
+      _deletionCountdownTimer = setInterval(tick, 30000);
+    } else { wrap.style.display = 'none'; btn.style.display = 'block'; }
   }
-
   async function requestDeletionFromSettings() {
-    if (!confirm('Request account deletion? You will have 12 hours to cancel. The admin will be notified.')) return;
+    if (!confirm('Request account deletion? You have 12 hours to cancel.')) return;
     const res = await requestAccountDeletion(currentUser);
-    if (res.status === 'Success') {
-      await checkDeletionStatus();
-      const btn = document.getElementById('requestDeletionBtn');
-      if (btn) btn.style.display = 'none';
-    }
+    if (res.status === 'Success') checkDeletionStatus();
   }
-
   async function cancelDeletionFromSettings() {
-    if (!confirm('Cancel your deletion request? Your account will remain active.')) return;
+    if (!confirm('Cancel your deletion request?')) return;
     await cancelDeletionRequest(currentUser);
     clearInterval(_deletionCountdownTimer);
     const wrap = document.getElementById('deletionStatusWrap');
@@ -6031,6 +6082,89 @@
     if (wrap) wrap.style.display = 'none';
     if (btn) btn.style.display = 'block';
   }
+
+  // ═══ FOLLOW REQUESTS + NOTIF UI ═══════════════════════════
+  async function renderProfileNotifications() {
+    const el = document.getElementById('profileNotifList');
+    const section = document.getElementById('profileNotifSection');
+    if (!el || !section) return;
+    const [notifs, followReqs] = await Promise.all([
+      getNotifications(currentUser),
+      getPendingFollowRequests(currentUser)
+    ]);
+    let html = '';
+    (followReqs||[]).forEach(req => {
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">
+        <div style="flex:1;font-size:0.85em;"><strong>${escapeHtml(req.requester_username)}</strong> wants to follow you</div>
+        <button onclick="respondFollowRequest('${req.requester_username}','${currentUser}',true);this.closest('div[style]').remove();" style="padding:5px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;">✓</button>
+        <button onclick="respondFollowRequest('${req.requester_username}','${currentUser}',false);this.closest('div[style]').remove();" style="padding:5px 10px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.78em;cursor:pointer;font-family:inherit;">✕</button>
+      </div>`;
+    });
+    (notifs.notifications||[]).forEach(n => {
+      let text = n.type==='follow'?`<strong>${escapeHtml(n.fromUser)}</strong> started following you`
+        : n.type==='follow_back'?`<strong>${escapeHtml(n.fromUser)}</strong> followed you back`
+        : n.type==='friend_rating'?`<strong>${escapeHtml(n.fromUser)}</strong> rated your recipe`
+        : n.type==='deletion_request'?`🗑 <strong>${n.meta?.username||n.fromUser}</strong> requested account deletion`
+        : `<strong>${escapeHtml(n.fromUser||'')}</strong> ${n.type}`;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">
+        <div style="flex:1;font-size:0.85em;">${text}</div>
+        ${n.type==='deletion_request'&&currentUser==='rollert2'
+          ? `<button onclick="adminDeleteUser('${n.meta?.username||n.fromUser}','');dismissNotification('${n.notifId}');" style="padding:5px 10px;border-radius:10px;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">Delete</button>`
+          : `<button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;">✕</button>`}
+      </div>`;
+    });
+    if (html) { section.style.display = 'block'; el.innerHTML = html; }
+    else section.style.display = 'none';
+  }
+
+
+  // Wire journal reset + tags render into renderDetailContent
+  const _origRenderDetailContent = renderDetailContent;
+  function renderDetailContent() {
+    _origRenderDetailContent();
+    const r = allRecipes[activeRecipeIndex];
+    if (r) {
+      renderTagsOnDetail(r);
+      // Reset journal state
+      journalSectionOpen = false;
+      const jb = document.getElementById('journalBody'); if (jb) jb.style.display = 'none';
+      const jc = document.getElementById('journalChevron'); if (jc) jc.textContent = '▼';
+    }
+  }
+
+  // Wire cacheRecipeViewed into openDetails
+  const _origOpenDetails = openDetails;
+  function openDetails(idx) {
+    _origOpenDetails(idx);
+    try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
+  }
+
+  // Wire checkDeletionStatus into settings open
+  const _origOpenSettingsModal = openSettingsModal;
+  function openSettingsModal() {
+    _origOpenSettingsModal();
+    checkDeletionStatus();
+  }
+
+  // Wire tags into openDetails edit mode
+  const _origEnterEditMode = enterEditMode;
+  function enterEditMode() {
+    _origEnterEditMode();
+    const r = allRecipes[activeRecipeIndex];
+    const tagsEl = document.getElementById('editTags');
+    if (r && tagsEl) tagsEl.value = r.tags || '';
+  }
+
+  // Show/hide cookTimeFilterRow with tab
+  // Wire cookTimeFilterRow show/hide on tab switch
+  document.addEventListener('DOMContentLoaded', () => {
+    const origST = window.switchTab;
+    window.switchTab = function(tab) {
+      origST && origST(tab);
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = tab === 'recipes' ? 'flex' : 'none';
+    };
+  });
 
 
 </script>
