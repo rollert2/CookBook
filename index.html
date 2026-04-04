@@ -766,6 +766,8 @@
       <div style="display:flex;gap:8px;">
         <button id="plannerViewToggle" onclick="togglePlannerView()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📆 Calendar</button>
         <button onclick="openMealPrepPanel()" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🥡 Meal Prep</button>
+        <button onclick="openLeftoversPanel()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🫙 Leftovers</button>
+        <button onclick="openPlannerTemplates()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📋 Templates</button>
         <button onclick="shufflePlanner()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:20px;font-size:0.78em;cursor:pointer;font-family:inherit;" title="Shuffle week">🔀</button>
       </div>
     </div>
@@ -783,6 +785,7 @@
       <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">Week Summary</div>
       <div id="plannerSummary"></div>
       <button onclick="addPlannerShopAll()" style="width:100%;margin-top:12px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.88em;cursor:pointer;font-family:inherit;">🛒 Add All to Shopping List</button>
+      <button onclick="exportMealPlanText()" style="width:100%;margin-top:8px;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📤 Export Meal Plan</button>
     </div>
   </div>
 
@@ -856,7 +859,10 @@
   <div class="panel-overlay" id="shopOverlay" onclick="closeShopPanel()"></div>
   <div class="slide-panel" id="shopPanel" style="max-height:85vh;">
     <div class="panel-handle"></div>
-    <h3 style="margin:0 0 14px;font-size:1em;">🛒 Shopping List</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 style="margin:0;font-size:1em;">🛒 Shopping List</h3>
+      <button onclick="openSharedListsPanel()" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">👥 Shared Lists</button>
+    </div>
     <div class="shop-add-row">
       <input type="text" id="shopInput" placeholder="Add item..." onkeydown="if(event.key==='Enter') addShopItem()">
       <button class="shop-add-btn" onclick="addShopItem()">+</button>
@@ -1196,7 +1202,9 @@
         <input type="text" id="manualCategoryCustom" class="edit-field" placeholder="Type custom category..." style="display:none;margin-top:6px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div><label class="edit-label">Cook Time</label><input type="text" id="manualCookTime" class="edit-field" placeholder="30 min"></div>
+          <div><label class="edit-label">Prep Time</label><input type="text" id="manualPrepTime" class="edit-field" placeholder="15 min"></div>
           <div><label class="edit-label">Servings</label><input type="text" id="manualServings" class="edit-field" placeholder="4 servings"></div>
+          <div><label class="edit-label">Tags</label><input type="text" id="manualTags" class="edit-field" placeholder="#keto #quick"></div>
         </div>
         <label class="edit-label">Ingredients * <span style="font-weight:400;color:var(--text-faint);">one per line</span></label>
         <textarea id="manualIngredients" class="edit-field" rows="5" placeholder="2 cups flour&#10;1 tsp salt&#10;..."></textarea>
@@ -1276,6 +1284,7 @@
       <div id="cookJournalStatus" style="font-size:0.78em;color:rgba(201,168,76,0.8);min-height:16px;"></div>
       <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:rgba(201,168,76,0.9);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
       <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
+      <button onclick="addLeftoverFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🥡 Log as Leftovers</button>
       <button onclick="closeCookCompletion()" style="padding:12px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);font-size:0.85em;cursor:pointer;font-family:inherit;">Done</button>
     </div>
   </div>
@@ -1390,6 +1399,21 @@
           </div>
         </div>
         <div id="avatarUploadStatus" style="margin-top:8px;font-size:0.82em;"></div>
+      </div>
+    </div>
+    <div style="height:30px;"></div>
+    <div class="settings-section">
+      <div class="settings-section-title">Profile</div>
+      <div style="margin-bottom:10px;">
+        <label class="edit-label">Bio</label>
+        <textarea id="settingBio" class="edit-field" rows="3" placeholder="Tell people a bit about yourself..." style="resize:none;" oninput="clearTimeout(window._bioTimer);window._bioTimer=setTimeout(saveBio,1200);"></textarea>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Private Account</div>
+          <div class="settings-row-sub">Require approval before people can follow you</div>
+        </div>
+        <button class="settings-toggle" id="togglePrivateAccount" onclick="togglePrivateAccount()"></button>
       </div>
     </div>
     <div style="height:30px;"></div>
@@ -1864,7 +1888,7 @@
     initScrollHideHeader();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
-    init().then(() => { checkAddRecipeParam(); startNotifPolling(); });
+    init().then(() => { checkAddRecipeParam(); startNotifPolling(); initShakeGesture(); checkDeletionBanner(); });
   }
 
   function adjustHeaderPadding() {
@@ -2699,7 +2723,7 @@
   function renderCollectionsList() {
     const list = document.getElementById('collectionsList');
     if (userCollections.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.9em;">No collections yet. Create one above.</div>'; return; }
-    list.innerHTML = userCollections.map(col => '<div class="collection-item" onclick="filterByCollection(\'' + col.id + '\')"><div class="collection-icon">📁</div><div class="collection-name">'+col.name+'</div><div class="collection-count">'+col.recipeIds.length+' recipes</div><button class="collection-delete" onclick="event.stopPropagation();deleteCollectionItem(\'' + col.id + '\')">✕</button></div>').join('');
+    list.innerHTML = userCollections.map(col => { const esc = s => (s||'').replace(/"/g,'&quot;'); return '<div class="collection-item" onclick="filterByCollection(\'' + col.id + '\')"><div class="collection-icon">📁</div><div class="collection-name">'+col.name+'</div><div class="collection-count">'+col.recipeIds.length+' recipes'+(col.isPublic?' 🌍':'')+'</div><button style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;padding:4px;" onclick="event.stopPropagation();openCollectionEditor(\'' + col.id + '\',\'' + esc(col.name) + '\',\'' + esc(col.description||'') + '\',' + (!!col.isPublic) + ')">✏️</button><button class="collection-delete" onclick="event.stopPropagation();deleteCollectionItem(\'' + col.id + '\')">✕</button></div>'; }).join('');
   }
   function createNewCollection() {
     const input = document.getElementById('newCollectionInput'); const name = input.value.trim(); if (!name) return;
@@ -2893,7 +2917,7 @@
     const steps = (r.instructions || '').split('\n').filter(Boolean).map((s,i) => '<div class="step-item"><div class="step-num">'+(i+1)+'</div><div class="step-content">'+s+'</div></div>').join('');
     document.getElementById('friendRecipeModalBody').innerHTML =
       (hasImg ? '<div class="detail-hero"><img src="' + r.image + '"></div>' : '') +
-      '<div class="detail-meta-row"><span class="detail-category">' + r.category + '</span>' + (r.prepTime ? '<span class="detail-time">🥄 Prep: ' + r.prepTime + '</span>' : '') + (r.cookTime ? '<span class="detail-time">⏱ Cook: ' + r.cookTime + '</span>' : '') + (r.lastCooked ? '<span style="font-size:0.72em;color:var(--text-faint);margin-left:4px;">Last cooked: ' + new Date(r.lastCooked).toLocaleDateString() + '</span>' : '') + '</div>' +
+      '<div class="detail-meta-row"><span class="detail-category">' + r.category + '</span>' + (r.prepTime ? '<span class="detail-time">🥄 Prep: ' + r.prepTime + '</span>' : '') + (r.cookTime ? '<span class="detail-time">⏱ Cook: ' + r.cookTime + '</span>' : '') + (r.lastCooked ? '<span style="font-size:0.72em;color:var(--text-faint);margin-left:4px;">Last cooked: ' + new Date(r.lastCooked).toLocaleDateString() + '</span>' : '') + '</div>' + (r.sourceUrl ? '<div style="padding:4px 18px 0;"><a href="' + r.sourceUrl + '" target="_blank" rel="noopener" style="font-size:0.72em;color:var(--gold);text-decoration:none;">🔗 View original source</a></div>' : '') +
       '<div class="detail-title">' + r.title + '</div>' +
       '<div style="padding:12px 18px 0;">' +
         (alreadyHave
@@ -2920,25 +2944,6 @@
 
   // ═══ MEAL PLANNER ═══
   // ═══ SEASONAL CARD ═══
-  function renderSeasonalCard() {
-    const now = new Date(); const month = now.getMonth()+1; const day = now.getDate();
-    const seasons = [
-      {start:[12,1],end:[12,31],emoji:'🎄',title:'Christmas Recipes',desc:'Festive holiday dishes, cookies, and treats.',terms:['Christmas cookies','Christmas dinner','holiday roast','eggnog']},
-      {start:[11,20],end:[11,30],emoji:'🦃',title:'Thanksgiving Recipes',desc:'Classic Thanksgiving mains, sides, and pies.',terms:['Thanksgiving turkey','stuffing','pumpkin pie','cranberry sauce']},
-      {start:[10,1],end:[10,31],emoji:'🎃',title:'Halloween Treats',desc:'Spooky and fun Halloween food ideas.',terms:['Halloween cookies','pumpkin recipes','spooky treats']},
-      {start:[6,15],end:[9,15],emoji:'🔥',title:'BBQ Season',desc:'Grilling favourites for the summer.',terms:['BBQ ribs','grilled chicken','burger recipes','coleslaw']},
-      {start:[3,1],end:[4,30],emoji:'🌸',title:'Spring Cooking',desc:'Fresh spring ingredients and lighter meals.',terms:['spring salad','asparagus recipes','strawberry desserts']},
-      {start:[1,1],end:[1,31],emoji:'🥂',title:"New Year's Recipes",desc:'Party snacks and celebration dishes.',terms:["New Year's appetizers",'party food','champagne cocktails']},
-      {start:[2,10],end:[2,14],emoji:'❤️',title:"Valentine's Day",desc:"Romantic dinners and sweet treats.",terms:["Valentine's dinner",'chocolate desserts','romantic recipes']},
-    ];
-    const inRange = (s,e) => { const n = month*100+day; const st = s[0]*100+s[1]; const en = e[0]*100+e[1]; return st<=en ? n>=st&&n<=en : n>=st||n<=en; };
-    const active = seasons.find(s => inRange(s.start,s.end));
-    const card = document.getElementById('seasonalCard');
-    if (!active) { card.style.display = 'none'; return; }
-    card.style.display = 'block';
-    card.innerHTML = '<div class="seasonal-title">' + active.emoji + ' ' + active.title + '</div><div class="seasonal-desc">' + active.desc + '</div><div class="seasonal-chips">' + active.terms.map(t => '<div class="seasonal-chip" onclick="discoverSearch(\'' + t + '\')">' + t + '</div>').join('') + '</div>';
-  }
-
   function discoverSearch(term) { document.getElementById('discoverInput').value = term; switchTab('discover'); runDiscoverSearch(); }
 
   // ═══ DISCOVER ═══
@@ -3154,13 +3159,13 @@
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
   function performManualAdd() {
-    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : '';
+    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : ''; const tags = document.getElementById('manualTags') ? document.getElementById('manualTags').value.trim() : '';
     const el = document.getElementById('manualResult'); const btn = document.getElementById('manualSaveBtn');
     if (!title) { alert('Please enter a recipe title.'); return; } if (!ingredients) { alert('Please enter at least one ingredient.'); return; } if (!instructions) { alert('Please enter at least one instruction step.'); return; }
     btn.disabled = true; btn.innerHTML = 'Saving...';
-    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,servings}).then(res => {
+    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
-      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+title+' added!'; ['manualTitle','manualCategory','manualCookTime','manualServings','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); init(); }
+      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+title+' added!'; ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); init(); }
       else { el.className='ai-result error'; el.innerHTML='❌ '+res.message; }
     });
   }
@@ -5824,7 +5829,6 @@
       if (dsc) dsc.value = userSettings.default_scale || '1';
       const cs = document.getElementById('settingCardSize');
       if (cs) cs.value = userSettings.card_size || 'normal';
-      // Theme
       const th = document.getElementById('settingTheme');
       if (th) th.value = userSettings.theme || localStorage.getItem('rc_theme') || 'dark';
       setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
@@ -5833,6 +5837,12 @@
       getUserAvatar(currentUser).then(url => {
         const el = document.getElementById('settingsAvatarPreview');
         if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
+      });
+      // Load bio + private toggle
+      getUserProfile(currentUser).then(profile => {
+        const bioEl = document.getElementById('settingBio');
+        if (bioEl && profile) bioEl.value = profile.bio || '';
+        setToggle('togglePrivateAccount', profile?.is_private === true);
       });
       openModalAnimated('settingsModal');
     });
@@ -6345,6 +6355,558 @@ ${text}`;
       if (ctRow) ctRow.style.display = tab === 'recipes' ? 'flex' : 'none';
     };
   });
+
+
+
+  // ═══ BIO + PRIVATE ACCOUNT ════════════════════════════════
+  async function saveBio() {
+    const text = document.getElementById('settingBio')?.value || '';
+    await updateUserProfile(currentUser, { bio: text }).catch(() => {});
+  }
+
+  async function togglePrivateAccount() {
+    const btn = document.getElementById('togglePrivateAccount');
+    const isOn = btn && btn.classList.contains('on');
+    const newVal = !isOn;
+    setToggle('togglePrivateAccount', newVal);
+    await updateUserProfile(currentUser, { is_private: newVal }).catch(() => {});
+  }
+
+  // ═══ COLLECTIONS — description + cover ════════════════════
+  function openCollectionEditor(colId, colName, colDesc, colPublic) {
+    const sheet = document.createElement('div');
+    sheet.id = 'colEditorSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    sheet.innerHTML = `
+      <div style="font-weight:800;font-size:1em;margin-bottom:14px;">✏️ Edit Collection</div>
+      <label class="edit-label">Name</label>
+      <input id="colEditorName" class="edit-field" value="${escapeHtml(colName)}" style="margin-bottom:10px;">
+      <label class="edit-label">Description</label>
+      <textarea id="colEditorDesc" class="edit-field" rows="2" style="resize:none;margin-bottom:10px;">${escapeHtml(colDesc||'')}</textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-size:0.85em;font-weight:600;">Public collection</span>
+        <button id="colEditorPublicBtn" onclick="this.classList.toggle('on')" class="settings-toggle ${colPublic?'on':''}" style="flex-shrink:0;"></button>
+      </div>
+      <button onclick="saveCollectionEdit('${colId}')" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;">Save</button>
+      <button onclick="document.getElementById('colEditorSheet').remove();document.querySelector('[style*=rgba\\(0,0,0,0.5\\)]').remove();" style="width:100%;padding:10px;margin-top:6px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>`;
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function saveCollectionEdit(colId) {
+    const name = document.getElementById('colEditorName')?.value.trim();
+    const desc = document.getElementById('colEditorDesc')?.value.trim();
+    const isPublic = document.getElementById('colEditorPublicBtn')?.classList.contains('on');
+    if (!name) return;
+    await updateCollection(colId, { name, description: desc, isPublic });
+    document.getElementById('colEditorSheet')?.remove();
+    document.querySelectorAll('[style*="rgba(0,0,0,0.5)"]').forEach(el => el.remove());
+    loadCollections();
+    // Refresh collections display
+    if (typeof openCollectionsPanel === 'function') openCollectionsPanel();
+  }
+
+  // ═══ SHARED SHOPPING LIST UI ══════════════════════════════
+  let activeSharedListId = null;
+  let activeSharedListName = '';
+  let sharedListItems = [];
+  let sharedListPolling = null;
+
+  async function openSharedListsPanel() {
+    // Show inline in shop panel
+    const shopEl = document.getElementById('shopContent') || document.getElementById('shopPanel');
+    const lists = await getMySharedLists(currentUser).catch(() => []);
+    const modal = document.createElement('div');
+    modal.id = 'sharedListsModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('sharedListsModal').remove();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">Shared Lists</span>
+        <button onclick="createNewSharedList()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.8em;cursor:pointer;font-family:inherit;">+ New</button>
+      </div>
+      <div id="sharedListsBody" style="padding:16px;">
+        ${lists.length === 0
+          ? '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);">No shared lists yet.<br><small>Create one and invite friends to shop together.</small></div>'
+          : lists.map(l => `
+            <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openSharedList('${l.id}','${escapeHtml(l.name)}')">
+              <div style="font-size:1.5em;">🛒</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:0.9em;">${escapeHtml(l.name)}</div>
+                <div style="font-size:0.72em;color:var(--text-faint);">${l.owner_username === currentUser ? 'Owner' : 'Member'} · ${(l.members||[]).length + 1} people</div>
+              </div>
+              <div style="color:var(--text-faint);">›</div>
+            </div>`).join('')}
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  async function createNewSharedList() {
+    const name = prompt('List name (e.g. Weekly Shop):');
+    if (!name || !name.trim()) return;
+    await createSharedList(currentUser, name.trim());
+    document.getElementById('sharedListsModal')?.remove();
+    openSharedListsPanel();
+  }
+
+  async function openSharedList(listId, listName) {
+    activeSharedListId = listId;
+    activeSharedListName = listName;
+    const modal = document.getElementById('sharedListsModal');
+    if (modal) modal.remove();
+
+    const listModal = document.createElement('div');
+    listModal.id = 'sharedListDetailModal';
+    listModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    listModal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('sharedListDetailModal').remove();openSharedListsPanel();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">${escapeHtml(listName)}</span>
+        <button onclick="inviteToSharedList('${listId}')" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>
+      </div>
+      <div style="padding:12px 16px 8px;display:flex;gap:8px;">
+        <input id="sharedListInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')addSharedItem()">
+        <button onclick="addSharedItem()" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Add</button>
+      </div>
+      <div style="padding:0 16px 4px;display:flex;gap:8px;">
+        <button onclick="clearCheckedSharedItems(activeSharedListId).then(()=>refreshSharedList())" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">🗑 Clear checked</button>
+      </div>
+      <div id="sharedListItemsContainer" style="padding:8px 16px 80px;"></div>`;
+    document.body.appendChild(listModal);
+    await refreshSharedList();
+    // Poll every 8 seconds for updates from other users
+    clearInterval(sharedListPolling);
+    sharedListPolling = setInterval(() => {
+      if (document.getElementById('sharedListDetailModal')) refreshSharedList();
+      else clearInterval(sharedListPolling);
+    }, 8000);
+  }
+
+  async function refreshSharedList() {
+    if (!activeSharedListId) return;
+    sharedListItems = await getSharedListItems(activeSharedListId).catch(() => []);
+    renderSharedListItems();
+  }
+
+  function renderSharedListItems() {
+    const container = document.getElementById('sharedListItemsContainer');
+    if (!container) return;
+    if (sharedListItems.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-faint);font-size:0.85em;">No items yet. Add something above!</div>';
+      return;
+    }
+    // Group by item_group
+    const groups = {};
+    sharedListItems.forEach(item => {
+      const g = item.item_group || 'Other';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(item);
+    });
+    container.innerHTML = Object.entries(groups).map(([group, items]) => `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">${escapeHtml(group)}</div>
+        ${items.map(item => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);" id="sli-${item.id}">
+            <button onclick="toggleSharedItem('${item.id}',${!item.checked})" style="width:22px;height:22px;border-radius:50%;border:2px solid ${item.checked?'var(--gold)':'var(--glass-border)'};background:${item.checked?'var(--gold)':'transparent'};cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:0.7em;">${item.checked?'✓':''}</button>
+            <span style="flex:1;font-size:0.9em;${item.checked?'text-decoration:line-through;color:var(--text-faint);':''}">${escapeHtml(item.text)}</span>
+            ${item.added_by && item.added_by !== currentUser ? `<span style="font-size:0.65em;color:var(--text-faint);">${escapeHtml(item.added_by)}</span>` : ''}
+            <button onclick="removeSharedItem('${item.id}')" style="background:none;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;padding:4px;">✕</button>
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  async function addSharedItem() {
+    const input = document.getElementById('sharedListInput');
+    const text = input?.value.trim();
+    if (!text || !activeSharedListId) return;
+    input.value = '';
+    await addSharedListItem(activeSharedListId, text, 'Other', null, null, currentUser);
+    refreshSharedList();
+  }
+
+  async function toggleSharedItem(itemId, checked) {
+    await toggleSharedListItem(itemId, checked);
+    refreshSharedList();
+  }
+
+  async function removeSharedItem(itemId) {
+    await deleteSharedListItem(itemId);
+    refreshSharedList();
+  }
+
+  async function inviteToSharedList(listId) {
+    const username = prompt('Enter username to invite:');
+    if (!username || !username.trim()) return;
+    const res = await addMemberToSharedList(listId, username.trim().toLowerCase()).catch(() => ({ status: 'Error' }));
+    if (res && res.status !== 'Error') {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ ' + username + ' added to list!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    } else {
+      alert('Could not add user. Check the username and try again.');
+    }
+  }
+
+
+
+  // ═══ MEAL PLAN TEMPLATES UI ═══════════════════════════════
+  async function openPlannerTemplates() {
+    const templates = await getMealPlanTemplates(currentUser).catch(() => []);
+    const modal = document.createElement('div');
+    modal.id = 'plannerTemplatesModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    const weekStart = getWeekStart(plannerWeekOffset);
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('plannerTemplatesModal').remove();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">📋 Templates</span>
+        <button onclick="saveCurrentWeekAsTemplate()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.78em;cursor:pointer;font-family:inherit;">Save Week</button>
+      </div>
+      <div style="padding:16px;">
+        ${templates.length === 0
+          ? '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">No templates yet.<br>Plan your week then tap <strong>Save Week</strong> to save it as a template.</div>'
+          : templates.map(t => {
+              const entries = typeof t.entries === 'string' ? JSON.parse(t.entries||'[]') : (t.entries||[]);
+              return `<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div style="font-weight:700;font-size:0.9em;">${escapeHtml(t.name)}</div>
+                  <div style="display:flex;gap:6px;">
+                    <button onclick="applyTemplate('${t.id}')" style="padding:6px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.75em;font-weight:700;cursor:pointer;font-family:inherit;">Apply</button>
+                    <button onclick="deletePlannerTemplate('${t.id}')" style="padding:6px 10px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">✕</button>
+                  </div>
+                </div>
+                <div style="font-size:0.72em;color:var(--text-faint);">${entries.length} meal${entries.length!==1?'s':''} planned</div>
+              </div>`;
+            }).join('')}
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  async function saveCurrentWeekAsTemplate() {
+    const name = prompt('Template name (e.g. "Healthy Week"):');
+    if (!name || !name.trim()) return;
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    const startStr = weekStart.toISOString().slice(0,10);
+    const endStr = weekEnd.toISOString().slice(0,10);
+    const entries = (plannerData || []).map(e => {
+      const d = new Date(e.entry_date || e.date);
+      const dayIndex = (d.getDay() + 6) % 7; // Mon=0
+      return {
+        dayIndex,
+        mealType: e.meal_type || 'Dinner',
+        recipeId: e.recipe_id,
+        recipeTitle: e.recipes?.title || '',
+        recipeImage: e.recipes?.image_url || ''
+      };
+    });
+    const res = await saveMealPlanTemplate(currentUser, name.trim(), entries, false);
+    if (res.status === 'Success') {
+      document.getElementById('plannerTemplatesModal')?.remove();
+      openPlannerTemplates();
+    }
+  }
+
+  async function applyTemplate(templateId) {
+    if (!confirm('Apply this template to the current week? Existing entries will not be removed.')) return;
+    const templates = await getMealPlanTemplates(currentUser).catch(() => []);
+    const tmpl = templates.find(t => t.id === templateId);
+    if (!tmpl) return;
+    const entries = typeof tmpl.entries === 'string' ? JSON.parse(tmpl.entries||'[]') : (tmpl.entries||[]);
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const days = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push(d.toISOString().slice(0,10)); }
+    let added = 0;
+    for (const entry of entries) {
+      const dateStr = days[entry.dayIndex];
+      if (!dateStr || !entry.recipeId) continue;
+      await addPlannerEntry(currentUser, dateStr, entry.recipeId, entry.mealType || 'Dinner').catch(() => {});
+      added++;
+    }
+    document.getElementById('plannerTemplatesModal')?.remove();
+    renderPlanner();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Applied ' + added + ' meal' + (added !== 1 ? 's' : '') + ' to this week!';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  async function deletePlannerTemplate(templateId) {
+    if (!confirm('Delete this template?')) return;
+    await deleteMealPlanTemplate(templateId);
+    document.getElementById('plannerTemplatesModal')?.remove();
+    openPlannerTemplates();
+  }
+
+  // ═══ COOKTIME FILTER SHOW/HIDE ON TAB SWITCH ══════════════
+  // Patch switchTab to hide cookTimeFilterRow on non-recipe tabs
+  const _switchTabOrig = switchTab;
+  // Use a flag so we don't recurse
+  let _switchTabPatched = false;
+  if (!_switchTabPatched) {
+    _switchTabPatched = true;
+    const __switchTab = switchTab;
+    window._patchedSwitchTab = function(tab) {
+      __switchTab(tab);
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = tab === 'recipes' ? 'flex' : 'none';
+    };
+    // Override via event since we can't redefine the function safely
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+      const orig = btn.getAttribute('onclick');
+      if (orig && orig.includes('switchTab')) {
+        const tab = orig.match(/switchTab\('(\w+)'\)/)?.[1];
+        if (tab) btn.setAttribute('onclick', "switchTab('" + tab + "');(function(){const r=document.getElementById('cookTimeFilterRow');if(r)r.style.display='" + (tab==='recipes'?'flex':'none') + "';})()");
+      }
+    });
+  }
+
+
+
+  // ═══ SHAKE GESTURE → SURPRISE ME ═════════════════════════
+  function initShakeGesture() {
+    if (!window.DeviceMotionEvent) return;
+    let lastX = null, lastY = null, lastZ = null, lastShake = 0;
+    const threshold = 18;
+    window.addEventListener('devicemotion', e => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const { x, y, z } = acc;
+      if (lastX === null) { lastX = x; lastY = y; lastZ = z; return; }
+      const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
+      if (delta > threshold) {
+        const now = Date.now();
+        if (now - lastShake > 1500) {
+          lastShake = now;
+          // Only trigger if no modal is open
+          const anyOpen = document.querySelector('.modal-overlay.active, .slide-panel.open');
+          if (!anyOpen && allRecipes.length > 0) openSurpriseMe();
+        }
+      }
+      lastX = x; lastY = y; lastZ = z;
+    }, { passive: true });
+
+    // iOS 13+ requires permission
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      // Add a one-time tap handler to request permission
+      document.addEventListener('click', async function _reqMotion() {
+        try { await DeviceMotionEvent.requestPermission(); } catch(e) {}
+        document.removeEventListener('click', _reqMotion);
+      }, { once: true });
+    }
+  }
+
+  // ═══ DELETION BANNER ON APP LOAD ═════════════════════════
+  async function checkDeletionBanner() {
+    const req = await getDeletionRequest(currentUser).catch(() => null);
+    if (!req || req.cancelled) return;
+    const ms = new Date(req.delete_after) - Date.now();
+    if (ms <= 0) return;
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    const banner = document.getElementById('broadcastBanner');
+    if (!banner) return;
+    banner.classList.add('visible');
+    banner.innerHTML = '<div class="broadcast-banner-text" style="display:flex;align-items:center;gap:10px;justify-content:space-between;">' +
+      '<span>\u23F3 Account deletion in ' + h + 'h ' + m + 'm</span>' +
+      '<button onclick="cancelDeletionFromSettings();document.getElementById(\'broadcastBanner\').classList.remove(\'visible\')" style="padding:4px 12px;border-radius:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;font-size:0.78em;cursor:pointer;font-family:inherit;">Cancel</button>' +
+      '</div>';
+  }
+
+  // ═══ SEASONAL CARD IMPROVEMENT ════════════════════════════
+  function renderSeasonalCard() {
+    const now = new Date(); const month = now.getMonth()+1; const day = now.getDate();
+    const seasons = [
+      {start:[12,1],end:[12,25],emoji:'🎄',title:'Christmas Recipes',desc:'Festive holiday dishes, cookies, and treats.',terms:['Christmas cookies','Christmas dinner','holiday roast','eggnog'],keywords:['christmas','festive','holiday','gingerbread','turkey','ham']},
+      {start:[11,20],end:[11,30],emoji:'🦃',title:'Thanksgiving Recipes',desc:'Classic Thanksgiving mains, sides, and pies.',terms:['Thanksgiving turkey','stuffing','pumpkin pie','cranberry sauce'],keywords:['turkey','pumpkin','cranberry','stuffing','thanksgiving']},
+      {start:[10,1],end:[10,31],emoji:'🎃',title:'Halloween Treats',desc:'Spooky and fun Halloween food ideas.',terms:['Halloween cookies','pumpkin recipes','spooky treats'],keywords:['pumpkin','halloween','spooky','candy']},
+      {start:[6,15],end:[9,15],emoji:'🔥',title:'BBQ Season',desc:'Grilling favourites for the summer.',terms:['BBQ ribs','grilled chicken','burger recipes','coleslaw'],keywords:['bbq','grill','burger','ribs','chicken','coleslaw','corn']},
+      {start:[3,1],end:[4,30],emoji:'🌸',title:'Spring Cooking',desc:'Fresh spring ingredients and lighter meals.',terms:['spring salad','asparagus recipes','strawberry desserts'],keywords:['salad','asparagus','strawberry','fresh','light']},
+      {start:[1,1],end:[1,31],emoji:'🥂',title:"New Year's Recipes",desc:'Party snacks and celebration dishes.',terms:["New Year's appetizers",'party food','champagne cocktails'],keywords:['party','appetizer','champagne','snack','celebration']},
+      {start:[2,10],end:[2,14],emoji:'❤️',title:"Valentine's Day",desc:"Romantic dinners and sweet treats.",terms:["Valentine's dinner",'chocolate desserts','romantic recipes'],keywords:['chocolate','romantic','strawberry','red velvet','dessert']},
+    ];
+    const inRange = (s,e) => { const n=month*100+day; const st=s[0]*100+s[1]; const en=e[0]*100+e[1]; return st<=en?n>=st&&n<=en:n>=st||n<=en; };
+    const active = seasons.find(s => inRange(s.start,s.end));
+    const card = document.getElementById('seasonalCard');
+    if (!active) { card.style.display = 'none'; return; }
+
+    // Match user's own recipes to the season
+    const myMatches = allRecipes.filter(r => {
+      const haystack = (r.title + ' ' + r.category + ' ' + (r.ingredients||'')).toLowerCase();
+      return active.keywords.some(kw => haystack.includes(kw));
+    }).slice(0, 3);
+
+    const myMatchesHtml = myMatches.length > 0
+      ? '<div style="margin-top:10px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">In Your Cookbook</div><div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">' +
+        myMatches.map(r => {
+          const idx = allRecipes.indexOf(r);
+          return '<div onclick="openDetails(' + idx + ')" style="flex-shrink:0;width:90px;cursor:pointer;">' +
+            (r.image ? '<img src="'+r.image+'" style="width:90px;height:60px;object-fit:cover;border-radius:8px;display:block;">' : '<div style="width:90px;height:60px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3em;">🍽️</div>') +
+            '<div style="font-size:0.7em;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);">'+r.title+'</div></div>';
+        }).join('') + '</div></div>'
+      : '';
+
+    card.style.display = 'block';
+    card.innerHTML = '<div class="seasonal-title">' + active.emoji + ' ' + active.title + '</div>' +
+      '<div class="seasonal-desc">' + active.desc + '</div>' +
+      '<div class="seasonal-chips">' + active.terms.map(t => '<div class="seasonal-chip" onclick="discoverSearch(\'' + t + '\')">'+t+'</div>').join('') + '</div>' +
+      myMatchesHtml;
+  }
+
+  // ═══ LEFTOVERS TRACKER ════════════════════════════════════
+  // Stored in localStorage per user: [{id, recipeId, recipeTitle, date, servings, notes}]
+  function getLeftovers() {
+    try { return JSON.parse(localStorage.getItem('rc_leftovers_' + currentUser) || '[]'); } catch(e) { return []; }
+  }
+  function saveLeftovers(items) {
+    localStorage.setItem('rc_leftovers_' + currentUser, JSON.stringify(items));
+  }
+
+  function openLeftoversPanel() {
+    const leftovers = getLeftovers();
+    const modal = document.createElement('div');
+    modal.id = 'leftoversModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('leftoversModal').remove();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">🥡 Leftovers</span>
+        <button onclick="addLeftoverFromCookbook()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.78em;cursor:pointer;font-family:inherit;">+ Add</button>
+      </div>
+      <div id="leftoversBody" style="padding:16px;">
+        ${renderLeftoversHTML(leftovers)}
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  function renderLeftoversHTML(leftovers) {
+    const active = leftovers.filter(l => !l.eaten);
+    const done = leftovers.filter(l => l.eaten);
+    if (leftovers.length === 0) return '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">No leftovers tracked yet.<br>After cooking, tap "+ Add" to log what you have left over.</div>';
+    const renderItem = l => {
+      const id = l.id;
+      return '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;' + (l.eaten?'opacity:0.5;':'') + '">' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-weight:700;font-size:0.88em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(l.recipeTitle) + '</div>' +
+            '<div style="font-size:0.72em;color:var(--text-faint);margin-top:2px;">' + (l.servings ? l.servings + ' serving' + (l.servings!=1?'s':'') + ' · ' : '') + new Date(l.date).toLocaleDateString('en',{month:'short',day:'numeric'}) + '</div>' +
+            (l.notes ? '<div style="font-size:0.75em;color:var(--text-dim);margin-top:3px;">' + escapeHtml(l.notes) + '</div>' : '') +
+          '</div>' +
+          (!l.eaten ? '<button onclick="markLeftoverEaten(\'' + id + '\')" style="padding:6px 12px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">✅ Eaten</button>' : '') +
+          '<button onclick="deleteLeftover(\'' + id + '\')" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:0.85em;padding:4px;">✕</button>' +
+        '</div>' +
+      '</div>';
+    };
+    return (active.length ? '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">In the Fridge</div>' + active.map(renderItem).join('') : '') +
+      (done.length ? '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin:12px 0 8px;">Finished</div>' + done.map(renderItem).join('') : '');
+  }
+
+  function refreshLeftoversModal() {
+    const body = document.getElementById('leftoversBody');
+    if (body) body.innerHTML = renderLeftoversHTML(getLeftovers());
+  }
+
+  function addLeftoverFromCookbook() {
+    // Show a picker of recent recipes
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:75vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    sheet.dataset.leftoverPicker = '1';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.dataset.leftoverPicker = '1';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.innerHTML = '<div style="font-weight:800;font-size:1em;margin-bottom:14px;">Select a recipe</div>' +
+      '<div style="margin-bottom:12px;"><input id="leftoverServings" class="edit-field" type="number" placeholder="Servings left (optional)" min="1" style="margin-bottom:6px;"><input id="leftoverNotes" class="edit-field" placeholder="Notes (optional)"></div>' +
+      allRecipes.slice(0,30).map((r,i) => {
+        return '<div data-leftover-idx="' + i + '" onclick="(function(el){var idx=parseInt(el.dataset.leftoverIdx);addLeftoverEntry(allRecipes[idx].id,allRecipes[idx].title);})(this)" style="padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + escapeHtml(r.title) + '</div>';
+      }).join('') +
+      '<button onclick="document.querySelectorAll(\'[data-leftover-picker]\').forEach(e=>e.remove())" style="width:100%;padding:12px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:8px;">Cancel</button>';
+    document.body.appendChild(ov);
+    document.body.appendChild(sheet);
+  }
+
+  function addLeftoverEntry(recipeId, recipeTitle) {
+    const servings = parseInt(document.getElementById('leftoverServings')?.value) || null;
+    const notes = document.getElementById('leftoverNotes')?.value.trim() || '';
+    const leftovers = getLeftovers();
+    leftovers.unshift({ id: Date.now().toString(), recipeId, recipeTitle, date: new Date().toISOString(), servings, notes, eaten: false });
+    saveLeftovers(leftovers);
+    // Close picker sheet
+    document.querySelectorAll('[style*="border-radius: 20px"]').forEach(el => el.remove());
+    document.querySelectorAll('[style*="rgba(0,0,0,0.5)"]').forEach(el => el.remove());
+    refreshLeftoversModal();
+  }
+
+  function markLeftoverEaten(id) {
+    const leftovers = getLeftovers();
+    const item = leftovers.find(l => l.id === id);
+    if (item) item.eaten = true;
+    saveLeftovers(leftovers);
+    refreshLeftoversModal();
+  }
+
+  function deleteLeftover(id) {
+    saveLeftovers(getLeftovers().filter(l => l.id !== id));
+    refreshLeftoversModal();
+  }
+
+  // Add leftovers shortcut to cook completion screen
+  function addLeftoverFromCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) return;
+    const leftovers = getLeftovers();
+    leftovers.unshift({ id: Date.now().toString(), recipeId: r.id, recipeTitle: r.title, date: new Date().toISOString(), servings: null, notes: '', eaten: false });
+    saveLeftovers(leftovers);
+    const status = document.getElementById('cookJournalStatus');
+    if (status) { status.textContent = '🥡 Logged as leftovers!'; setTimeout(() => { if(status.textContent.includes('leftover')) status.textContent=''; }, 2000); }
+  }
+
+  // ═══ EXPORT MEAL PLAN ════════════════════════════════════
+  function exportMealPlanText() {
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const nl = '\n';
+    let text = '\ud83d\udcc5 Meal Plan \u2014 Week of ' + weekStart.toLocaleDateString('en', {month:'long',day:'numeric',year:'numeric'}) + nl + nl;
+    const mealTypes = ['Breakfast','Lunch','Dinner'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().slice(0,10);
+      const dayEntries = (plannerData||[]).filter(e => (e.entry_date||e.date) === dateStr);
+      text += '\u2500\u2500 ' + days[i] + ' ' + d.toLocaleDateString('en',{month:'short',day:'numeric'}) + ' \u2500\u2500' + nl;
+      if (dayEntries.length === 0) { text += '  (nothing planned)' + nl; }
+      else {
+        mealTypes.forEach(mt => {
+          const e = dayEntries.find(x => (x.meal_type||'Dinner') === mt);
+          if (e && e.recipes) text += '  ' + mt + ': ' + e.recipes.title + (e.recipes.cook_time ? ' (' + e.recipes.cook_time + ')' : '') + nl;
+        });
+      }
+      text += nl;
+    }
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'width:100%;height:200px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);padding:12px;font-size:0.78em;font-family:monospace;resize:none;box-sizing:border-box;margin-bottom:10px;';
+    ta.readOnly = true;
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = '\ud83d\udccb Copy to Clipboard';
+    copyBtn.style.cssText = 'width:100%;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;display:block;';
+    copyBtn.onclick = () => { navigator.clipboard.writeText(text).then(() => { copyBtn.textContent = '\u2705 Copied!'; setTimeout(() => copyBtn.textContent = '\ud83d\udccb Copy to Clipboard', 2000); }); };
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'width:100%;padding:10px;margin-top:6px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;display:block;';
+    closeBtn.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.innerHTML = '<div style="font-weight:800;font-size:1em;margin-bottom:12px;">\ud83d\udce4 Export Meal Plan</div>';
+    sheet.appendChild(ta); sheet.appendChild(copyBtn); sheet.appendChild(closeBtn);
+    document.body.appendChild(ov); document.body.appendChild(sheet);
+  }
 
 
 </script>
