@@ -5630,6 +5630,187 @@
 
 
 
+  function openDetails(idx) {
+    activeRecipeIndex = idx;
+    try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
+    // Apply default scale from user settings
+    currentScale = parseFloat(userSettings.default_scale) || 1;
+    // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
+    if (timerStates._recipeIdx !== idx) {
+      Object.values(timerStates).forEach(t => { if (t.interval) clearInterval(t.interval); });
+      timerStates = { _recipeIdx: idx };
+    }
+    renderDetailContent();
+    openModalAnimated('detailModal');
+    document.getElementById('detailModal').scrollTop = 0;
+    adjustHeaderPadding();
+  }
+  function renderDetailContent() {
+    const r = allRecipes[activeRecipeIndex];
+    // Load friend ratings async
+    if (r && r.id) { friendRatingsCache = null; loadFriendRatings(r.id); }
+    // Show/hide source URL button
+    const srcBtn = document.getElementById('sourceUrlBtn');
+    if (srcBtn) { srcBtn.style.display = (r.sourceUrl && r.sourceUrl.trim()) ? 'block' : 'none'; }
+
+    // Style B hero
+    const heroImg = document.getElementById('detailHeroImg');
+    const heroPlaceholder = document.getElementById('detailHeroPlaceholder');
+    if (r.image && r.image.trim()) {
+      heroImg.src = r.image;
+      heroImg.style.display = 'none'; // shown on load
+      heroPlaceholder.style.display = 'flex';
+    } else {
+      heroImg.style.display = 'none';
+      heroPlaceholder.style.display = 'flex';
+      heroPlaceholder.textContent = r.title.charAt(0);
+    }
+
+    // Overlay info
+    document.getElementById('detailCategoryB').textContent = r.category || '';
+    document.getElementById('detailTitleB').textContent = r.title;
+
+    const timeEl = document.getElementById('detailTimeB');
+    if (r.cookTime) { timeEl.style.display = ''; timeEl.textContent = '⏱ ' + r.cookTime; } else timeEl.style.display = 'none';
+
+    const servingsEl = document.getElementById('detailServingsB');
+    if (r.servings) { servingsEl.style.display = ''; servingsEl.textContent = '👤 ' + r.servings; } else servingsEl.style.display = 'none';
+
+    const ratingEl = document.getElementById('detailRatingB');
+    if (r.rating) { ratingEl.style.display = ''; ratingEl.textContent = '★ ' + r.rating + '/10'; } else ratingEl.style.display = 'none';
+
+    // Fav button
+    const favIcon = document.getElementById('favBtnB');
+    favIcon.classList.toggle('fav-active', r.favourite);
+    favIcon.textContent = r.favourite ? '★' : '⭐';
+
+    // Rating track
+    const cur = parseInt(r.rating) || 0;
+    document.getElementById('ratingTrackB').innerHTML = Array.from({length:10},(_,i) =>
+      '<div class="detail-rating-b-pip ' + (i < cur ? 'filled' : '') + '" onclick="handleRating(' + (i+1) + ')"></div>'
+    ).join('');
+    document.getElementById('ratingLabelB').textContent = cur ? cur + '/10' : 'Not rated';
+
+    // Scale buttons
+    document.querySelectorAll('.detail-scale-b-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
+
+    // Ingredients
+    const ings = parseIngredients(r.ingredients);
+    document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
+      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, currentScale)) + '</div>'
+    ).join('');
+
+    // Init servings slider
+    const slider = document.getElementById('servingsSlider');
+    if (slider) {
+      slider.value = currentScale;
+      updateServingsDisplay(currentScale, r);
+    }
+
+    // Steps
+    const steps = r.instructions.split('\n').filter(s => s.trim());
+    document.getElementById('stepsList').innerHTML = steps.map((step, i) => {
+      let html = '<div class="step-item"><input type="checkbox" class="step-checkbox" id="sc-' + i + '" onchange="toggleStep(' + i + ')"><label for="sc-' + i + '" class="step-num">' + (i+1) + '</label><div id="step-c-' + i + '" class="step-content">' + decodeHtml(step);
+      const time = step.match(/(\d+)\s*(min|sec|minute|second)/i);
+      if (time) {
+        const sec = time[2].toLowerCase().includes('min') ? parseInt(time[1])*60 : parseInt(time[1]);
+        html += '<div class="timer-container"><button id="t-btn-' + i + '" class="timer-btn" onclick="handleTimer(' + i + ',' + sec + ')">⏱ Start ' + time[1] + ' ' + time[2] + '</button><button class="timer-reset" onclick="resetTimer(' + i + ',' + sec + ')">↺</button></div>';
+      }
+      html += '</div></div>'; return html;
+    }).join('');
+
+    // Notes
+    const ns = document.getElementById('notesSection');
+    if (r.notes && r.notes.trim()) { ns.style.display = 'block'; document.getElementById('notesBody').textContent = r.notes; } else ns.style.display = 'none';
+    renderTagsOnDetail(r);
+    // Reset journal state
+    journalSectionOpen = false;
+    const jb = document.getElementById('journalBody'); if (jb) jb.style.display = 'none';
+    const jc = document.getElementById('journalChevron'); if (jc) jc.textContent = '▼';
+
+    // Prev/next
+    document.getElementById('prevBtn').disabled = activeRecipeIndex <= 0;
+    document.getElementById('nextBtn').disabled = activeRecipeIndex >= allRecipes.length - 1;
+
+    // Sync active timers
+    requestAnimationFrame(() => {
+      Object.entries(timerStates).forEach(([key, t]) => {
+        if (key === '_recipeIdx') return;
+        const btn = document.getElementById('t-btn-' + key);
+        if (!btn) return;
+        if (t.state === 'running') {
+          btn.className = 'timer-btn running';
+          btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
+          clearInterval(t.interval);
+          t.interval = setInterval(() => {
+            t.rem--;
+            btn.innerHTML = '⏱ ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
+            renderGlobalTimerBar();
+            if (t.rem <= 0) {
+              clearInterval(t.interval); t.state = 'alarm';
+              btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
+              playAlarm(); renderGlobalTimerBar();
+            }
+          }, 1000);
+        } else if (t.state === 'paused') {
+          btn.className = 'timer-btn';
+          btn.innerHTML = 'Resume: ' + Math.floor(t.rem/60) + ':' + (t.rem%60).toString().padStart(2,'0');
+        } else if (t.state === 'alarm') {
+          btn.className = 'timer-btn alarm'; btn.innerHTML = '🔊 TIME UP!';
+        }
+      });
+    });
+  }
+  function enterEditMode() {
+    const r = allRecipes[activeRecipeIndex];
+    document.getElementById('viewMode').style.display = 'none'; document.getElementById('editMode').style.display = 'block';
+    document.getElementById('editId').value = r.id; document.getElementById('editTitle').value = r.title;
+    const knownCats = ['Breakfast','Lunch','Dinner','Snack','Sides','Drink','Dessert','General'];
+    const catEl = document.getElementById('editCategory');
+    const customCatEl = document.getElementById('editCategoryCustom');
+    if (knownCats.includes(r.category)) {
+      catEl.value = r.category;
+      customCatEl.style.display = 'none';
+    } else {
+      catEl.value = '__other__';
+      customCatEl.style.display = 'block';
+      customCatEl.value = r.category || '';
+    }
+    document.getElementById('editCookTime').value = r.cookTime||''; document.getElementById('editPrepTime') && (document.getElementById('editPrepTime').value = r.prepTime||''); const _tagsEl = document.getElementById('editTags'); if (_tagsEl) _tagsEl.value = r.tags||''; document.getElementById('editPrepTime').value = r.prepTime||'';
+    document.getElementById('editServings').value = r.servings||'';
+    document.getElementById('editSourceUrl').value = r.sourceUrl||'';
+    document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
+    document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
+    // Snapshot original values for change detection
+    window._editSnapshot = {
+      title: r.title, category: r.category, cookTime: r.cookTime||'', prepTime: r.prepTime||'', servings: r.servings||'',
+      sourceUrl: r.sourceUrl||'', ingredients: r.ingredients, instructions: r.instructions, notes: r.notes||''
+    };
+  }
+  function openSettingsModal() {
+    checkDeletionStatus();
+    getUserSettings(currentUser).then(res => {
+      userSettings = res.settings || {};
+      const ds = document.getElementById('settingDefaultSort');
+      if (ds) ds.value = userSettings.default_sort || 'newest';
+      const dsc = document.getElementById('settingDefaultScale');
+      if (dsc) dsc.value = userSettings.default_scale || '1';
+      const cs = document.getElementById('settingCardSize');
+      if (cs) cs.value = userSettings.card_size || 'normal';
+      // Theme
+      const th = document.getElementById('settingTheme');
+      if (th) th.value = userSettings.theme || localStorage.getItem('rc_theme') || 'dark';
+      setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
+      setToggle('toggleShowRating', userSettings.show_rating !== false);
+      setToggle('toggleAutoShop', userSettings.auto_shop_planner === true);
+      getUserAvatar(currentUser).then(url => {
+        const el = document.getElementById('settingsAvatarPreview');
+        if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
+      });
+      openModalAnimated('settingsModal');
+    });
+  }
+
   // ═══ PROFILE TABS ═════════════════════════════════════════
   function switchProfileTab(tab) {
     ['profile','friends'].forEach(t => {
@@ -6119,41 +6300,15 @@ ${text}`;
 
 
   // Wire journal reset + tags render into renderDetailContent
-  const _origRenderDetailContent = renderDetailContent;
-  function renderDetailContent() {
-    _origRenderDetailContent();
-    const r = allRecipes[activeRecipeIndex];
-    if (r) {
-      renderTagsOnDetail(r);
-      // Reset journal state
-      journalSectionOpen = false;
-      const jb = document.getElementById('journalBody'); if (jb) jb.style.display = 'none';
-      const jc = document.getElementById('journalChevron'); if (jc) jc.textContent = '▼';
-    }
-  }
+  // Tags and journal reset are wired directly into renderDetailContent below
 
   // Wire cacheRecipeViewed into openDetails
-  const _origOpenDetails = openDetails;
-  function openDetails(idx) {
-    _origOpenDetails(idx);
-    try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
-  }
+  // cacheRecipeViewed is called inside openDetails directly
 
-  // Wire checkDeletionStatus into settings open
-  const _origOpenSettingsModal = openSettingsModal;
-  function openSettingsModal() {
-    _origOpenSettingsModal();
-    checkDeletionStatus();
-  }
+  // Wire checkDeletionStatus is called inside openSettingsModal directly
 
   // Wire tags into openDetails edit mode
-  const _origEnterEditMode = enterEditMode;
-  function enterEditMode() {
-    _origEnterEditMode();
-    const r = allRecipes[activeRecipeIndex];
-    const tagsEl = document.getElementById('editTags');
-    if (r && tagsEl) tagsEl.value = r.tags || '';
-  }
+  // Tags loaded in enterEditMode directly
 
   // Show/hide cookTimeFilterRow with tab
   // Wire cookTimeFilterRow show/hide on tab switch
