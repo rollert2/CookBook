@@ -7,7 +7,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="https://rollert2.github.io/CookBook/roll_cookbook_icon.png">
-  <script src="supabase.js"></script>
+  <script src="sb-core.js"></script>
+  <script src="sb-users.js"></script>
+  <script src="sb-recipes.js"></script>
+  <script src="sb-social.js"></script>
+  <script src="sb-planner.js"></script>
+  <script src="sb-community.js"></script>
+  <script src="sb-shop.js"></script>
   <style>
     :root {
       --bg:#0d0d0f; --surface:#18181c; --surface2:#222228;
@@ -671,9 +677,19 @@
           <div class="sort-option" id="sortOpt_za" onclick="setSort('za')">Z → A</div>
           <div class="sort-option" id="sortOpt_top" onclick="setSort('top')">⭐ Top Rated</div>
           <div class="sort-option" id="sortOpt_fav" onclick="setSort('fav')">❤️ Favourites</div>
+          <div class="sort-option" id="sortOpt_cooked" onclick="setSort('cooked')">🍳 Recently Cooked</div>
+          <div class="sort-option" id="sortOpt_cooktime" onclick="setSort('cooktime')">⏱ Cook Time</div>
         </div>
       </div>
       <div id="categoryFiltersInline" class="category-filter-inner"></div>
+    </div>
+    <!-- Cook time filter chips -->
+    <div id="cookTimeFilterRow" style="display:flex;gap:7px;padding:6px 16px 4px;overflow-x:auto;scrollbar-width:none;">
+      <button class="sort-chip cooktime-filter-chip active" data-mins="0" onclick="setCookTimeFilter(0)">⏱ Any time</button>
+      <button class="sort-chip cooktime-filter-chip" data-mins="15" onclick="setCookTimeFilter(15)">≤ 15 min</button>
+      <button class="sort-chip cooktime-filter-chip" data-mins="30" onclick="setCookTimeFilter(30)">≤ 30 min</button>
+      <button class="sort-chip cooktime-filter-chip" data-mins="45" onclick="setCookTimeFilter(45)">≤ 45 min</button>
+      <button class="sort-chip cooktime-filter-chip" data-mins="60" onclick="setCookTimeFilter(60)">≤ 1 hr</button>
     </div>
   </div>
 
@@ -945,6 +961,10 @@
           <div class="detail-action-b-icon gold">👨‍🍳</div>
           <div class="detail-action-b-label">Cook</div>
         </div>
+        <div class="detail-action-b" onclick="markCookedFromDetail()" id="markCookedBtn">
+          <div class="detail-action-b-icon">✅</div>
+          <div class="detail-action-b-label">Cooked</div>
+        </div>
       </div>
       <!-- Rating track -->
       <div class="detail-rating-b">
@@ -1001,6 +1021,18 @@
         <div class="detail-section-title">Notes</div>
         <div class="detail-section-body" style="color:var(--text-dim);font-style:italic;font-size:0.9em;line-height:1.7;" id="notesBody"></div>
       </div>
+      <!-- Journal -->
+      <div id="journalSection" style="margin:10px 18px 0;">
+        <div onclick="toggleJournalSection()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;">
+          <span style="font-size:0.8em;font-weight:700;">📓 Cooking Journal</span>
+          <span id="journalChevron" style="color:var(--text-faint);font-size:0.8em;">▼</span>
+        </div>
+        <div id="journalBody" style="display:none;background:var(--glass);border:1px solid var(--glass-border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:12px 14px;">
+          <div id="journalEntries" style="margin-bottom:10px;"></div>
+          <textarea id="journalNewEntry" placeholder="How did it go? What would you change next time?" style="width:100%;min-height:70px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);padding:10px;font-size:0.85em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+          <button onclick="saveNewJournalEntry()" style="margin-top:8px;width:100%;padding:10px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);color:var(--gold);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;">+ Save Entry</button>
+        </div>
+      </div>
 
       <!-- Swipe nav -->
       <div class="swipe-nav">
@@ -1033,7 +1065,8 @@
         <option value="__other__">✏️ Other (type your own)</option>
       </select>
       <input type="text" id="editCategoryCustom" class="edit-field" placeholder="Type custom category..." style="display:none;margin-top:6px;">
-      <label class="edit-label">Cook Time</label><input type="text" id="editCookTime" class="edit-field">
+      <label class="edit-label">Cook Time</label><input type="text" id="editCookTime" class="edit-field" placeholder="30 min">
+      <label class="edit-label">Prep Time</label><input type="text" id="editPrepTime" class="edit-field" placeholder="15 min">
       <label class="edit-label">Servings</label><input type="text" id="editServings" class="edit-field" placeholder="e.g. 4 servings">
       <label class="edit-label">Source URL <span style="font-weight:400;color:var(--text-faint);font-size:0.85em;">(optional — enables 🔗 Source button)</span></label><input type="url" id="editSourceUrl" class="edit-field" placeholder="https://...">
       <label class="edit-label">New Image</label><input type="file" id="imageInput" class="edit-field" accept="image/*">
@@ -1184,11 +1217,27 @@
     <div class="cook-timers" id="cookTimers"></div>
     <div class="cook-step-scroll cook-mode-content" id="cookStepArea">
       <div class="cook-step-num" id="cookStepNum"></div>
-      <div class="cook-step-text" id="cookStepText" style="font-size:1.05em;line-height:1.65;color:rgba(255,255,255,0.9);"></div>
+      <div class="cook-step-text" id="cookStepText" style="font-size:1.35em;line-height:1.75;color:rgba(255,255,255,0.95);"></div>
     </div>
     <div class="cook-nav-bar">
       <button class="cook-nav-btn cook-nav-prev" id="cookPrevBtn" onclick="cookStepNav(-1)">← Previous</button>
       <button class="cook-nav-btn cook-nav-next" id="cookNextBtn" onclick="cookStepNav(1)">Next →</button>
+    </div>
+  </div>
+
+  <!-- Cook mode completion screen -->
+  <div id="cookCompletionScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0c;z-index:900;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px 50px;text-align:center;">
+    <div style="font-size:3.5em;margin-bottom:16px;">🎉</div>
+    <div style="font-size:1.4em;font-weight:800;color:#fff;margin-bottom:6px;">Well done!</div>
+    <div style="font-size:0.95em;color:rgba(255,255,255,0.6);margin-bottom:28px;" id="cookCompletionTitle"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;">
+      <button onclick="markCookedFromCompletion()" style="padding:14px;border-radius:12px;background:var(--gold);border:none;color:#0a0a0c;font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">✅ Mark as Cooked</button>
+      <div id="cookCompletionLastCooked" style="font-size:0.78em;color:rgba(255,255,255,0.5);min-height:16px;"></div>
+      <textarea id="cookJournalInput" placeholder="Add a journal note... (how did it go? what would you change?)" style="width:100%;min-height:90px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;padding:12px;font-size:0.88em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+      <div id="cookJournalStatus" style="font-size:0.78em;color:rgba(201,168,76,0.8);min-height:16px;"></div>
+      <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:rgba(201,168,76,0.9);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
+      <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
+      <button onclick="closeCookCompletion()" style="padding:12px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);font-size:0.85em;cursor:pointer;font-family:inherit;">Done</button>
     </div>
   </div>
 
@@ -1303,6 +1352,18 @@
         </div>
         <div id="avatarUploadStatus" style="margin-top:8px;font-size:0.82em;"></div>
       </div>
+    </div>
+    <div style="height:30px;"></div>
+    <!-- Account Deletion -->
+    <div class="settings-section" id="deletionSection">
+      <div class="settings-section-title" style="color:var(--red);">Danger Zone</div>
+      <div id="deletionStatusWrap" style="display:none;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+        <div style="font-size:0.82em;color:var(--red);font-weight:700;margin-bottom:4px;">⏳ Account deletion requested</div>
+        <div style="font-size:0.78em;color:var(--text-faint);">Your account will be deleted in <span id="deletionCountdown" style="color:var(--red);font-weight:700;"></span></div>
+        <button onclick="cancelDeletionFromSettings()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.82em;cursor:pointer;font-family:inherit;">↩ Cancel Deletion Request</button>
+      </div>
+      <button onclick="requestDeletionFromSettings()" id="requestDeletionBtn" style="width:100%;padding:12px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Request Account Deletion</button>
+      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;line-height:1.5;">Your account will be scheduled for deletion. You have 12 hours to cancel. A notification will be sent to the admin to confirm.</div>
     </div>
     <div style="height:30px;"></div>
   </div>
@@ -1676,16 +1737,24 @@
   }
 
   async function renderSavedUsers() {
-    const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
+    let allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
+    // Clean up any deleted accounts silently
+    if (allSaved.length > 0) {
+      try {
+        const valid = await validateSavedUsers(allSaved);
+        if (valid.length !== allSaved.length) {
+          localStorage.setItem('savedUsers', JSON.stringify(valid));
+          allSaved = valid;
+        }
+      } catch(e) {} // offline — skip validation
+    }
     const section = document.getElementById('savedUsersSection');
     const list = document.getElementById('savedUsersList');
     if (allSaved.length === 0) { section.style.display = 'none'; return; }
     section.style.display = 'block';
-    // Render with initials first
     list.innerHTML = allSaved.map(u =>
       '<div class="saved-user-btn"><div class="saved-user-avatar" id="login-avatar-' + u + '">' + u.charAt(0).toUpperCase() + '</div><div style="flex:1;cursor:pointer;" onclick="loginAsExisting(\'' + u + '\')"><div class="saved-user-name">' + u + '</div><div class="saved-user-hint">Tap to continue</div></div><button onclick="deleteUser(\'' + u + '\')" style="background:none;border:none;color:var(--text-faint);font-size:1.1em;cursor:pointer;padding:4px 6px;">✕</button></div>'
     ).join('');
-    // Load avatars async
     for (const u of allSaved) {
       getUserAvatar(u).then(url => {
         if (!url) return;
@@ -1902,9 +1971,13 @@
     const sortFilterRow = document.getElementById('sortFilterRow');
     if (tab === 'recipes') {
       searchWrap.style.display = ''; filterChips.style.display = '';
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = 'flex';
       if (sortFilterRow) sortFilterRow.style.display = '';
     } else {
       searchWrap.style.display = 'none'; filterChips.style.display = 'none';
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = 'none';
       if (sortFilterRow) sortFilterRow.style.display = 'none';
     }
     setTimeout(adjustHeaderPadding, 50);
@@ -2021,12 +2094,34 @@
       document.removeEventListener('click', closeSortDropdownOutside);
     }
   }
+  let cookTimeFilter = 0; // 0 = off, else max minutes
+
   function setSort(s) {
     currentSort = s;
     document.getElementById('sortDropdown').classList.remove('open');
     document.removeEventListener('click', closeSortDropdownOutside);
     renderSortBar(); renderRecipes();
   }
+
+  function setCookTimeFilter(mins) {
+    cookTimeFilter = mins;
+    renderRecipes();
+    // Update filter chips
+    document.querySelectorAll('.cooktime-filter-chip').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.mins) === mins);
+    });
+  }
+
+  function parseCookMinutes(cookTime) {
+    if (!cookTime) return Infinity;
+    const m = cookTime.match(/(\d+)\s*(h|hr|hour)/i);
+    const min = cookTime.match(/(\d+)\s*(m|min|minute)/i);
+    let total = 0;
+    if (m) total += parseInt(m[1]) * 60;
+    if (min) total += parseInt(min[1]);
+    return total || Infinity;
+  }
+
   function sortRecipes(arr) {
     const copy = [...arr];
     switch(currentSort) {
@@ -2035,6 +2130,12 @@
       case 'top': case 'rating': return copy.sort((a,b) => (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0));
       case 'fav': case 'favs': return copy.sort((a,b) => (b.favourite?1:0)-(a.favourite?1:0));
       case 'oldest': return copy.reverse();
+      case 'cooked': return copy.sort((a,b) => {
+        const at = a.lastCooked ? new Date(a.lastCooked).getTime() : 0;
+        const bt = b.lastCooked ? new Date(b.lastCooked).getTime() : 0;
+        return bt - at;
+      });
+      case 'cooktime': return copy.sort((a,b) => parseCookMinutes(a.cookTime) - parseCookMinutes(b.cookTime));
       default: return copy;
     }
   }
@@ -2051,7 +2152,8 @@
       const catMatch = activeCategories.has('All') || activeCategories.has(r.category);
       const favMatch = !showFavsOnly || r.favourite;
       const searchMatch = !q || r.title.toLowerCase().includes(q) || r.category.toLowerCase().includes(q) || r.ingredients.toLowerCase().includes(q);
-      return catMatch && favMatch && searchMatch;
+      const timeMatch = !cookTimeFilter || parseCookMinutes(r.cookTime) <= cookTimeFilter;
+      return catMatch && favMatch && searchMatch && timeMatch;
     });
     list = sortRecipes(list);
     filteredRecipes = list;
@@ -2220,6 +2322,10 @@
     // Notes
     const ns = document.getElementById('notesSection');
     if (r.notes && r.notes.trim()) { ns.style.display = 'block'; document.getElementById('notesBody').textContent = r.notes; } else ns.style.display = 'none';
+    // Reset journal section
+    journalSectionOpen = false;
+    const jb = document.getElementById('journalBody'); if (jb) jb.style.display = 'none';
+    const jc = document.getElementById('journalChevron'); if (jc) jc.textContent = '▼';
 
     // Prev/next
     document.getElementById('prevBtn').disabled = activeRecipeIndex <= 0;
@@ -2460,14 +2566,14 @@
       customCatEl.style.display = 'block';
       customCatEl.value = r.category || '';
     }
-    document.getElementById('editCookTime').value = r.cookTime||'';
+    document.getElementById('editCookTime').value = r.cookTime||''; document.getElementById('editPrepTime').value = r.prepTime||'';
     document.getElementById('editServings').value = r.servings||'';
     document.getElementById('editSourceUrl').value = r.sourceUrl||'';
     document.getElementById('editIngredients').value = r.ingredients; document.getElementById('editInstructions').value = r.instructions;
     document.getElementById('editNotes').value = r.notes; document.getElementById('detailModal').scrollTop = 0;
     // Snapshot original values for change detection
     window._editSnapshot = {
-      title: r.title, category: r.category, cookTime: r.cookTime||'', servings: r.servings||'',
+      title: r.title, category: r.category, cookTime: r.cookTime||'', prepTime: r.prepTime||'', servings: r.servings||'',
       sourceUrl: r.sourceUrl||'', ingredients: r.ingredients, instructions: r.instructions, notes: r.notes||''
     };
   }
@@ -2480,6 +2586,7 @@
     return document.getElementById('editTitle').value !== snap.title ||
       currentCat !== snap.category ||
       document.getElementById('editCookTime').value !== snap.cookTime ||
+      document.getElementById('editPrepTime').value !== (snap.prepTime||'') ||
       document.getElementById('editServings').value !== snap.servings ||
       document.getElementById('editSourceUrl').value !== snap.sourceUrl ||
       document.getElementById('editIngredients').value !== snap.ingredients ||
@@ -2501,7 +2608,7 @@
   function saveEdit() {
     const rId = document.getElementById('editId').value; const fileIn = document.getElementById('imageInput'); const sBtn = document.getElementById('saveEditBtn');
     sBtn.innerHTML = 'Saving...'; sBtn.disabled = true;
-    const item = {id:rId,title:document.getElementById('editTitle').value,category:(document.getElementById('editCategory').value==='__other__'?document.getElementById('editCategoryCustom').value.trim()||'General':document.getElementById('editCategory').value),cookTime:document.getElementById('editCookTime').value,servings:document.getElementById('editServings').value,sourceUrl:document.getElementById('editSourceUrl').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
+    const item = {id:rId,title:document.getElementById('editTitle').value,category:(document.getElementById('editCategory').value==='__other__'?document.getElementById('editCategoryCustom').value.trim()||'General':document.getElementById('editCategory').value),cookTime:document.getElementById('editCookTime').value,prepTime:document.getElementById('editPrepTime').value,servings:document.getElementById('editServings').value,sourceUrl:document.getElementById('editSourceUrl').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value};
     const r = allRecipes.find(x => x.id === rId); if (r) Object.assign(r, item);
     const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; window._editSnapshot = null; exitEditMode(); renderDetailContent(); renderRecipes(); }); };
     if (fileIn.files.length > 0) { const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, fileIn.files[0].name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
@@ -2958,7 +3065,7 @@
     const steps = (r.instructions || '').split('\n').filter(Boolean).map((s,i) => '<div class="step-item"><div class="step-num">'+(i+1)+'</div><div class="step-content">'+s+'</div></div>').join('');
     document.getElementById('friendRecipeModalBody').innerHTML =
       (hasImg ? '<div class="detail-hero"><img src="' + r.image + '"></div>' : '') +
-      '<div class="detail-meta-row"><span class="detail-category">' + r.category + '</span>' + (r.cookTime ? '<span class="detail-time">⏱ ' + r.cookTime + '</span>' : '') + '</div>' +
+      '<div class="detail-meta-row"><span class="detail-category">' + r.category + '</span>' + (r.prepTime ? '<span class="detail-time">🥄 Prep: ' + r.prepTime + '</span>' : '') + (r.cookTime ? '<span class="detail-time">⏱ Cook: ' + r.cookTime + '</span>' : '') + (r.lastCooked ? '<span style="font-size:0.72em;color:var(--text-faint);margin-left:4px;">Last cooked: ' + new Date(r.lastCooked).toLocaleDateString() + '</span>' : '') + '</div>' +
       '<div class="detail-title">' + r.title + '</div>' +
       '<div style="padding:12px 18px 0;">' +
         (alreadyHave
@@ -3219,7 +3326,7 @@
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
   function performManualAdd() {
-    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : '';
+    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : '';
     const el = document.getElementById('manualResult'); const btn = document.getElementById('manualSaveBtn');
     if (!title) { alert('Please enter a recipe title.'); return; } if (!ingredients) { alert('Please enter at least one ingredient.'); return; } if (!instructions) { alert('Please enter at least one instruction step.'); return; }
     btn.disabled = true; btn.innerHTML = 'Saving...';
@@ -3241,17 +3348,28 @@
   let cookTimerInterval = null;
   let cookRecipeIndex = -1;
 
+  let _wakeLock = null;
+  async function _requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen');
+    } catch(e) {}
+  }
+  function _releaseWakeLock() {
+    if (_wakeLock) { _wakeLock.release().catch(()=>{}); _wakeLock = null; }
+  }
+
   function startCookMode() {
     const r = allRecipes[activeRecipeIndex];
     cookRecipeIndex = activeRecipeIndex;
     cookSteps = r.instructions.split('\n').filter(s => s.trim());
     cookStepIndex = 0;
-    // Don't reset cookTimers — preserve any already-running ones for this recipe
     document.getElementById('cookRecipeTitle').textContent = r.title;
     document.getElementById('cookMode').classList.add('active');
     renderCookStep();
     if (!cookTimerInterval) cookTimerInterval = setInterval(tickCookTimers, 1000);
     history.pushState({ modal: 'cookMode' }, '');
+    _requestWakeLock();
+    initCookSwipe();
   }
 
   function closeCookMode() {
@@ -3285,16 +3403,91 @@
     cookTimers = {};
     clearInterval(cookTimerInterval); cookTimerInterval = null;
     renderGlobalTimerBar();
+    _releaseWakeLock();
   }
 
   function cookStepNav(dir) {
     const next = cookStepIndex + dir;
-    if (next < 0 || next >= cookSteps.length) {
-      if (next >= cookSteps.length) closeCookMode();
+    if (next < 0) return;
+    if (next >= cookSteps.length) {
+      openCookCompletion();
       return;
     }
     cookStepIndex = next;
     renderCookStep();
+  }
+
+  // Swipe support for cook mode
+  function initCookSwipe() {
+    const area = document.getElementById('cookStepArea');
+    if (!area || area._swipeInit) return;
+    area._swipeInit = true;
+    let startX = 0, startY = 0;
+    area.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    area.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        // Swipe right = prev, swipe left = next
+        cookStepNav(dx < 0 ? 1 : -1);
+      }
+    }, { passive: true });
+  }
+
+  // ── COOK MODE COMPLETION ───────────────────────────────────
+  function openCookCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) { closeCookMode(); return; }
+    document.getElementById('cookMode').classList.remove('active');
+    const el = document.getElementById('cookCompletionScreen');
+    if (!el) return;
+    document.getElementById('cookCompletionTitle').textContent = r.title;
+    document.getElementById('cookCompletionLastCooked').textContent = '';
+    document.getElementById('cookJournalInput').value = '';
+    document.getElementById('cookCompletionScreen').style.display = 'flex';
+    _releaseWakeLock();
+    clearInterval(cookTimerInterval); cookTimerInterval = null;
+  }
+
+  async function markCookedFromCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) return;
+    const res = await markRecipeCooked(r.id, currentUser);
+    if (res.status === 'Success') {
+      const ts = document.getElementById('cookCompletionLastCooked');
+      if (ts) ts.textContent = 'Marked as cooked ✅';
+      // Update local recipe data
+      r.lastCooked = res.cookedAt;
+      r.cookCount = (r.cookCount || 0) + 1;
+    }
+  }
+
+  async function saveJournalFromCompletion() {
+    const r = allRecipes[cookRecipeIndex];
+    const text = document.getElementById('cookJournalInput')?.value.trim();
+    if (!r || !text) return;
+    await addJournalEntry(r.id, currentUser, text);
+    document.getElementById('cookJournalInput').value = '';
+    const status = document.getElementById('cookJournalStatus');
+    if (status) { status.textContent = 'Journal entry saved ✅'; setTimeout(() => status.textContent = '', 2000); }
+  }
+
+  function closeCookCompletion() {
+    document.getElementById('cookCompletionScreen').style.display = 'none';
+    cookTimers = {};
+    renderGlobalTimerBar();
+    renderDetailContent();
+  }
+
+  function shareCookCompletionCommunity() {
+    closeCookCompletion();
+    setTimeout(() => {
+      const r = allRecipes[cookRecipeIndex !== undefined ? cookRecipeIndex : activeRecipeIndex];
+      if (r) { communityPostSelectedRecipe = r; openCommunityPostModal(); }
+    }, 300);
   }
 
   function renderCookStep() {
@@ -3731,7 +3924,7 @@
         const el = document.getElementById('settingsAvatarPreview');
         if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
       });
-      openModalAnimated('settingsModal');
+      openModalAnimated('settingsModal'); checkDeletionStatus();
     });
   }
   function setToggle(id, on) {
@@ -5707,8 +5900,137 @@
     list.innerHTML = html;
   }
 
+  // ═══ COOKING JOURNAL ══════════════════════════════════════════
+  let journalSectionOpen = false;
 
+  function toggleJournalSection() {
+    journalSectionOpen = !journalSectionOpen;
+    document.getElementById('journalBody').style.display = journalSectionOpen ? 'block' : 'none';
+    document.getElementById('journalChevron').textContent = journalSectionOpen ? '▲' : '▼';
+    if (journalSectionOpen) loadJournalEntries();
+  }
 
+  async function loadJournalEntries() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    const el = document.getElementById('journalEntries');
+    el.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Loading...</div>';
+    const entries = await getJournalEntries(r.id, currentUser);
+    if (entries.length === 0) {
+      el.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em);padding:4px 0;">No entries yet. Add your first note!</div>';
+      return;
+    }
+    el.innerHTML = entries.map(e => `
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative;" data-journal-id="${e.id}">
+        <div style="font-size:0.7em;color:var(--text-faint);margin-bottom:4px;">${new Date(e.created_at).toLocaleDateString('en',{month:'short',day:'numeric',year:'numeric'})}</div>
+        <div class="journal-entry-text" style="font-size:0.85em;line-height:1.6;white-space:pre-wrap;">${escapeHtml(e.content)}</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="editJournalEntry('${e.id}',this)" style="background:none;border:none;color:var(--text-faint);font-size:0.72em;cursor:pointer;padding:0;">✏️ Edit</button>
+          <button onclick="deleteJournalEntryUI('${e.id}')" style="background:none;border:none;color:var(--red);font-size:0.72em;cursor:pointer;padding:0;">✕ Delete</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function saveNewJournalEntry() {
+    const r = allRecipes[activeRecipeIndex];
+    const text = document.getElementById('journalNewEntry')?.value.trim();
+    if (!r || !text) return;
+    await addJournalEntry(r.id, currentUser, text);
+    document.getElementById('journalNewEntry').value = '';
+    loadJournalEntries();
+  }
+
+  function editJournalEntry(entryId, btn) {
+    const row = btn.closest('[data-journal-id]');
+    if (!row) return;
+    const textEl = row.querySelector('.journal-entry-text');
+    const current = textEl.textContent;
+    textEl.innerHTML = `<textarea style="width:100%;min-height:60px;background:var(--glass);border:1px solid var(--gold);border-radius:6px;color:var(--text);padding:8px;font-size:0.85em;font-family:inherit;resize:none;box-sizing:border-box;">${escapeHtml(current)}</textarea>`;
+    btn.textContent = '💾 Save';
+    btn.onclick = async () => {
+      const newText = textEl.querySelector('textarea').value.trim();
+      if (!newText) return;
+      await updateJournalEntry(entryId, newText);
+      loadJournalEntries();
+    };
+  }
+
+  async function deleteJournalEntryUI(entryId) {
+    if (!confirm('Delete this journal entry?')) return;
+    await deleteJournalEntry(entryId);
+    loadJournalEntries();
+  }
+
+  // ═══ LAST COOKED — detail view button ═════════════════════════
+  async function markCookedFromDetail() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+    const btn = document.getElementById('markCookedBtn');
+    if (btn) { btn.textContent = 'Marking...'; btn.disabled = true; }
+    const res = await markRecipeCooked(r.id, currentUser);
+    if (res.status === 'Success') {
+      r.lastCooked = res.cookedAt;
+      r.cookCount = (r.cookCount || 0) + 1;
+      renderDetailContent();
+    }
+    if (btn) { btn.textContent = '✅ Marked!'; btn.disabled = false; }
+  }
+
+  // ═══ ACCOUNT DELETION ═════════════════════════════════════════
+  let _deletionCountdownTimer = null;
+
+  async function checkDeletionStatus() {
+    const req = await getDeletionRequest(currentUser).catch(() => null);
+    const wrap = document.getElementById('deletionStatusWrap');
+    const btn = document.getElementById('requestDeletionBtn');
+    if (!wrap || !btn) return;
+    if (req && !req.cancelled) {
+      wrap.style.display = 'block';
+      btn.style.display = 'none';
+      // Start countdown
+      clearInterval(_deletionCountdownTimer);
+      _deletionCountdownTimer = setInterval(() => {
+        const ms = new Date(req.delete_after) - Date.now();
+        if (ms <= 0) {
+          document.getElementById('deletionCountdown').textContent = '0h 0m';
+          clearInterval(_deletionCountdownTimer);
+          return;
+        }
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        document.getElementById('deletionCountdown').textContent = h + 'h ' + m + 'm';
+      }, 5000);
+      // Trigger immediately
+      const ms = new Date(req.delete_after) - Date.now();
+      const h = Math.floor(ms / 3600000);
+      const m = Math.floor((ms % 3600000) / 60000);
+      const cd = document.getElementById('deletionCountdown');
+      if (cd) cd.textContent = h + 'h ' + m + 'm';
+    } else {
+      wrap.style.display = 'none';
+      btn.style.display = 'block';
+    }
+  }
+
+  async function requestDeletionFromSettings() {
+    if (!confirm('Request account deletion? You will have 12 hours to cancel. The admin will be notified.')) return;
+    const res = await requestAccountDeletion(currentUser);
+    if (res.status === 'Success') {
+      await checkDeletionStatus();
+      const btn = document.getElementById('requestDeletionBtn');
+      if (btn) btn.style.display = 'none';
+    }
+  }
+
+  async function cancelDeletionFromSettings() {
+    if (!confirm('Cancel your deletion request? Your account will remain active.')) return;
+    await cancelDeletionRequest(currentUser);
+    clearInterval(_deletionCountdownTimer);
+    const wrap = document.getElementById('deletionStatusWrap');
+    const btn = document.getElementById('requestDeletionBtn');
+    if (wrap) wrap.style.display = 'none';
+    if (btn) btn.style.display = 'block';
+  }
 
 
 </script>
