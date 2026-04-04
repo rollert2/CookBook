@@ -6058,17 +6058,23 @@
     };
   };
 
-  // ═══ SORT ADDITIONS ═══════════════════════════════════════
-  const _origSortRecipes = sortRecipes;
+  // ═══ SORT ═════════════════════════════════════════════════
   function sortRecipes(arr) {
     const copy = [...arr];
-    if (currentSort === 'cooked') return copy.sort((a,b) => {
-      const at = a.lastCooked ? new Date(a.lastCooked).getTime() : 0;
-      const bt = b.lastCooked ? new Date(b.lastCooked).getTime() : 0;
-      return bt - at;
-    });
-    if (currentSort === 'cooktime') return copy.sort((a,b) => parseCookMinutes(a.cookTime) - parseCookMinutes(b.cookTime));
-    return _origSortRecipes(arr);
+    switch(currentSort) {
+      case 'az': return copy.sort((a,b) => a.title.localeCompare(b.title));
+      case 'za': return copy.sort((a,b) => b.title.localeCompare(a.title));
+      case 'top': case 'rating': return copy.sort((a,b) => (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0));
+      case 'fav': case 'favs': return copy.sort((a,b) => (b.favourite?1:0)-(a.favourite?1:0));
+      case 'oldest': return copy.reverse();
+      case 'cooked': return copy.sort((a,b) => {
+        const at = a.lastCooked ? new Date(a.lastCooked).getTime() : 0;
+        const bt = b.lastCooked ? new Date(b.lastCooked).getTime() : 0;
+        return bt - at;
+      });
+      case 'cooktime': return copy.sort((a,b) => parseCookMinutes(a.cookTime) - parseCookMinutes(b.cookTime));
+      default: return copy;
+    }
   }
 
   // ═══ BULK PASTE IMPORT ════════════════════════════════════
@@ -6101,15 +6107,18 @@ ${text}`;
   }
 
   // ═══ PASTE TAB ROUTING ════════════════════════════════════
-  const _origSwitchSyncTab = switchSyncTab;
   function switchSyncTab(tab) {
-    if (tab === 'paste') {
-      document.getElementById('addModeSelect').style.display = 'none';
-      ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.style.display = 'none';
-      });
-      const tp = document.getElementById('tabPaste'); if (tp) tp.style.display = 'block';
-    } else { _origSwitchSyncTab(tab); }
+    document.getElementById('addModeSelect').style.display = 'none';
+    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    if (tab === 'manual')  { const el = document.getElementById('tabManual');  if (el) el.style.display = 'block'; }
+    else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
+    else if (tab === 'paste')  { const el = document.getElementById('tabPaste');  if (el) el.style.display = 'block'; }
+    else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
+    else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
+    else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
   }
 
   // ═══ OFFLINE CACHE ════════════════════════════════════════
