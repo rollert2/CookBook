@@ -4185,8 +4185,13 @@
   // Main init — loads settings, recipes, and broadcast
   async function init() {
     showSkeletonLoader();
+    // Safety check — if core Supabase functions missing, sb-*.js files not loaded
+    if (typeof getUserSettings === 'undefined' || typeof getRecipes === 'undefined') {
+      const container = document.getElementById('recipeContainer');
+      if (container) container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>App files missing.<br><small style="color:var(--text-faint);">Make sure all sb-*.js files are uploaded to your repo and supabase.js is deleted.</small></p></div>';
+      return;
+    }
     try {
-      // Load user settings first to apply preferences
       const settingsRes = await getUserSettings(currentUser);
       userSettings = settingsRes.settings || {};
       if (userSettings.default_sort) { currentSort = userSettings.default_sort; }
@@ -4199,8 +4204,12 @@
       setTimeout(adjustHeaderPadding, 100);
     } catch(e) {
       console.error('Init error:', e);
-      // If offline, try cache
-      if (!navigator.onLine) checkOfflineMode();
+      const container = document.getElementById('recipeContainer');
+      if (!navigator.onLine) {
+        checkOfflineMode();
+      } else if (container && container.querySelector('.skeleton-card')) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load recipes.<br><small style="color:var(--text-faint);">' + (e.message||'Unknown error') + '</small></p><button onclick="init()" style="margin-top:12px;padding:10px 20px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Retry</button></div>';
+      }
     }
   }
 
