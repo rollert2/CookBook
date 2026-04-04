@@ -1001,20 +1001,7 @@
         <div class="detail-section-title">Notes</div>
         <div class="detail-section-body" style="color:var(--text-dim);font-style:italic;font-size:0.9em;line-height:1.7;" id="notesBody"></div>
       </div>
-      <!-- Macros card -->
-      <div id="macrosSection" style="margin:10px 18px 0;">
-        <div onclick="toggleMacrosCard()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;">
-          <span style="font-size:0.8em;font-weight:700;">📊 Estimated Macros <span style="font-weight:400;color:var(--text-faint);font-size:0.85em;">(per serving)</span></span>
-          <span id="macrosChevron" style="color:var(--text-faint);font-size:0.8em;">▼</span>
-        </div>
-        <div id="macrosBody" style="display:none;padding:12px 14px;background:var(--glass);border:1px solid var(--glass-border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);">
-          <div id="macrosContent" style="color:var(--text-faint);font-size:0.82em;">Tap to load estimates</div>
-        </div>
-      </div>
-      <!-- Ingredient substitution -->
-      <div style="padding:10px 18px 0;">
-        <button onclick="openSubstitutionHelper()" style="width:100%;padding:11px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">🔄 Missing an ingredient? Get substitutes</button>
-      </div>
+
       <!-- Swipe nav -->
       <div class="swipe-nav">
         <button class="swipe-btn" id="prevBtn" onclick="swipeRecipe(-1)">← Prev</button>
@@ -2217,11 +2204,6 @@
       slider.value = currentScale;
       updateServingsDisplay(currentScale, r);
     }
-    // Reset macros card
-    const macrosBody = document.getElementById('macrosBody');
-    const macrosContent = document.getElementById('macrosContent');
-    if (macrosBody) { macrosBody.style.display = 'none'; document.getElementById('macrosChevron').textContent = '▼'; }
-    if (macrosContent) { macrosContent.innerHTML = '<span style="color:var(--text-faint);">Tap above to load estimates</span>'; macrosContent.dataset.loaded = ''; }
 
     // Steps
     const steps = r.instructions.split('\n').filter(s => s.trim());
@@ -5635,139 +5617,7 @@
   }
 
   // ═══ MACROS ESTIMATOR ═══
-  let macrosLoading = false;
-  function toggleMacrosCard() {
-    const body = document.getElementById('macrosBody');
-    const chevron = document.getElementById('macrosChevron');
-    const content = document.getElementById('macrosContent');
-    const isOpen = body.style.display !== 'none';
-    body.style.display = isOpen ? 'none' : 'block';
-    chevron.textContent = isOpen ? '▼' : '▲';
-    if (!isOpen && !content.dataset.loaded && !macrosLoading) {
-      estimateMacros();
-    }
-  }
-
-  async function estimateMacros() {
-    const r = allRecipes[activeRecipeIndex];
-    if (!r || !r.ingredients) return;
-    macrosLoading = true;
-    const content = document.getElementById('macrosContent');
-    content.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:0.82em;"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Estimating...</div>';
-    try {
-      const servings = parseFloat(r.servings) || 1;
-      const prompt = `Given these ingredients for a recipe called "${r.title}" (serves ${servings}):
-${r.ingredients}
-
-Estimate the nutritional macros PER SERVING. Reply ONLY with a JSON object like:
-{"calories":350,"protein_g":25,"carbs_g":40,"fat_g":12,"fiber_g":4,"note":"Estimates only — actual values vary"}
-No markdown, no explanation, just the JSON.`;
-
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 300 })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'API error ' + res.status);
-      const text = (data.text || '').trim();
-      if (!text) throw new Error('Empty response from AI');
-      const clean = text.replace(/```json|```/g, '').trim();
-      const m = JSON.parse(clean);
-      const scaledCal = Math.round((m.calories || 0) * currentScale);
-      const scaledProt = Math.round((m.protein_g || 0) * currentScale);
-      const scaledCarbs = Math.round((m.carbs_g || 0) * currentScale);
-      const scaledFat = Math.round((m.fat_g || 0) * currentScale);
-      const scaledFiber = Math.round((m.fiber_g || 0) * currentScale);
-      content.innerHTML =
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">' +
-        macroBox('🔥', 'Calories', scaledCal, '') +
-        macroBox('💪', 'Protein', scaledProt, 'g') +
-        macroBox('🌾', 'Carbs', scaledCarbs, 'g') +
-        macroBox('🧈', 'Fat', scaledFat, 'g') +
-        macroBox('🥦', 'Fiber', scaledFiber, 'g') +
-        '</div>' +
-        '<div style="font-size:0.7em;color:var(--text-faint);line-height:1.4;">' + (m.note || 'AI estimates only — actual values vary based on brands and preparation.') + '</div>';
-      content.dataset.loaded = '1';
-    } catch(e) {
-      content.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not estimate macros: ' + e.message + '<br><span style="font-size:0.85em;">Make sure api/ai.js is deployed to Vercel.</span></div>';
-    }
-    macrosLoading = false;
-  }
-
-  function macroBox(emoji, label, val, unit) {
-    return '<div style="background:var(--surface2);border:1px solid var(--glass-border);border-radius:8px;padding:8px;text-align:center;">' +
-      '<div style="font-size:1em;">' + emoji + '</div>' +
-      '<div style="font-size:1em;font-weight:800;color:var(--text);">' + val + unit + '</div>' +
-      '<div style="font-size:0.65em;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.5px;">' + label + '</div></div>';
-  }
-
   // ═══ INGREDIENT SUBSTITUTION HELPER ═══
-  function openSubstitutionHelper() {
-    const r = allRecipes[activeRecipeIndex];
-    if (!r) return;
-    const ings = parseIngredients(r.ingredients).filter(l => l.trim());
-    const sheet = document.createElement('div');
-    sheet.id = 'subSheet';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;padding:20px 20px 50px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;';
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:599;';
-    sheet.innerHTML =
-      '<div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 14px;"></div>' +
-      '<div style="font-size:0.88em;font-weight:800;margin-bottom:4px;">🔄 Missing an ingredient?</div>' +
-      '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;">Tap an ingredient to get substitutes</div>' +
-      '<div id="subIngList">' +
-      ings.map((ing, i) => '<div class="sub-ing-item" data-idx="'+i+'" style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.85em;">'+escapeHtml(ing)+'</div>').join('') +
-      '</div>' +
-      '<div id="subResult" style="display:none;margin-top:14px;"></div>';
-    sheet.addEventListener('click', e => {
-      const item = e.target.closest('.sub-ing-item');
-      if (!item) return;
-      const ing = ings[parseInt(item.dataset.idx)];
-      getSubstitutes(ing, r.title);
-    });
-    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
-    document.body.appendChild(overlay);
-    document.body.appendChild(sheet);
-  }
-
-  async function getSubstitutes(ingredient, recipeName) {
-    const result = document.getElementById('subResult');
-    if (!result) return;
-    result.style.display = 'block';
-    result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--text-faint);font-size:0.82em;"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Finding substitutes for "' + escapeHtml(ingredient) + '"...</div>';
-    try {
-      const prompt = `I'm making "${recipeName}" and I'm missing this ingredient: "${ingredient}"
-
-Give me 3 practical substitutes with ratio adjustments. Reply ONLY with JSON:
-{"ingredient":"${ingredient}","substitutes":[{"name":"butter","ratio":"use equal amount","note":"adds richness"},{"name":"...","ratio":"...","note":"..."}]}
-No markdown, no explanation, just JSON.`;
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 500 })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'API error ' + res.status);
-      const text = (data.text || '').trim();
-      if (!text) throw new Error('Empty response from AI');
-      const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      const subs = parsed.substitutes || [];
-      result.innerHTML =
-        '<div style="font-size:0.75em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">Substitutes for: ' + escapeHtml(ingredient) + '</div>' +
-        subs.map(s =>
-          '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;">' +
-          '<div style="font-weight:700;font-size:0.88em;margin-bottom:2px;">🔄 ' + escapeHtml(s.name) + '</div>' +
-          '<div style="font-size:0.78em;color:var(--gold);margin-bottom:3px;">📐 ' + escapeHtml(s.ratio) + '</div>' +
-          '<div style="font-size:0.78em;color:var(--text-faint);">' + escapeHtml(s.note) + '</div></div>'
-        ).join('') +
-        '<div style="font-size:0.7em;color:var(--text-faint);margin-top:6px;">Results may vary based on the recipe.</div>';
-    } catch(e) {
-      result.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;">Could not fetch substitutes: ' + e.message + '</div>';
-    }
-  }
-
   // ═══ SMART SHOPPING LIST ═══
   const AISLE_MAP = {
     produce: ['lettuce','spinach','kale','arugula','tomato','onion','garlic','ginger','carrot','celery','broccoli','cauliflower','zucchini','cucumber','pepper','mushroom','potato','sweet potato','avocado','lemon','lime','apple','banana','strawberry','blueberry','mango','corn','peas','herbs','basil','cilantro','parsley','rosemary','thyme','mint','chive','scallion','leek','shallot','asparagus','eggplant'],
