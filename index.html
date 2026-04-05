@@ -665,9 +665,9 @@
       </div>
     </div>
     <div class="header-chips" id="categoryFilters"></div>
-    <div class="category-filter-row" id="sortFilterRow">
+    <div class="category-filter-row" id="sortFilterRow" style="display:flex;align-items:center;gap:8px;padding-left:16px;">
+      <button onclick="openSurpriseMe()" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Surprise Me">🎲</button>
       <div class="sort-filter-wrap">
-        <button onclick="openSurpriseMe()" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.85em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;" title="Surprise Me">🎲</button>
         <div class="sort-filter-btn" id="sortFilterBtn" onclick="toggleSortDropdown()">
           <span>⇅</span><span id="sortFilterLabel">Newest</span>
         </div>
@@ -1102,36 +1102,32 @@
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div id="profileHero" class="profile-hero"></div>
-    <div style="display:flex;border-bottom:1px solid var(--glass-border);margin:0 0 4px;">
-      <button id="profileTabBtn_friends" onclick="switchProfileTab('friends')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">👥 Following</button>
-      <button id="profileTabBtn_profile" onclick="switchProfileTab('profile')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-faint);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">👤 Followers</button>
+    <!-- Notifications -->
+    <div class="profile-section" id="profileNotifSection" style="display:none;">
+      <div class="profile-section-title">🔔 Notifications</div>
+      <div id="profileNotifList"></div>
     </div>
-    <!-- Followers tab (previously Profile) -->
+    <!-- Follow input at top -->
+    <div style="padding:10px 16px 6px;display:flex;gap:8px;">
+      <input type="text" id="followInput" placeholder="Add friend by username..." autocomplete="off" autocorrect="off" autocapitalize="off" style="flex:1;padding:9px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.85em;font-family:inherit;">
+      <button onclick="doFollowUser()" style="padding:9px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">Follow</button>
+    </div>
+    <div class="ai-result" id="followResult" style="margin:0 16px 6px;display:none;"></div>
+    <!-- Following list + activity (single view) -->
+    <div id="profileTab_friends" style="display:block;">
+      <div style="padding:6px 18px 4px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Following</div>
+      <div id="followingListFull" style="padding:0 16px 10px;"></div>
+      <div style="padding:8px 18px 4px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Friends Activity</div>
+      <div id="activityFeedList" style="padding:0 16px 20px;"></div>
+    </div>
+    <!-- Hidden elements needed by existing code -->
     <div id="profileTab_profile" style="display:none;">
-      <div class="profile-section" id="profileNotifSection" style="display:none;">
-        <div class="profile-section-title">🔔 Notifications</div>
-        <div id="profileNotifList"></div>
-      </div>
-      <div class="profile-section">
-        <div class="profile-section-title">Following</div>
-        <div class="share-input-row" style="margin-bottom:10px;">
-          <input type="text" id="followInput" placeholder="Add friend by username..." autocomplete="off" autocorrect="off" autocapitalize="off">
-          <button class="share-send-btn" onclick="doFollowUser()">Follow</button>
-        </div>
-        <div class="ai-result" id="followResult"></div>
-        <div id="friendsList"></div>
-      </div>
+      <div id="friendsList"></div>
       <div class="profile-section" id="friendRecipesSection" style="display:none;">
         <div class="profile-section-title" id="friendRecipesTitle"></div>
         <div class="friend-recipes-grid" id="friendRecipesGrid"></div>
-        <button class="btn btn-secondary" style="margin-top:12px;" onclick="closeFriendRecipes()">← Back to profile</button>
+        <button class="btn btn-secondary" style="margin-top:12px;" onclick="closeFriendRecipes()">← Back</button>
       </div>
-    </div>
-    <div id="profileTab_friends" style="display:block;">
-      <div style="padding:12px 18px 6px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Following</div>
-      <div id="followingListFull" style="padding:0 16px 12px;"></div>
-      <div style="padding:8px 18px 6px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Friends Activity</div>
-      <div id="activityFeedList" style="padding:0 16px 20px;"></div>
     </div>
     <div style="height:40px;"></div>
   </div>
@@ -1887,7 +1883,7 @@
     initScrollHideHeader();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
-    init().then(() => { checkAddRecipeParam(); startNotifPolling(); initShakeGesture(); checkDeletionBanner(); });
+    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); });
   }
 
   function adjustHeaderPadding() {
@@ -2173,7 +2169,7 @@
     let list = allRecipes.filter(r => {
       const catMatch = activeCategories.has('All') || activeCategories.has(r.category);
       const favMatch = !showFavsOnly || r.favourite;
-      const searchMatch = !q || (r.title||'').toLowerCase().includes(q) || (r.category||'').toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q);
+      const searchMatch = !q || (r.title||'').toLowerCase().includes(q) || (r.category||'').toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q) || (r.tags||'').toLowerCase().includes(q);
       const timeMatch = !cookTimeFilter || parseCookMinutes(r.cookTime) <= cookTimeFilter;
       const tagMatch = !activeTagFilter || (r.tags||'').toLowerCase().includes(activeTagFilter.toLowerCase());
       return catMatch && favMatch && searchMatch && timeMatch && tagMatch;
@@ -2614,6 +2610,8 @@
     renderShopList();
     document.getElementById('shopPanel').classList.add('open');
     document.getElementById('shopOverlay').classList.add('open');
+    switchShopListTab('personal');
+    if (typeof loadShopPanelSharedLists === 'function') loadShopPanelSharedLists();
   }
   function closeShopPanel() {
     document.getElementById('shopPanel').classList.remove('open');
@@ -2860,7 +2858,7 @@
       document.getElementById('friendRecipesSection').style.display = 'none';
       document.getElementById('followResult').style.display = 'none';
       openModalAnimated('profileModal');
-      switchProfileTab('friends');
+      loadFollowingAndActivity();
     });
   }
 
@@ -6053,14 +6051,60 @@
           <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div>
           <div id="publicProfilePosts">Loading...</div>
         </div>`;
-      const allPosts = await getCommunityPosts(null,'newest',20,0);
+      // Load their recipes (respects privacy)
+      const [allPosts, theirRecipes] = await Promise.all([
+        getCommunityPosts(null,'newest',20,0),
+        getFriendRecipes(username)
+      ]);
       const userPosts = allPosts.filter(p => (p.users?.username||'') === username);
+      const recipes = theirRecipes.recipes || [];
+
+      // Build recipes section
+      const recipesEl = document.getElementById('publicProfileRecipes');
+      if (recipesEl && recipes.length > 0) {
+        recipesEl.style.display = 'block';
+        recipesEl.innerHTML = '';
+        const heading = document.createElement('div');
+        heading.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;padding:0 16px;';
+        heading.textContent = 'Recipes';
+        recipesEl.appendChild(heading);
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;';
+        recipes.slice(0, 6).forEach(r => {
+          const card = document.createElement('div');
+          card.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;';
+          card.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:100%;height:80px;object-fit:cover;display:block;">' : '<div style="width:100%;height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5em;">🍽️</div>') +
+            '<div style="padding:6px 8px;"><div style="font-size:0.78em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.68em;color:var(--text-faint);">' + (r.category||'') + '</div></div>';
+          card.onclick = () => {
+            document.getElementById('friendRecipeModalTitle').textContent = r.title;
+            const modal = document.getElementById('friendRecipeModalBody');
+            modal.innerHTML =
+              (r.image ? '<img src="' + r.image + '" style="width:100%;height:200px;object-fit:cover;display:block;">' : '') +
+              '<div style="padding:16px;">' +
+              '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;">' + (r.category||'') + (r.cookTime?' · ⏱ '+r.cookTime:'') + '</div>' +
+              '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Ingredients</div>' +
+              '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;">' + escapeHtml(r.ingredients||'') + '</div>' +
+              '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Instructions</div>' +
+              '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(r.instructions||'') + '</div>' +
+              '</div>';
+            const addBtn2 = document.createElement('button');
+            addBtn2.textContent = '+ Add to My Cookbook';
+            addBtn2.style.cssText = 'width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;display:block;';
+            addBtn2.onclick = () => addRecipeFromColSheet(r.id, r.title);
+            modal.appendChild(addBtn2);
+            openModalAnimated('friendRecipeModal');
+          };
+          grid.appendChild(card);
+        });
+        recipesEl.appendChild(grid);
+      }
+
       const postsEl = document.getElementById('publicProfilePosts');
       if (postsEl) postsEl.innerHTML = userPosts.length === 0 ? '<span style="color:var(--text-faint);font-size:0.85em;">No community posts yet.</span>'
-        : userPosts.map(p => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="openCommunityDetail('${p.id}','recipe')">
-            ${p.image_url?`<img src="${p.image_url}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">` : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>`}
-            <div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.title)}</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ${p.upvotes||0}</div></div>
-          </div>`).join('');
+        : userPosts.map(p => '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">' +
+            (p.image_url ? '<img src="' + p.image_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>') +
+            '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(p.title) + '</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ' + (p.upvotes||0) + '</div></div>' +
+            '</div>').join('');
     } catch(e) {
       document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
     }
@@ -6293,8 +6337,11 @@ ${text}`;
     cookTimers = {}; renderGlobalTimerBar(); renderDetailContent();
   }
   function shareCookCompletionCommunity() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r) { closeCookCompletion(); return; }
+    communityPostSelectedRecipe = r;
     closeCookCompletion();
-    setTimeout(() => { const r = allRecipes[cookRecipeIndex]; if (r) { communityPostSelectedRecipe = r; openCommunityPost(); } }, 300);
+    setTimeout(() => openCommunityPost(), 300);
   }
   async function markCookedFromDetail() {
     const r = allRecipes[activeRecipeIndex];
@@ -6529,32 +6576,147 @@ ${text}`;
   let sharedListPolling = null;
 
   async function openSharedListsPanel() {
-    // Show inline in shop panel
-    const shopEl = document.getElementById('shopContent') || document.getElementById('shopPanel');
+    // Full page — not modal
+    let page = document.getElementById('sharedListsPage');
+    if (!page) {
+      page = document.createElement('div');
+      page.id = 'sharedListsPage';
+      page.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;display:none;';
+      document.body.appendChild(page);
+    }
+    page.style.display = 'block';
+    page.onclick = e => { if (e.target.id === 'sharedListsPageBack') page.style.display = 'none'; };
+    page.innerHTML = '<div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">' +
+      '<button id="sharedListsPageBack" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>' +
+      '<span style="font-weight:800;font-size:1em;flex:1;">Shared Lists</span>' +
+      '<button onclick="createSharedListFromPage()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.8em;cursor:pointer;font-family:inherit;">+ New</button>' +
+      '</div><div id="sharedListsPageBody" style="padding:16px;"><div style="color:var(--text-faint);font-size:0.85em;">Loading...</div></div>';
+
     const lists = await getMySharedLists(currentUser).catch(() => []);
-    const modal = document.createElement('div');
-    modal.id = 'sharedListsModal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
-    modal.innerHTML = `
-      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
-        <button onclick="document.getElementById('sharedListsModal').remove();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
-        <span style="font-weight:800;font-size:1em;flex:1;">Shared Lists</span>
-        <button onclick="createNewSharedList()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.8em;cursor:pointer;font-family:inherit;">+ New</button>
-      </div>
-      <div id="sharedListsBody" style="padding:16px;">
-        ${lists.length === 0
-          ? '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);">No shared lists yet.<br><small>Create one and invite friends to shop together.</small></div>'
-          : lists.map(l => `
-            <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openSharedList('${l.id}','${escapeHtml(l.name)}')">
-              <div style="font-size:1.5em;">🛒</div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:0.9em;">${escapeHtml(l.name)}</div>
-                <div style="font-size:0.72em;color:var(--text-faint);">${l.owner_username === currentUser ? 'Owner' : 'Member'} · ${(l.members||[]).length + 1} people</div>
-              </div>
-              <div style="color:var(--text-faint);">›</div>
-            </div>`).join('')}
-      </div>`;
-    document.body.appendChild(modal);
+    const body = document.getElementById('sharedListsPageBody');
+    if (!body) return;
+    if (lists.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);">No shared lists yet.<br><small>Create one and invite friends to shop together.</small></div>';
+      return;
+    }
+    body.innerHTML = '';
+    lists.forEach(l => {
+      const row = document.createElement('div');
+      row.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;';
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+      info.innerHTML = '<div style="font-weight:700;font-size:0.9em;">' + escapeHtml(l.name) + '</div><div style="font-size:0.72em;color:var(--text-faint);">' + (l.owner_username === currentUser ? 'Owner' : 'Member') + ' · ' + ((l.members||[]).length + 1) + ' people</div>';
+      info.onclick = () => openSharedListPage(l.id, l.name);
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑';
+      delBtn.style.cssText = 'background:none;border:none;color:var(--red);font-size:1em;cursor:pointer;padding:4px 8px;';
+      delBtn.onclick = async () => {
+        if (!confirm('Delete "' + l.name + '"? This removes it for all members.')) return;
+        await deleteSharedList(l.id, currentUser);
+        openSharedListsPanel();
+      };
+      row.append(info, delBtn);
+      body.appendChild(row);
+    });
+  }
+
+  async function createSharedListFromPage() {
+    const name = prompt('List name:');
+    if (!name || !name.trim()) return;
+    await createSharedList(currentUser, name.trim());
+    await loadShopPanelSharedLists();
+    openSharedListsPanel();
+  }
+
+  async function openSharedListPage(listId, listName) {
+    activeSharedListId = listId;
+    activeSharedListName = listName;
+    const page = document.getElementById('sharedListsPage');
+    if (!page) return;
+    page.innerHTML = '<div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">' +
+      '<button onclick="openSharedListsPanel()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>' +
+      '<span style="font-weight:800;font-size:1em;flex:1;">' + escapeHtml(listName) + '</span>' +
+      '<button id="sharedListPageInviteBtn" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>' +
+      '</div>' +
+      '<div style="padding:12px 16px 8px;display:flex;gap:8px;">' +
+      '<input id="sharedListPageInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;">' +
+      '<button id="sharedListPageAddBtn" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Add</button>' +
+      '</div>' +
+      '<div style="padding:0 16px 6px;display:flex;gap:8px;">' +
+      '<button id="sharedListClearChecked" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">🗑 Clear checked</button>' +
+      '<button id="sharedListRemoveAll" style="padding:6px 12px;border-radius:20px;background:rgba(224,85,85,0.1);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">✕ Remove all</button>' +
+      '</div>' +
+      '<div id="sharedListPageItems" style="padding:0 16px 80px;"><div style="color:var(--text-faint);font-size:0.85em;">Loading...</div></div>';
+    // Wire input enter key
+    const inp2 = page.querySelector('#sharedListPageInput');
+    if (inp2) inp2.onkeydown = e => { if (e.key === 'Enter') addSharedPageItem(listId); };
+    const addBtn3 = page.querySelector('#sharedListPageAddBtn');
+    if (addBtn3) addBtn3.onclick = () => addSharedPageItem(listId);
+    const clearBtn2 = page.querySelector('#sharedListClearChecked');
+    if (clearBtn2) clearBtn2.onclick = () => clearCheckedSharedItems(listId).then(() => refreshSharedListPage(listId, listName));
+    const removeAllBtn = page.querySelector('#sharedListRemoveAll');
+    if (removeAllBtn) removeAllBtn.onclick = () => deleteSharedListItems_all(listId, listName);
+    // Wire invite button
+    const invBtn2 = page.querySelector('#sharedListPageInviteBtn');
+    if (invBtn2) invBtn2.onclick = () => inviteToSharedList(listId);
+    await refreshSharedListPage(listId, listName);
+    clearInterval(sharedListPolling);
+    sharedListPolling = setInterval(() => {
+      if (document.getElementById('sharedListPageItems')) refreshSharedListPage(listId, listName);
+      else clearInterval(sharedListPolling);
+    }, 8000);
+  }
+
+  async function refreshSharedListPage(listId, listName) {
+    const items = await getSharedListItems(listId).catch(() => []);
+    sharedListItems = items;
+    const container = document.getElementById('sharedListPageItems');
+    if (!container) return;
+    container.innerHTML = '';
+    if (items.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-faint);font-size:0.85em;">No items yet.</div>';
+      return;
+    }
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);';
+      const chk = document.createElement('button');
+      chk.style.cssText = 'width:24px;height:24px;border-radius:50%;border:2px solid ' + (item.checked ? 'var(--gold)' : 'var(--glass-border)') + ';background:' + (item.checked ? 'var(--gold)' : 'transparent') + ';cursor:pointer;flex-shrink:0;color:var(--bg);font-size:0.75em;';
+      chk.textContent = item.checked ? '✓' : '';
+      chk.onclick = () => toggleSharedListItem(item.id, !item.checked).then(() => refreshSharedListPage(listId, listName));
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;font-size:0.9em;' + (item.checked ? 'text-decoration:line-through;color:var(--text-faint);' : '');
+      label.textContent = item.text;
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px;font-size:0.9em;';
+      del.onclick = () => deleteSharedListItem(item.id).then(() => refreshSharedListPage(listId, listName));
+      row.append(chk, label);
+      if (item.added_by && item.added_by !== currentUser) {
+        const who = document.createElement('span');
+        who.style.cssText = 'font-size:0.65em;color:var(--text-faint);';
+        who.textContent = item.added_by;
+        row.appendChild(who);
+      }
+      row.appendChild(del);
+      container.appendChild(row);
+    });
+  }
+
+  async function addSharedPageItem(listId) {
+    const input = document.getElementById('sharedListPageInput');
+    const text = input?.value.trim();
+    if (!text) return;
+    input.value = '';
+    await addSharedListItem(listId, text, 'Other', null, null, currentUser);
+    await refreshSharedListPage(listId, activeSharedListName);
+  }
+
+  async function deleteSharedListItems_all(listId, listName) {
+    if (!confirm('Remove ALL items from this list?')) return;
+    const items = await getSharedListItems(listId);
+    await Promise.all(items.map(i => deleteSharedListItem(i.id)));
+    refreshSharedListPage(listId, listName);
   }
 
   async function createNewSharedList() {
@@ -6651,17 +6813,45 @@ ${text}`;
   }
 
   async function inviteToSharedList(listId) {
-    const username = prompt('Enter username to invite:');
-    if (!username || !username.trim()) return;
-    const res = await addMemberToSharedList(listId, username.trim().toLowerCase()).catch(() => ({ status: 'Error' }));
-    if (res && res.status !== 'Error') {
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      toast.textContent = '✅ ' + username + ' added to list!';
-      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    const friendsRes = await getFriends(currentUser).catch(() => ({ following: [] }));
+    const following = friendsRes.following || [];
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:70vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-weight:800;font-size:0.95em;margin-bottom:12px;';
+    heading.textContent = 'Invite a friend';
+    sheet.appendChild(heading);
+    if (following.length === 0) {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'color:var(--text-faint);font-size:0.85em;padding:8px 0;';
+      msg.textContent = 'Follow someone first to invite them to a shared list.';
+      sheet.appendChild(msg);
     } else {
-      alert('Could not add user. Check the username and try again.');
+      following.forEach(u => {
+        const btn = document.createElement('div');
+        btn.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;';
+        btn.innerHTML = '<div style="width:34px;height:34px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;">' + u.charAt(0).toUpperCase() + '</div><span style="font-size:0.9em;font-weight:600;">' + escapeHtml(u) + '</span>';
+        btn.onclick = async () => {
+          await addMemberToSharedList(listId, u).catch(() => {});
+          sheet.remove(); ov.remove();
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+          toast.textContent = '✅ ' + u + ' added to list!';
+          document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+          await loadShopPanelSharedLists();
+        };
+        sheet.appendChild(btn);
+      });
     }
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:6px;';
+    cancelBtn.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.appendChild(cancelBtn);
+    document.body.appendChild(ov); document.body.appendChild(sheet);
   }
 
 
@@ -7055,6 +7245,12 @@ ${text}`;
             '<div style="color:var(--text-faint);font-size:0.8em;">›</div>';
           row.onclick = () => openPublicProfile(u);
           followingEl.appendChild(row);
+          // Load avatar async
+          getUserAvatar(u).then(url => {
+            if (!url) return;
+            const av = row.querySelector('div[style*="border-radius:50%"]');
+            if (av) av.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+          }).catch(() => {});
         });
       }
     }
