@@ -4293,6 +4293,7 @@
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
+      if (currentUser === 'rollert2') checkExpiredDeletionsAdmin();
       checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
       setTimeout(adjustHeaderPadding, 100);
     } catch(e) {
@@ -5549,6 +5550,10 @@
     await sbFetch('DELETE', 'follows?follower_id=eq.'+userId, null);
     await sbFetch('DELETE', 'follows?followee_id=eq.'+userId, null);
     await sbFetch('DELETE', 'notifications?to_user_id=eq.'+userId, null);
+    await sbFetch('DELETE', 'messages?from_user_id=eq.'+userId, null).catch(()=>{});
+    await sbFetch('DELETE', 'messages?to_user_id=eq.'+userId, null).catch(()=>{});
+    await sbFetch('DELETE', 'recipe_journal?user_id=eq.'+userId, null).catch(()=>{});
+    await sbFetch('DELETE', 'deletion_requests?user_id=eq.'+userId, null).catch(()=>{});
     await sbFetch('DELETE', 'users?id=eq.'+userId, null);
     alert('User "'+username+'" deleted.');
     loadAdminUsers();
@@ -7634,6 +7639,14 @@ ${text}`;
             grid.appendChild(card);
           });
           recipesEl.appendChild(grid);
+          // View All button if more than 6 recipes
+          if (recipes.length > 6) {
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.textContent = 'View all ' + recipes.length + ' recipes →';
+            viewAllBtn.style.cssText = 'width:100%;margin-top:10px;padding:9px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.8em;font-weight:600;cursor:pointer;font-family:inherit;';
+            viewAllBtn.onclick = () => openFriendCookbook(username, recipes);
+            recipesEl.appendChild(viewAllBtn);
+          }
         } else {
           recipesEl.innerHTML = '';
         }
@@ -7653,6 +7666,82 @@ ${text}`;
     } catch(e) {
       document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
     }
+  }
+
+
+
+  // ═══ FRIEND COOKBOOK (View All recipes) ═══════════════════
+  function openFriendCookbook(username, recipes) {
+    const page = document.createElement('div');
+    page.id = 'friendCookbookPage';
+    page.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:600;overflow-y:auto;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;';
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Back';
+    backBtn.style.cssText = 'background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;';
+    backBtn.onclick = () => page.remove();
+    const title = document.createElement('span');
+    title.style.cssText = 'font-weight:800;font-size:1em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    title.textContent = username + "'s Recipes";
+    ov.append(backBtn, title);
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 80px;';
+    recipes.forEach(r => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;';
+      card.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:100%;height:90px;object-fit:cover;display:block;">' : '<div style="width:100%;height:90px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.8em;">🍽️</div>') +
+        '<div style="padding:8px;"><div style="font-size:0.82em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.7em;color:var(--text-faint);">' + (r.category||'') + (r.cookTime ? ' · ' + r.cookTime : '') + '</div></div>';
+      const snap = Object.assign({}, r);
+      card.onclick = () => {
+        document.getElementById('friendRecipeModalTitle').textContent = snap.title;
+        const body = document.getElementById('friendRecipeModalBody');
+        body.innerHTML = (snap.image ? '<img src="' + snap.image + '" style="width:100%;height:200px;object-fit:cover;display:block;">' : '') +
+          '<div style="padding:16px;">' +
+          '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;">' + (snap.category||'') + (snap.cookTime?' · ⏱ '+snap.cookTime:'') + '</div>' +
+          '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Ingredients</div>' +
+          '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;">' + escapeHtml(snap.ingredients||'') + '</div>' +
+          '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Instructions</div>' +
+          '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(snap.instructions||'') + '</div></div>';
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+ Add to My Cookbook';
+        addBtn.style.cssText = 'width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;display:block;';
+        addBtn.onclick = () => addRecipeFromColSheet(snap.id, snap.title);
+        body.appendChild(addBtn);
+        openModalAnimated('friendRecipeModal');
+      };
+      grid.appendChild(card);
+    });
+    page.append(ov, grid);
+    document.body.appendChild(page);
+  }
+
+  // ═══ ADMIN: AUTO-DELETE EXPIRED ACCOUNTS ══════════════════
+  async function checkExpiredDeletionsAdmin() {
+    try {
+      const pending = await getPendingDeletionRequests();
+      const now = Date.now();
+      for (const req of pending) {
+        if (!req.cancelled && new Date(req.delete_after).getTime() < now) {
+          // Timer expired — look up user and delete
+          const userId = req.user_id;
+          if (!userId) continue;
+          console.log('Auto-deleting expired account:', req.username);
+          await sbFetch('DELETE', 'recipes?user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'user_settings?user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'planner_entries?user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'follows?follower_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'follows?followee_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'notifications?to_user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'messages?from_user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'messages?to_user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'recipe_journal?user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'deletion_requests?user_id=eq.'+userId, null).catch(()=>{});
+          await sbFetch('DELETE', 'users?id=eq.'+userId, null).catch(()=>{});
+          console.log('Deleted:', req.username);
+        }
+      }
+    } catch(e) { console.error('checkExpiredDeletionsAdmin:', e); }
   }
 
 
