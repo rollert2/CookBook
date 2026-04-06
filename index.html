@@ -541,7 +541,7 @@
     /* Timer bar is now inside the fixed header, no need to push */
 
     /* ── COOKING MODE ── */
-    .cook-mode { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:800; background:#0a0a0c; flex-direction:column; }
+    .cook-mode { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:800; background:var(--bg); flex-direction:column; }
     .cook-mode.active { display:flex; }
     .cook-header { background:var(--surface); border-bottom:2px solid var(--gold); padding:16px 18px 14px; display:flex; align-items:center; gap:10px; flex-shrink:0; }
     .cook-recipe-title { font-size:0.78em; font-weight:700; color:var(--gold); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1248,18 +1248,58 @@
     </div>
   </div>
 
+  <!-- SHOPPING PAGE (full screen) -->
+  <div id="shoppingPage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;flex-direction:column;">
+    <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+      <button onclick="closeShoppingPage()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+      <span style="font-weight:800;font-size:1em;flex:1;">🛒 Shopping</span>
+    </div>
+    <!-- List tabs -->
+    <div id="shopPageTabRow" style="display:flex;gap:7px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--glass-border);">
+      <button class="sort-chip active" id="shopPageTab_personal" onclick="switchShoppingPageTab('personal')">📋 My List</button>
+      <div id="shopPageSharedTabs" style="display:contents;"></div>
+      <button onclick="createSharedListFromPage()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ New Shared</button>
+    </div>
+    <!-- Personal list content -->
+    <div id="shopPagePersonal" style="display:flex;flex-direction:column;height:100%;">
+      <div style="padding:12px 16px 8px;display:flex;gap:8px;">
+        <input type="text" id="shopPageInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPagePersonalItem()">
+        <button onclick="addShopPagePersonalItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
+      </div>
+      <div id="shopPageList" style="padding:0 16px;flex:1;overflow-y:auto;padding-bottom:80px;"></div>
+      <div id="shopPageActions" style="display:none;padding:8px 16px;gap:8px;display:flex;">
+        <button onclick="clearCheckedPageItems()" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;cursor:pointer;font-family:inherit;">🗑 Clear Checked</button>
+        <button onclick="clearAllPageItems()" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.08);border:1px solid var(--red);color:var(--red);font-size:0.82em;cursor:pointer;font-family:inherit;">✕ Clear All</button>
+      </div>
+    </div>
+    <!-- Shared list content -->
+    <div id="shopPageShared" style="display:none;flex-direction:column;">
+      <div style="padding:12px 16px 8px;display:flex;gap:8px;">
+        <input type="text" id="shopPageSharedInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPageSharedItem()">
+        <button onclick="addShopPageSharedItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
+      </div>
+      <div style="padding:0 16px 6px;display:flex;gap:8px;">
+        <button id="shopPageClearChecked" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">🗑 Clear checked</button>
+        <button id="shopPageRemoveAll" style="padding:6px 12px;border-radius:20px;background:rgba(224,85,85,0.1);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">✕ Remove all</button>
+        <button id="shopPageInvite" style="padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ Invite</button>
+        <button id="shopPageDeleteList" style="padding:6px 12px;border-radius:20px;background:rgba(224,85,85,0.1);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">🗑 Delete List</button>
+      </div>
+      <div id="shopPageSharedList" style="padding:0 16px;padding-bottom:80px;"></div>
+    </div>
+  </div>
+
   <!-- COOK MODE -->
   <div class="cook-mode" id="cookMode">
     <div class="cook-header">
       <button class="cook-close" onclick="closeCookMode()" style="margin-right:4px;">✕</button>
       <div class="cook-recipe-title" id="cookRecipeTitle"></div>
-      <div class="cook-step-counter" id="cookStepCounter" style="font-size:0.78em;color:rgba(255,255,255,0.5);margin-left:auto;"></div>
+      <div class="cook-step-counter" id="cookStepCounter" style="font-size:0.78em;color:var(--text-faint);margin-left:auto;"></div>
     </div>
     <div class="cook-progress-bar"><div class="cook-progress-fill" id="cookProgressFill"></div></div>
     <div class="cook-timers" id="cookTimers"></div>
     <div class="cook-step-scroll cook-mode-content" id="cookStepArea">
       <div class="cook-step-num" id="cookStepNum"></div>
-      <div class="cook-step-text" id="cookStepText" style="font-size:1.35em;line-height:1.75;color:rgba(255,255,255,0.95);"></div>
+      <div class="cook-step-text" id="cookStepText" style="font-size:1.35em;line-height:1.75;color:var(--text);"></div>
     </div>
     <div class="cook-nav-bar">
       <button class="cook-nav-btn cook-nav-prev" id="cookPrevBtn" onclick="cookStepNav(-1)">← Previous</button>
@@ -1268,19 +1308,19 @@
   </div>
 
   <!-- Cook completion screen -->
-  <div id="cookCompletionScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0c;z-index:900;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px 50px;text-align:center;">
+  <div id="cookCompletionScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:900;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px 50px;text-align:center;">
     <div style="font-size:3.5em;margin-bottom:16px;">🎉</div>
-    <div style="font-size:1.4em;font-weight:800;color:#fff;margin-bottom:6px;">Well done!</div>
-    <div style="font-size:0.95em;color:rgba(255,255,255,0.6);margin-bottom:28px;" id="cookCompletionTitle"></div>
+    <div style="font-size:1.4em;font-weight:800;color:var(--text);margin-bottom:6px;">Well done!</div>
+    <div style="font-size:0.95em;color:var(--text-dim);margin-bottom:28px;" id="cookCompletionTitle"></div>
     <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:360px;">
-      <button onclick="markCookedFromCompletion()" style="padding:14px;border-radius:12px;background:var(--gold);border:none;color:#0a0a0c;font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">✅ Mark as Cooked</button>
+      <button onclick="markCookedFromCompletion()" style="padding:14px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">✅ Mark as Cooked</button>
       <div id="cookCompletionLastCooked" style="font-size:0.78em;color:rgba(255,255,255,0.5);min-height:16px;"></div>
-      <textarea id="cookJournalInput" placeholder="Add a journal note... (how did it go?)" style="width:100%;min-height:90px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#fff;padding:12px;font-size:0.88em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
-      <div id="cookJournalStatus" style="font-size:0.78em;color:rgba(201,168,76,0.8);min-height:16px;"></div>
-      <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:rgba(201,168,76,0.9);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
-      <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
-      <button onclick="addLeftoverFromCompletion()" style="padding:12px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🥡 Log as Leftovers</button>
-      <button onclick="closeCookCompletion()" style="padding:12px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);font-size:0.85em;cursor:pointer;font-family:inherit;">Done</button>
+      <textarea id="cookJournalInput" placeholder="Add a journal note... (how did it go?)" style="width:100%;min-height:90px;background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;color:var(--text);padding:12px;font-size:0.88em;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+      <div id="cookJournalStatus" style="font-size:0.78em;color:var(--gold);min-height:16px;"></div>
+      <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
+      <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
+      <button onclick="addLeftoverFromCompletion()" style="padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🥡 Log as Leftovers</button>
+      <button onclick="closeCookCompletion()" style="padding:12px;border-radius:12px;background:transparent;border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Done</button>
     </div>
   </div>
 
@@ -2607,11 +2647,7 @@
 
   // ═══ SHOP PANEL ═══
   function openShopPanel() {
-    renderShopList();
-    document.getElementById('shopPanel').classList.add('open');
-    document.getElementById('shopOverlay').classList.add('open');
-    switchShopListTab('personal');
-    if (typeof loadShopPanelSharedLists === 'function') loadShopPanelSharedLists();
+    openShoppingPage();
   }
   function closeShopPanel() {
     document.getElementById('shopPanel').classList.remove('open');
@@ -2847,12 +2883,7 @@
       // Message bell badge
       const msgBadgeEl = document.getElementById('msgBellBadge');
       if (msgBadgeEl) { msgBadgeEl.style.display = unreadCount > 0 ? 'flex' : 'none'; msgBadgeEl.textContent = unreadCount; }
-      // Load bio into hero
-      getUserProfile(currentUser).then(profile => {
-        let bioEl = document.getElementById('profileHeroBio');
-        if (!bioEl) { bioEl = document.createElement('div'); bioEl.id = 'profileHeroBio'; bioEl.style.cssText = 'font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;'; const hero = document.getElementById('profileHero'); if (hero) hero.appendChild(bioEl); }
-        bioEl.textContent = (profile && profile.bio) ? profile.bio : '';
-      }).catch(() => {});
+      // Bio already loaded in getUserProfile call above
       renderFriendsList(following);
       renderProfileNotifications();
       document.getElementById('friendRecipesSection').style.display = 'none';
@@ -5005,11 +5036,18 @@
   }
 
   // Community post creation
-  function openCommunityPost() {
-    communityPostSelectedRecipe = null;
+  function openCommunityPost(_keepSelected) {
+    if (!_keepSelected) communityPostSelectedRecipe = null;
     communityAttemptPhotoData = null;
-    document.getElementById('communityPostModeSelect').style.display = 'flex';
-    document.getElementById('communityPostForm').style.display = 'none';
+    if (_keepSelected && communityPostSelectedRecipe) {
+      communityPostMode = 'existing';
+      document.getElementById('communityPostModeSelect').style.display = 'none';
+      document.getElementById('communityPostForm').style.display = 'block';
+      renderCommunityPostForm();
+    } else {
+      document.getElementById('communityPostModeSelect').style.display = 'flex';
+      document.getElementById('communityPostForm').style.display = 'none';
+    }
     // Populate recipe picker
     const picker = document.getElementById('communityRecipePicker');
     picker.innerHTML = allRecipes.map(r =>
@@ -5675,28 +5713,6 @@
   };
 
   // Override addIngredientsToShop to use smart aisle grouping + dedup
-  function addIngredientsToShop(ings, groupLabel) {
-    // Strip leading quantity/units from an ingredient for comparison
-    function getIngredientCore(text) {
-      return text.toLowerCase()
-        .replace(/^\d+[\d\/\.\s]*(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|lb|pound|g|gram|kg|ml|liter|l|bunch|clove|cloves|can|cans|jar|slice|slices|piece|pieces|pinch|dash|handful|medium|large|small|whole|fresh|dried|chopped|minced|sliced|diced|shredded|grated)s?\b[\s,]*/i, '')
-        .replace(/^\d+[\d\/\.\s]+/,'')
-        .trim();
-    }
-    const newItems = ings.map(text => ({
-      text,
-      checked: false,
-      group: AISLE_LABELS[classifyIngredientAisle(text)] || '📦 Other',
-      recipeLabel: groupLabel || null,
-      _core: getIngredientCore(text)
-    }));
-    const existingCores = shopItems.map(i => getIngredientCore(i.text));
-    const toAdd = newItems.filter(item => !existingCores.includes(item._core));
-    shopItems = [...toAdd.map(({_core, ...rest}) => rest), ...shopItems];
-    saveShop();
-    renderShopList();
-  }
-
   function renderShopList() {
     const list = document.getElementById('shopList');
     const empty = document.getElementById('shopEmpty');
@@ -6005,111 +6021,6 @@
   }
 
   // ═══ PUBLIC USER PROFILES ═════════════════════════════════
-  async function openPublicProfile(username) {
-    document.getElementById('publicProfileUsername').textContent = '@' + username;
-    document.getElementById('publicProfileBody').innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div></div>';
-    openModalAnimated('publicProfileModal');
-    try {
-      const [profile, stats, friendsRes, colRes] = await Promise.all([
-        getUserProfile(username),
-        getProfileStats(username),
-        getFriends(currentUser),
-        getPublicCollections(username)
-      ]);
-      const following = friendsRes.following || [];
-      const isMe = username === currentUser;
-      const isFollowing = following.includes(username);
-      const av = profile?.avatar_url
-        ? `<img src="${profile.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-        : `<div style="font-size:2em;font-weight:700;color:var(--gold);">${username.charAt(0).toUpperCase()}</div>`;
-      const followBtn = !isMe ? (isFollowing
-        ? `<button onclick="unfollowUser('${currentUser}','${username}').then(()=>openPublicProfile('${username}'))" style="padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;">Following ✓</button>`
-        : `<button onclick="followUser('${currentUser}','${username}').then(()=>{sendFollowNotification('${currentUser}','${username}');openPublicProfile('${username}');})" style="padding:8px 20px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;">+ Follow</button>`) : '';
-      const msgBtn = !isMe
-        ? `<button onclick="closeModalAnimated('publicProfileModal');setTimeout(()=>openMessaging('${username}'),300);" style="padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;">💬 Message</button>` : '';
-      const cols = colRes.collections || [];
-      const colHtml = cols.map(c =>
-        `<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;cursor:pointer;" onclick="viewPublicCollection('${c.id}','${escapeHtml(c.name)}','${username}')">
-          <div style="font-weight:700;font-size:0.88em;">📁 ${escapeHtml(c.name)}</div>
-          ${c.description?`<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">${escapeHtml(c.description)}</div>`:''}
-          <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;">${c.recipeIds.length} recipe${c.recipeIds.length!==1?'s':''}</div>
-        </div>`).join('');
-      document.getElementById('publicProfileBody').innerHTML = `
-        <div style="text-align:center;padding:20px 16px 12px;">
-          <div style="width:80px;height:80px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;">${av}</div>
-          <div style="font-size:1.1em;font-weight:800;margin-bottom:4px;">@${escapeHtml(username)}</div>
-          ${profile?.bio?`<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">${escapeHtml(profile.bio)}</div>`:''}
-          <div style="display:flex;justify-content:center;gap:24px;margin-bottom:14px;">
-            <div><div style="font-size:1.2em;font-weight:800;">${stats.recipeCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Recipes</div></div>
-            <div><div style="font-size:1.2em;font-weight:800;">${stats.followerCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>
-            <div><div style="font-size:1.2em;font-weight:800;">${stats.followingCount||0}</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div>
-          </div>
-          <div style="display:flex;gap:8px;justify-content:center;">${followBtn}${msgBtn}</div>
-        </div>
-        ${cols.length?`<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>${colHtml}</div>`:''}
-        <div style="padding:0 16px 20px;margin-top:10px;">
-          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div>
-          <div id="publicProfilePosts">Loading...</div>
-        </div>`;
-      // Load their recipes (respects privacy)
-      const [allPosts, theirRecipes] = await Promise.all([
-        getCommunityPosts(null,'newest',20,0),
-        getFriendRecipes(username)
-      ]);
-      const userPosts = allPosts.filter(p => (p.users?.username||'') === username);
-      const recipes = theirRecipes.recipes || [];
-
-      // Build recipes section
-      const recipesEl = document.getElementById('publicProfileRecipes');
-      if (recipesEl && recipes.length > 0) {
-        recipesEl.style.display = 'block';
-        recipesEl.innerHTML = '';
-        const heading = document.createElement('div');
-        heading.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;padding:0 16px;';
-        heading.textContent = 'Recipes';
-        recipesEl.appendChild(heading);
-        const grid = document.createElement('div');
-        grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;';
-        recipes.slice(0, 6).forEach(r => {
-          const card = document.createElement('div');
-          card.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;';
-          card.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:100%;height:80px;object-fit:cover;display:block;">' : '<div style="width:100%;height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5em;">🍽️</div>') +
-            '<div style="padding:6px 8px;"><div style="font-size:0.78em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.68em;color:var(--text-faint);">' + (r.category||'') + '</div></div>';
-          card.onclick = () => {
-            document.getElementById('friendRecipeModalTitle').textContent = r.title;
-            const modal = document.getElementById('friendRecipeModalBody');
-            modal.innerHTML =
-              (r.image ? '<img src="' + r.image + '" style="width:100%;height:200px;object-fit:cover;display:block;">' : '') +
-              '<div style="padding:16px;">' +
-              '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;">' + (r.category||'') + (r.cookTime?' · ⏱ '+r.cookTime:'') + '</div>' +
-              '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Ingredients</div>' +
-              '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;">' + escapeHtml(r.ingredients||'') + '</div>' +
-              '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Instructions</div>' +
-              '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(r.instructions||'') + '</div>' +
-              '</div>';
-            const addBtn2 = document.createElement('button');
-            addBtn2.textContent = '+ Add to My Cookbook';
-            addBtn2.style.cssText = 'width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;display:block;';
-            addBtn2.onclick = () => addRecipeFromColSheet(r.id, r.title);
-            modal.appendChild(addBtn2);
-            openModalAnimated('friendRecipeModal');
-          };
-          grid.appendChild(card);
-        });
-        recipesEl.appendChild(grid);
-      }
-
-      const postsEl = document.getElementById('publicProfilePosts');
-      if (postsEl) postsEl.innerHTML = userPosts.length === 0 ? '<span style="color:var(--text-faint);font-size:0.85em;">No community posts yet.</span>'
-        : userPosts.map(p => '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">' +
-            (p.image_url ? '<img src="' + p.image_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>') +
-            '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(p.title) + '</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ' + (p.upvotes||0) + '</div></div>' +
-            '</div>').join('');
-    } catch(e) {
-      document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
-    }
-  }
-
   async function viewPublicCollection(colId, colName, ownerUsername) {
     const res = await getFriendCollectionRecipes(colId);
     const recipes = res.recipes || [];
@@ -6341,7 +6252,7 @@ ${text}`;
     if (!r) { closeCookCompletion(); return; }
     communityPostSelectedRecipe = r;
     closeCookCompletion();
-    setTimeout(() => openCommunityPost(), 300);
+    setTimeout(() => openCommunityPost(true), 300);
   }
   async function markCookedFromDetail() {
     const r = allRecipes[activeRecipeIndex];
@@ -7419,6 +7330,332 @@ ${text}`;
   // ═══ PUBLIC PROFILE — VIEW RECIPES ════════════════════════
   // Patch openPublicProfile to add recipe viewing
   // Wire openShopPanel to also load shared list tabs
+
+  // ═══ FULL-PAGE SHOPPING ════════════════════════════════════
+  let shopPageActiveListId = null;
+
+  function openShoppingPage() {
+    const page = document.getElementById('shoppingPage');
+    if (page) page.style.display = 'flex';
+    switchShoppingPageTab('personal');
+    loadShoppingPageSharedTabs();
+  }
+
+  function closeShoppingPage() {
+    const page = document.getElementById('shoppingPage');
+    if (page) page.style.display = 'none';
+  }
+
+  async function loadShoppingPageSharedTabs() {
+    const tabsEl = document.getElementById('shopPageSharedTabs');
+    if (!tabsEl) return;
+    const lists = await getMySharedLists(currentUser).catch(() => []);
+    tabsEl.innerHTML = '';
+    lists.forEach(l => {
+      const btn = document.createElement('button');
+      btn.className = 'sort-chip';
+      btn.id = 'shopPageTab_' + l.id;
+      btn.style.flexShrink = '0';
+      btn.textContent = '🛒 ' + (l.name || '');
+      btn.onclick = () => switchShoppingPageTab(l.id, l.name);
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  function switchShoppingPageTab(tabId, tabName) {
+    shopPageActiveListId = tabId === 'personal' ? null : tabId;
+    document.querySelectorAll('[id^="shopPageTab_"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('shopPageTab_' + tabId);
+    if (btn) btn.classList.add('active');
+    const personal = document.getElementById('shopPagePersonal');
+    const shared = document.getElementById('shopPageShared');
+    if (tabId === 'personal') {
+      if (personal) personal.style.display = 'flex';
+      if (shared) shared.style.display = 'none';
+      renderShoppingPagePersonal();
+    } else {
+      if (personal) personal.style.display = 'none';
+      if (shared) shared.style.display = 'flex';
+      renderShoppingPageShared(tabId, tabName || '');
+      // Wire action buttons
+      const clearChecked = document.getElementById('shopPageClearChecked');
+      const removeAll = document.getElementById('shopPageRemoveAll');
+      const invite = document.getElementById('shopPageInvite');
+      const deleteList = document.getElementById('shopPageDeleteList');
+      if (clearChecked) clearChecked.onclick = () => clearCheckedSharedItems(tabId).then(() => renderShoppingPageShared(tabId, tabName));
+      if (removeAll) removeAll.onclick = async () => {
+        if (!confirm('Remove ALL items from this list?')) return;
+        const items = await getSharedListItems(tabId);
+        await Promise.all(items.map(i => deleteSharedListItem(i.id)));
+        renderShoppingPageShared(tabId, tabName);
+      };
+      if (invite) invite.onclick = () => inviteToSharedList(tabId);
+      if (deleteList) deleteList.onclick = async () => {
+        if (!confirm('Delete "' + tabName + '"? This removes it for all members.')) return;
+        await deleteSharedList(tabId, currentUser);
+        await loadShoppingPageSharedTabs();
+        switchShoppingPageTab('personal');
+      };
+    }
+  }
+
+  function renderShoppingPagePersonal() {
+    const list = document.getElementById('shopPageList');
+    const actions = document.getElementById('shopPageActions');
+    if (!list) return;
+    if (shopItems.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">Your list is empty.<br>Add items above or import from a recipe.</div>';
+      if (actions) actions.style.display = 'none';
+      return;
+    }
+    if (actions) actions.style.display = 'flex';
+    // Group by category
+    const groups = {};
+    shopItems.forEach(item => {
+      const g = item.group || 'Other';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(item);
+    });
+    list.innerHTML = '';
+    Object.entries(groups).forEach(([group, items]) => {
+      const section = document.createElement('div');
+      section.style.cssText = 'margin-bottom:12px;';
+      const heading = document.createElement('div');
+      heading.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);padding:10px 0 4px;';
+      heading.textContent = group;
+      section.appendChild(heading);
+      items.forEach(item => {
+        const idx = shopItems.indexOf(item);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);';
+        const chk = document.createElement('button');
+        chk.style.cssText = 'width:24px;height:24px;border-radius:50%;border:2px solid ' + (item.checked ? 'var(--gold)' : 'var(--glass-border)') + ';background:' + (item.checked ? 'var(--gold)' : 'transparent') + ';cursor:pointer;flex-shrink:0;color:var(--bg);font-size:0.75em;';
+        chk.textContent = item.checked ? '✓' : '';
+        chk.onclick = () => {
+          shopItems[idx].checked = !shopItems[idx].checked;
+          saveShop(); renderShoppingPagePersonal();
+        };
+        const label = document.createElement('span');
+        label.style.cssText = 'flex:1;font-size:0.9em;' + (item.checked ? 'text-decoration:line-through;color:var(--text-faint);' : '');
+        label.textContent = item.text;
+        const del = document.createElement('button');
+        del.textContent = '✕';
+        del.style.cssText = 'background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px;font-size:0.9em;';
+        del.onclick = () => { shopItems.splice(idx, 1); saveShop(); renderShoppingPagePersonal(); };
+        row.append(chk, label, del);
+        section.appendChild(row);
+      });
+      list.appendChild(section);
+    });
+  }
+
+  function addShopPagePersonalItem() {
+    const input = document.getElementById('shopPageInput');
+    const text = input?.value.trim();
+    if (!text) return;
+    shopItems.unshift({ text, checked: false, group: 'Other' });
+    input.value = '';
+    saveShop();
+    renderShoppingPagePersonal();
+  }
+
+  function clearCheckedPageItems() {
+    shopItems = shopItems.filter(i => !i.checked);
+    saveShop(); renderShoppingPagePersonal();
+  }
+
+  function clearAllPageItems() {
+    if (!confirm('Clear your entire personal shopping list?')) return;
+    shopItems = []; saveShop(); renderShoppingPagePersonal();
+  }
+
+  async function renderShoppingPageShared(listId, listName) {
+    const container = document.getElementById('shopPageSharedList');
+    if (!container) return;
+    container.innerHTML = '<div style="color:var(--text-faint);font-size:0.82em;padding:12px 0;">Loading...</div>';
+    const items = await getSharedListItems(listId).catch(() => []);
+    container.innerHTML = '';
+    if (items.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-faint);font-size:0.85em;">No items yet. Add something above!</div>';
+      return;
+    }
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);';
+      const chk = document.createElement('button');
+      chk.style.cssText = 'width:24px;height:24px;border-radius:50%;border:2px solid ' + (item.checked ? 'var(--gold)' : 'var(--glass-border)') + ';background:' + (item.checked ? 'var(--gold)' : 'transparent') + ';cursor:pointer;flex-shrink:0;color:var(--bg);font-size:0.75em;';
+      chk.textContent = item.checked ? '✓' : '';
+      chk.onclick = () => toggleSharedListItem(item.id, !item.checked).then(() => renderShoppingPageShared(listId, listName));
+      const label = document.createElement('span');
+      label.style.cssText = 'flex:1;font-size:0.9em;' + (item.checked ? 'text-decoration:line-through;color:var(--text-faint);' : '');
+      label.textContent = item.text;
+      if (item.added_by && item.added_by !== currentUser) {
+        const who = document.createElement('span');
+        who.style.cssText = 'font-size:0.65em;color:var(--text-faint);flex-shrink:0;';
+        who.textContent = item.added_by;
+        row.append(chk, label, who);
+      } else {
+        row.append(chk, label);
+      }
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px;font-size:0.9em;';
+      del.onclick = () => deleteSharedListItem(item.id).then(() => renderShoppingPageShared(listId, listName));
+      row.appendChild(del);
+      container.appendChild(row);
+    });
+    // Poll for updates
+    clearInterval(sharedListPolling);
+    sharedListPolling = setInterval(() => {
+      if (shopPageActiveListId === listId && document.getElementById('shoppingPage')?.style.display !== 'none') {
+        renderShoppingPageShared(listId, listName);
+      } else { clearInterval(sharedListPolling); }
+    }, 8000);
+  }
+
+  async function addShopPageSharedItem() {
+    if (!shopPageActiveListId) return;
+    const input = document.getElementById('shopPageSharedInput');
+    const text = input?.value.trim();
+    if (!text) return;
+    input.value = '';
+    await addSharedListItem(shopPageActiveListId, text, 'Other', null, null, currentUser);
+    renderShoppingPageShared(shopPageActiveListId, '');
+  }
+
+  // Override addIngredientsToShop to open shopping page if it's visible
+  const _origAddIngredientsToShop = addIngredientsToShop;
+  function addIngredientsToShop(ings, groupLabel) {
+    _origAddIngredientsToShop(ings, groupLabel);
+    // If shopping page is open, refresh it
+    const page = document.getElementById('shoppingPage');
+    if (page && page.style.display !== 'none') renderShoppingPagePersonal();
+  }
+
+  // ═══ FRIEND RECIPE VIEWING (public profile) ════════════════
+  // Patch openPublicProfile to properly load and show recipes
+  async function openPublicProfile(username) {
+    document.getElementById('publicProfileUsername').textContent = '@' + username;
+    document.getElementById('publicProfileBody').innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div></div>';
+    openModalAnimated('publicProfileModal');
+    try {
+      const [profile, stats, friendsRes, colRes, theirRecipes, allPosts] = await Promise.all([
+        getUserProfile(username),
+        getProfileStats(username),
+        getFriends(currentUser),
+        getPublicCollections(username),
+        getFriendRecipes(username),
+        getCommunityPosts(null,'newest',20,0)
+      ]);
+      const following = friendsRes.following || [];
+      const isMe = username === currentUser;
+      const isFollowing = following.includes(username);
+      const av = profile?.avatar_url
+        ? '<img src="' + profile.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+        : '<div style="font-size:2em;font-weight:700;color:var(--gold);">' + username.charAt(0).toUpperCase() + '</div>';
+      const cols = colRes.collections || [];
+      // colHtml built with proper DOM-safe approach (buttons wired via DOM after render)
+      const colHtml = cols.map(c => {
+        const cid = c.id; const cname = c.name; const cdesc = c.description || ''; const ccount = c.recipeIds.length;
+        return '<div data-col-id="' + cid + '" data-col-name="' + escapeHtml(cname) + '" data-col-owner="' + username + '" class="pubcol-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;cursor:pointer;">' +
+          '<div style="font-weight:700;font-size:0.88em;">📁 ' + escapeHtml(cname) + '</div>' +
+          (cdesc ? '<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">' + escapeHtml(cdesc) + '</div>' : '') +
+          '<div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;">' + ccount + ' recipe' + (ccount !== 1 ? 's' : '') + '</div></div>';
+      }).join('');
+
+      // Build body
+      document.getElementById('publicProfileBody').innerHTML =
+        '<div style="text-align:center;padding:20px 16px 12px;">' +
+        '<div style="width:80px;height:80px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;">' + av + '</div>' +
+        '<div style="font-size:1.1em;font-weight:800;margin-bottom:4px;">@' + escapeHtml(username) + '</div>' +
+        (profile?.bio ? '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '') +
+        '<div style="display:flex;justify-content:center;gap:24px;margin-bottom:14px;">' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.recipeCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Recipes</div></div>' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followerCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followingCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div></div>' +
+        '<div id="pubProfileBtns" style="display:flex;gap:8px;justify-content:center;"></div></div>' +
+        (cols.length ? '<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>' + colHtml + '</div>' : '') +
+        '<div id="pubProfileRecipes" style="padding:0 16px;margin-top:10px;"></div>' +
+        '<div style="padding:0 16px 20px;margin-top:10px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div><div id="pubProfilePosts">Loading...</div></div>';
+
+      // Wire collection item clicks
+      document.querySelectorAll('.pubcol-item').forEach(el => {
+        el.onclick = () => viewPublicCollection(el.dataset.colId, el.dataset.colName, el.dataset.colOwner);
+      });
+      // Wire follow/message buttons via DOM
+      const btnsEl = document.getElementById('pubProfileBtns');
+      if (btnsEl && !isMe) {
+        const fb = document.createElement('button');
+        fb.style.cssText = 'padding:8px 20px;border-radius:20px;font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;border:none;';
+        if (isFollowing) {
+          fb.textContent = 'Following ✓'; fb.style.background = 'var(--glass)'; fb.style.border = '1px solid var(--glass-border)'; fb.style.color = 'var(--text-dim)';
+          fb.onclick = () => unfollowUser(currentUser, username).then(() => openPublicProfile(username));
+        } else {
+          fb.textContent = '+ Follow'; fb.style.background = 'var(--gold)'; fb.style.color = 'var(--bg)';
+          fb.onclick = () => followUser(currentUser, username).then(() => { sendFollowNotification(currentUser, username); openPublicProfile(username); });
+        }
+        const mb = document.createElement('button');
+        mb.textContent = '💬 Message'; mb.style.cssText = 'padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;';
+        mb.onclick = () => { closeModalAnimated('publicProfileModal'); setTimeout(() => openMessaging(username), 300); };
+        btnsEl.append(fb, mb);
+      }
+
+      // Load recipes
+      const recipes = theirRecipes.recipes || [];
+      const recipesEl = document.getElementById('pubProfileRecipes');
+      if (recipesEl) {
+        if (recipes.length > 0) {
+          recipesEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Recipes</div>';
+          const grid = document.createElement('div');
+          grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+          recipes.slice(0, 6).forEach(r => {
+            const card = document.createElement('div');
+            card.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;';
+            card.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:100%;height:80px;object-fit:cover;display:block;">' : '<div style="width:100%;height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5em;">🍽️</div>') +
+              '<div style="padding:6px 8px;"><div style="font-size:0.78em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.68em;color:var(--text-faint);">' + (r.category||'') + '</div></div>';
+            const recipeSnap = Object.assign({}, r);
+            card.onclick = () => {
+              document.getElementById('friendRecipeModalTitle').textContent = recipeSnap.title;
+              const body = document.getElementById('friendRecipeModalBody');
+              body.innerHTML = (recipeSnap.image ? '<img src="' + recipeSnap.image + '" style="width:100%;height:200px;object-fit:cover;display:block;">' : '') +
+                '<div style="padding:16px;">' +
+                '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;">' + (recipeSnap.category||'') + (recipeSnap.cookTime?' · ⏱ '+recipeSnap.cookTime:'') + '</div>' +
+                '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Ingredients</div>' +
+                '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;">' + escapeHtml(recipeSnap.ingredients||'') + '</div>' +
+                '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Instructions</div>' +
+                '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(recipeSnap.instructions||'') + '</div></div>';
+              const addBtn = document.createElement('button');
+              addBtn.textContent = '+ Add to My Cookbook';
+              addBtn.style.cssText = 'width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;display:block;';
+              addBtn.onclick = () => addRecipeFromColSheet(recipeSnap.id, recipeSnap.title);
+              body.appendChild(addBtn);
+              openModalAnimated('friendRecipeModal');
+            };
+            grid.appendChild(card);
+          });
+          recipesEl.appendChild(grid);
+        } else {
+          recipesEl.innerHTML = '';
+        }
+      }
+
+      // Load posts
+      const userPosts = allPosts.filter(p => (p.users?.username||'') === username);
+      const postsEl = document.getElementById('pubProfilePosts');
+      if (postsEl) {
+        postsEl.innerHTML = userPosts.length === 0 ? '<span style="color:var(--text-faint);font-size:0.85em;">No community posts yet.</span>'
+          : userPosts.map(p =>
+              '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">' +
+              (p.image_url ? '<img src="' + p.image_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>') +
+              '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(p.title) + '</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ' + (p.upvotes||0) + '</div></div></div>'
+            ).join('');
+      }
+    } catch(e) {
+      document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
+    }
+  }
+
+
 </script>
 </body>
 </html>
