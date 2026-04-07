@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V9 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V10 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1516,6 +1516,13 @@
       </div>
     </div>
     <div style="height:30px;"></div>
+    <div class="settings-section">
+      <div class="settings-section-title">🔒 Account Security</div>
+      <div id="accountSecurityStatus" style="font-size:0.82em;color:var(--text-faint);margin-bottom:12px;"></div>
+      <button onclick="openChangePasswordSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;text-align:left;">🔑 Change Password</button>
+      <button onclick="openChangeEmailSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">📧 Change Email</button>
+    </div>
+    <div style="height:16px;"></div>
     <div class="settings-section">
       <div class="settings-section-title" style="color:var(--red);">Danger Zone</div>
       <div id="deletionStatusWrap" style="display:none;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
@@ -6020,6 +6027,7 @@
     };
   }
   function openSettingsModal() {
+    refreshAccountSecurityStatus();
     checkDeletionStatus();
     getUserSettings(currentUser).then(res => {
       userSettings = res.settings || {};
@@ -8148,7 +8156,6 @@ ${text}`;
 
   function showSecurityBanner() {
     if (_securityBannerDismissed) return;
-    if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
     let banner = document.getElementById('securityBanner');
     if (!banner) {
       // Create it dynamically if not found
@@ -8166,7 +8173,8 @@ ${text}`;
 
   function dismissSecurityBanner() {
     _securityBannerDismissed = true;
-    localStorage.setItem('rc_security_dismissed_' + currentUser, '1');
+    // Store in sessionStorage only — banner reappears next login
+    sessionStorage.setItem('rc_security_dismissed_' + currentUser, '1');
     const banner = document.getElementById('securityBanner');
     if (banner) banner.style.display = 'none';
   }
@@ -8220,6 +8228,147 @@ ${text}`;
     toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
     toast.textContent = '🔒 Account secured! You can now log in with your email and password.';
     document.body.appendChild(toast); setTimeout(() => toast.remove(), 3500);
+  }
+
+
+
+  // ═══ ACCOUNT SECURITY — CHANGE PASSWORD / EMAIL ══════════
+  function openChangePasswordSheet() {
+    const session = JSON.parse(localStorage.getItem('rc_session') || 'null');
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:24px 20px 50px;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    if (!session || !session.access_token) {
+      sheet.innerHTML = '<div style="font-weight:800;margin-bottom:10px;">🔑 Change Password</div>' +
+        '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:16px;">You need to be signed in with a password to change it.<br>Use the Forgot Password link on the login screen instead.</div>' +
+        '<button onclick="sendPasswordResetFromSettings()" style="width:100%;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Send Reset Link to My Email</button>';
+    } else {
+      sheet.innerHTML = '<div style="font-weight:800;margin-bottom:16px;">🔑 Change Password</div>' +
+        '<input type="password" id="changePwCurrent" class="edit-field" placeholder="Current password" style="margin-bottom:8px;">' +
+        '<input type="password" id="changePwNew" class="edit-field" placeholder="New password (min 6 chars)" style="margin-bottom:8px;">' +
+        '<input type="password" id="changePwConfirm" class="edit-field" placeholder="Confirm new password" style="margin-bottom:12px;">' +
+        '<div id="changePwError" class="ai-result error" style="display:none;margin-bottom:10px;"></div>' +
+        '<button onclick="submitChangePassword()" style="width:100%;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Save New Password</button>';
+    }
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Cancel';
+    cancel.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:8px;';
+    cancel.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.appendChild(cancel);
+    document.body.appendChild(ov); document.body.appendChild(sheet);
+  }
+
+  async function sendPasswordResetFromSettings() {
+    // Look up email for current user and send reset
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=email').catch(() => null);
+    const email = userRow && userRow[0] && userRow[0].email;
+    if (!email) {
+      alert('No email on file. Please secure your account first.');
+      return;
+    }
+    const res = await apiAuth('reset', { email });
+    alert(res.ok ? '✅ Reset link sent to ' + email : '❌ Could not send reset link.');
+  }
+
+  async function submitChangePassword() {
+    const current = document.getElementById('changePwCurrent')?.value || '';
+    const newPw = document.getElementById('changePwNew')?.value || '';
+    const confirm = document.getElementById('changePwConfirm')?.value || '';
+    const errEl = document.getElementById('changePwError');
+    errEl.style.display = 'none';
+    if (newPw.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if (newPw !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+    // Re-authenticate first to verify current password
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=email').catch(() => null);
+    const email = userRow && userRow[0] && userRow[0].email;
+    if (!email) { errEl.textContent = 'No email on file for this account.'; errEl.style.display = 'block'; return; }
+    const verifyRes = await apiAuth('signin', { email, password: current });
+    if (!verifyRes.ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
+    const token = verifyRes.data?.session?.access_token || verifyRes.data?.access_token;
+    const res = await apiAuth('change_password', { new_password: newPw, access_token: token });
+    if (res.ok) {
+      document.querySelector('[id^="changePw"]')?.closest('div[style*="border-radius"]')?.remove();
+      document.querySelector('[data-ov]')?.remove();
+      // Close sheet
+      document.querySelectorAll('div[style*="z-index:700"]').forEach(el => el.remove());
+      document.querySelectorAll('div[style*="z-index:699"]').forEach(el => el.remove());
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Password updated successfully!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+    } else {
+      errEl.textContent = res.data?.error || 'Could not update password.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  function openChangeEmailSheet() {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:24px 20px 50px;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.innerHTML = '<div style="font-weight:800;margin-bottom:6px;">📧 Change Email</div>' +
+      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;">A verification link will be sent to your new email address.</div>' +
+      '<input type="email" id="changeEmailNew" class="edit-field" placeholder="New email address" style="margin-bottom:8px;">' +
+      '<input type="password" id="changeEmailPassword" class="edit-field" placeholder="Current password (to confirm)" style="margin-bottom:12px;">' +
+      '<div id="changeEmailError" class="ai-result error" style="display:none;margin-bottom:10px;"></div>' +
+      '<button onclick="submitChangeEmail()" style="width:100%;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">Send Verification</button>';
+    const cancel = document.createElement('button');
+    cancel.textContent = 'Cancel';
+    cancel.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:8px;';
+    cancel.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.appendChild(cancel);
+    document.body.appendChild(ov); document.body.appendChild(sheet);
+  }
+
+  async function submitChangeEmail() {
+    const newEmail = document.getElementById('changeEmailNew')?.value.trim() || '';
+    const password = document.getElementById('changeEmailPassword')?.value || '';
+    const errEl = document.getElementById('changeEmailError');
+    errEl.style.display = 'none';
+    if (!newEmail || !newEmail.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; return; }
+    if (!password) { errEl.textContent = 'Please enter your current password.'; errEl.style.display = 'block'; return; }
+    // Re-authenticate
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=email').catch(() => null);
+    const currentEmail = userRow && userRow[0] && userRow[0].email;
+    if (!currentEmail) { errEl.textContent = 'No email on file. Please secure your account first.'; errEl.style.display = 'block'; return; }
+    const verifyRes = await apiAuth('signin', { email: currentEmail, password });
+    if (!verifyRes.ok) { errEl.textContent = 'Incorrect password.'; errEl.style.display = 'block'; return; }
+    const token = verifyRes.data?.session?.access_token || verifyRes.data?.access_token;
+    const res = await apiAuth('change_email', { new_email: newEmail, access_token: token });
+    if (res.ok) {
+      // Update email in users table too
+      await sbFetch('PATCH', 'users?username=eq.' + currentUser, { email: newEmail }).catch(() => {});
+      document.querySelectorAll('div[style*="z-index:700"]').forEach(el => el.remove());
+      document.querySelectorAll('div[style*="z-index:699"]').forEach(el => el.remove());
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Verification sent to ' + newEmail + '. Check your inbox!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 4000);
+    } else {
+      errEl.textContent = res.data?.error || 'Could not update email.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  // Show security status in settings panel
+  function refreshAccountSecurityStatus() {
+    const el = document.getElementById('accountSecurityStatus');
+    if (!el) return;
+    sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email').then(rows => {
+      const u = rows && rows[0];
+      const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
+      if (isSecured) {
+        el.innerHTML = '🔒 <strong>Secured</strong> — signed in with email and password.' + (u.email ? '<br><span style="color:var(--text-faint);">Email: ' + escapeHtml(u.email) + '</span>' : '');
+        el.style.color = 'var(--green)';
+      } else {
+        el.innerHTML = '🔓 <strong>Not secured</strong> — no password set. Anyone who knows your username can log in.';
+        el.style.color = 'var(--gold)';
+      }
+    }).catch(() => {});
   }
 
 

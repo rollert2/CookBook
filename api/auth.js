@@ -24,7 +24,14 @@ export default async function handler(req, res) {
       const r = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ email, password, data: { username } })
+        body: JSON.stringify({
+          email,
+          password,
+          data: { username },
+          options: {
+            emailRedirectTo: 'https://rollcookbook.vercel.app/'
+          }
+        })
       });
       const data = await r.json();
       if (!r.ok) return res.status(r.status).json({ error: data.msg || data.error_description || 'Signup failed' });
@@ -54,7 +61,6 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
         body: JSON.stringify({
           email,
-          // Redirect back to the app after reset — handleAuthCallback detects type=recovery
           redirect_to: 'https://rollcookbook.vercel.app/'
         })
       });
@@ -78,6 +84,34 @@ export default async function handler(req, res) {
       const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app/');
       const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
       return res.status(200).json({ url });
+    }
+
+    // ── Change password (requires current session token) ──
+    if (action === 'change_password') {
+      const { new_password, access_token: token } = req.body;
+      if (!new_password || !token) return res.status(400).json({ error: 'new_password and access_token required' });
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ password: new_password })
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data.msg || data.error_description || 'Could not change password' });
+      return res.status(200).json({ ok: true });
+    }
+
+    // ── Change email (requires current session token) ──
+    if (action === 'change_email') {
+      const { new_email, access_token: token } = req.body;
+      if (!new_email || !token) return res.status(400).json({ error: 'new_email and access_token required' });
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ email: new_email, data: {} })
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data.msg || data.error_description || 'Could not change email' });
+      return res.status(200).json({ ok: true });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
