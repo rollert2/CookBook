@@ -114,6 +114,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    // ── Delete auth user (admin only) ──
+    if (action === 'delete_user') {
+      const { auth_id } = req.body;
+      if (!auth_id) return res.status(400).json({ error: 'auth_id required' });
+      // Use service role key for admin operations
+      const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY;
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${auth_id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+      });
+      return res.status(200).json({ ok: r.ok });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
 
   } catch (e) {

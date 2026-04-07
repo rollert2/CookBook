@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V12 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V2 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -683,7 +683,7 @@
 
   </div>
   <div style="font-size:0.72em;color:var(--text-faint);text-align:center;margin-top:16px;max-width:300px;line-height:1.5;">
-    By signing in you agree to our terms. Your data is stored securely.
+    By signing in you agree to our <a href="https://rollcookbook.vercel.app/privacy_policy.html" target="_blank" style="color:var(--gold);text-decoration:none;">Privacy Policy</a>. Your data is stored securely.
   </div>
 </div>
 
@@ -696,6 +696,9 @@
     <button onclick="openSecureAccountSheet()" style="padding:6px 14px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Secure Account</button>
     <button onclick="dismissSecurityBanner()" style="background:none;border:none;color:var(--text-faint);font-size:1em;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>
   </div>
+
+  <!-- Offline broadcast banner -->
+  <div id="broadcastBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9990;background:rgba(20,20,30,0.97);padding:10px 16px;text-align:center;font-size:0.82em;font-weight:600;color:#fff;"></div>
 
   <!-- Pull to refresh indicator -->
   <div class="ptr-indicator" id="ptrIndicator"><div class="ptr-spinner"></div></div>
@@ -725,7 +728,7 @@
     <div class="header-search">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" placeholder="Search recipes or ingredients..." oninput="renderRecipes()">
+        <input type="text" id="searchInput" placeholder="Search recipes or ingredients..." oninput="debouncedSearch()">
       </div>
     </div>
     <div class="header-chips" id="categoryFilters"></div>
@@ -1515,7 +1518,8 @@
         <button class="settings-toggle" id="togglePrivateAccount" onclick="togglePrivateAccount()"></button>
       </div>
     </div>
-    <div style="height:30px;"></div>
+    <div style="text-align:center;padding:8px 0 0;"><span id="settingsAppVersion" style="font-size:0.7em;color:var(--text-faint);"></span></div>
+    <div style="height:20px;"></div>
     <div class="settings-section">
       <div class="settings-section-title">🔒 Account Security</div>
       <div id="accountSecurityStatus" style="font-size:0.82em;color:var(--text-faint);margin-bottom:12px;"></div>
@@ -2020,6 +2024,9 @@
     initScrollHideHeader();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
+    // Offline/online detection
+    window.addEventListener('online', () => { const b=document.getElementById('broadcastBanner'); if(b){b.style.display='none';} loadRecipes().then(renderRecipes); });
+    window.addEventListener('offline', () => { const b=document.getElementById('broadcastBanner'); if(b){b.style.display='block';b.textContent='📶 You\'re offline — showing cached recipes. Some features unavailable.';} });
     // Show security banner immediately for unsecured accounts (before init completes)
     checkAccountSecurity();
     init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); });
@@ -2301,6 +2308,12 @@
     if (h) total += parseInt(h[1]) * 60;
     if (m) total += parseInt(m[1]);
     return total || Infinity;
+  }
+
+  let _searchDebounceTimer = null;
+  function debouncedSearch() {
+    clearTimeout(_searchDebounceTimer);
+    _searchDebounceTimer = setTimeout(renderRecipes, 180);
   }
 
   function renderRecipes() {
@@ -2613,7 +2626,16 @@
     const item = {id:rId,title:document.getElementById('editTitle').value,category:(document.getElementById('editCategory').value==='__other__'?document.getElementById('editCategoryCustom').value.trim()||'General':document.getElementById('editCategory').value),cookTime:document.getElementById('editCookTime').value,prepTime:document.getElementById('editPrepTime').value,servings:document.getElementById('editServings').value,sourceUrl:document.getElementById('editSourceUrl').value,ingredients:document.getElementById('editIngredients').value,instructions:document.getElementById('editInstructions').value,notes:document.getElementById('editNotes').value,tags:(document.getElementById('editTags')?.value||'').trim(),prepTime:document.getElementById('editPrepTime')?.value||''};
     const r = allRecipes.find(x => x.id === rId); if (r) Object.assign(r, item);
     const finish = () => { updateRecipe(rId, item).then(() => { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; window._editSnapshot = null; const localR = allRecipes.find(lr => lr.id === rId); if (localR) { localR.title=item.title; localR.category=item.category; localR.cookTime=item.cookTime; localR.prepTime=item.prepTime; localR.servings=item.servings; localR.sourceUrl=item.sourceUrl; localR.ingredients=item.ingredients; localR.instructions=item.instructions; localR.notes=item.notes; localR.tags=item.tags; } exitEditMode(); renderDetailContent(); renderRecipes(); }); };
-    if (fileIn.files.length > 0) { const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, fileIn.files[0].name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
+    if (fileIn.files.length > 0) {
+      const file = fileIn.files[0];
+      const MAX_MB = 8;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        const sBtn = document.getElementById('saveEditBtn');
+        if (sBtn) { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; }
+        alert('Image is too large (' + (file.size/1024/1024).toFixed(1) + 'MB). Please use an image under ' + MAX_MB + 'MB.');
+        return;
+      }
+      const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, file.name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
     else { finish(); }
   }
   function executeDelete() { if (!confirm('Delete this recipe?')) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); }); }
@@ -3282,10 +3304,10 @@
         }
       } else {
         addToBlacklist(domain, currentUser).then(() => { globalBlacklist.push(domain); showBlacklistToast(domain); runDiscoverSearch(); });
-        if (btn) { btn.innerHTML = '❌ ' + (res.message || 'Import failed'); btn.disabled = false; }
+        showUrlImportError('❌ ' + (res.message || 'Import failed. The site may block scraping or require JavaScript.'));
       }
     }).catch(err => {
-      if (btn) { btn.innerHTML = '❌ Error'; btn.disabled = false; }
+      showUrlImportError('❌ Network error: ' + (err.message || 'Could not reach the page. Check your connection and try again.'));
     });
   }
 
@@ -3335,8 +3357,24 @@
   function closeSyncModalAnimated() { closeModalAnimated('syncModal', () => { document.getElementById('exportOutput').style.display = 'none'; document.getElementById('copyExportBtn').style.display = 'none'; document.getElementById('exportResult').style.display = 'none'; showAddModeSelect(); }); }
   function clearUrlInput() { document.getElementById('urlInput').value = ''; resetUrlTab(); }
   function resetUrlTab() { document.getElementById('aiStatus').style.display = 'none'; document.getElementById('aiResult').style.display = 'none'; const btn = document.getElementById('importUrlBtn'); btn.style.display = 'block'; btn.disabled = false; btn.innerHTML = '✨ Import Recipe'; }
+  function showUrlImportError(msg) {
+    const btn = document.getElementById('importUrlBtn');
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ Import Recipe'; }
+    const status = document.getElementById('aiStatus');
+    if (status) status.style.display = 'none';
+    const result = document.getElementById('aiResult');
+    if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = msg; }
+  }
+
   function importFromUrl() {
-    const url = document.getElementById('urlInput').value.trim(); if (!url||!url.startsWith('http')) { alert('Please enter a valid URL.'); return; }
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url || !url.startsWith('http')) { showUrlImportError('Please enter a valid URL starting with http:// or https://'); return; }
+    // Block known unsupported sites
+    const unsupported = ['allrecipes.com','nytimes.com','cooking.nytimes.com','tasty.co','food.com'];
+    if (unsupported.some(s => url.includes(s))) {
+      showUrlImportError('⚠️ This site uses heavy JavaScript and is not supported for import. Try copying the recipe text manually.');
+      return;
+    }
     const btn = document.getElementById('importUrlBtn'); btn.disabled = true; btn.innerHTML = 'Importing...';
     document.getElementById('aiStatus').style.display = 'block'; document.getElementById('aiResult').style.display = 'none';
     const msgs = ['Fetching page...','Reading content...','Extracting recipe...','Almost done...']; let si = 0; const statusEl = document.getElementById('aiStatusText'); statusEl.textContent = msgs[0];
@@ -3898,6 +3936,7 @@
   let cropState = { x:0, y:0, scale:1, dragging:false, startX:0, startY:0, imgW:0, imgH:0 };
   function handleAvatarUpload(input) {
     if (!input.files[0]) return;
+    if (input.files[0].size > 8 * 1024 * 1024) { alert('Image too large. Please use an image under 8MB.'); input.value = ''; return; }
     const reader = new FileReader();
     reader.onload = e => {
       document.getElementById('avatarCropWrap').style.display = 'block';
@@ -4794,11 +4833,87 @@
     closePlannerDay();
   }
   async function addPlannerShopAll() {
-    plannerData.filter(p => p.recipes).forEach(e => { addIngredientsToShop(parseIngredients(e.recipes.ingredients), e.recipes.category); });
-    const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-    toast.textContent = '✅ Whole week added to shopping list!';
-    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    // Collect all ingredients from this week's planner
+    const entries = plannerData.filter(p => p.recipes);
+    if (entries.length === 0) {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1px solid var(--glass-border);color:var(--text-dim);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      t.textContent = 'No recipes planned this week.';
+      document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+      return;
+    }
+    const allIngs = [];
+    entries.forEach(e => {
+      parseIngredients(e.recipes.ingredients).forEach(ing => allIngs.push({ text: ing, group: AISLE_LABELS[classifyIngredientAisle(ing)] || e.recipes.category || 'Other' }));
+    });
+
+    // Ask which list
+    const lists = await getMySharedLists(currentUser).catch(() => []);
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:70vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-weight:800;font-size:0.95em;margin-bottom:6px;';
+    heading.textContent = 'Add ' + allIngs.length + ' ingredient' + (allIngs.length !== 1 ? 's' : '') + ' to which list?';
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:0.78em;color:var(--text-faint);margin-bottom:14px;';
+    sub.textContent = entries.length + ' recipe' + (entries.length !== 1 ? 's' : '') + ' from this week';
+    sheet.append(heading, sub);
+
+    const doAdd = async (targetListId) => {
+      sheet.remove(); ov.remove();
+      if (targetListId === 'personal') {
+        allIngs.forEach(i => shopItems.unshift({ text: i.text, checked: false, group: i.group }));
+        saveShop();
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+        t.textContent = '✅ ' + allIngs.length + ' ingredients added to My List!';
+        document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+      } else {
+        // Add to shared list
+        const listName = lists.find(l => l.id === targetListId)?.name || 'shared list';
+        await Promise.all(allIngs.map(i => addSharedListItem(targetListId, i.text, i.group, null, null, currentUser)));
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+        t.textContent = '✅ ' + allIngs.length + ' ingredients added to ' + listName + '!';
+        document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+      }
+    };
+
+    // Personal list button
+    const personalBtn = document.createElement('div');
+    personalBtn.style.cssText = 'padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-weight:600;font-size:0.88em;display:flex;align-items:center;gap:10px;';
+    personalBtn.innerHTML = '<span style="font-size:1.2em;">📋</span><div><div>My Personal List</div><div style="font-size:0.72em;color:var(--text-faint);font-weight:400;">' + shopItems.length + ' item' + (shopItems.length !== 1 ? 's' : '') + ' currently</div></div>';
+    personalBtn.onclick = () => doAdd('personal');
+    sheet.appendChild(personalBtn);
+
+    // Shared list buttons
+    if (lists.length > 0) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);padding:8px 0 6px;';
+      divider.textContent = 'Shared Lists';
+      sheet.appendChild(divider);
+      lists.forEach(l => {
+        const btn = document.createElement('div');
+        btn.style.cssText = 'padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-weight:600;font-size:0.88em;display:flex;align-items:center;gap:10px;';
+        btn.innerHTML = '<span style="font-size:1.2em;">🛒</span><span>' + escapeHtml(l.name) + '</span>';
+        btn.onclick = () => doAdd(l.id);
+        sheet.appendChild(btn);
+      });
+    }
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:4px;';
+    cancelBtn.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.appendChild(cancelBtn);
+
+    document.body.appendChild(ov);
+    document.body.appendChild(sheet);
   }
   async function shufflePlanner() {
     if (!confirm('Shuffle recipes into this week? Existing entries will be replaced.')) return;
@@ -5661,8 +5776,16 @@
     await sbFetch('DELETE', 'messages?to_user_id=eq.'+userId, null).catch(()=>{});
     await sbFetch('DELETE', 'recipe_journal?user_id=eq.'+userId, null).catch(()=>{});
     await sbFetch('DELETE', 'deletion_requests?user_id=eq.'+userId, null).catch(()=>{});
+    // Get auth_id before deleting user row
+    const authRow = await sbFetch('GET', 'users', null, 'id=eq.'+userId+'&select=auth_id').catch(()=>null);
+    const authId = authRow && authRow[0] && authRow[0].auth_id;
     await sbFetch('DELETE', 'users?id=eq.'+userId, null);
-    alert('User "'+username+'" deleted.');
+    // Delete from Supabase auth.users if linked
+    if (authId) { await apiAuth('delete_user', { auth_id: authId }).catch(()=>{}); }
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ ' + username + ' deleted.';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
     loadAdminUsers();
   }
 
@@ -6040,6 +6163,12 @@
   }
   function openSettingsModal() {
     refreshAccountSecurityStatus();
+    // Show app version
+    getAdminSettings().then(res => {
+      const v = res.settings && res.settings.app_version;
+      const el = document.getElementById('settingsAppVersion');
+      if (el && v) el.textContent = 'Version ' + v;
+    }).catch(() => {});
     checkDeletionStatus();
     getUserSettings(currentUser).then(res => {
       userSettings = res.settings || {};
