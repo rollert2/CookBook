@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V3 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V4 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -603,11 +603,21 @@
     .empty-state p { font-size:0.9em; line-height:1.6; }
   </style>
 <script>
-// Runs before page renders — sets light mode for new users
+// Apply theme as early as possible — body may not exist yet so use DOMContentLoaded
 (function(){
-  var t = localStorage.getItem('rc_theme');
-  if (!t || t === 'light') { document.documentElement.style.colorScheme = 'light'; document.body && document.body.classList.add('light-mode'); }
-  else if (t === 'dark') { document.body && document.body.classList.remove('light-mode'); }
+  function applyEarlyTheme() {
+    var t = localStorage.getItem('rc_theme') || 'light';
+    if (t === 'dark') {
+      document.body.classList.remove('light-mode');
+    } else {
+      document.body.classList.add('light-mode');
+    }
+  }
+  if (document.body) {
+    applyEarlyTheme();
+  } else {
+    document.addEventListener('DOMContentLoaded', applyEarlyTheme);
+  }
 })();
 </script>
 </head>
@@ -633,13 +643,7 @@
       <button id="authTabSignUp" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;background:transparent;border:none;color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">Create Account</button>
     </div>
 
-    <!-- Google sign-in button -->
-    <button onclick="signInWithGoogle()" style="width:100%;padding:12px;background:#fff;border:1px solid #dadce0;border-radius:var(--radius-sm);color:#3c4043;font-size:0.9em;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
-      Continue with Google
-    </button>
 
-    <div class="login-divider">or</div>
 
     <!-- Sign In form -->
     <div id="authFormSignIn">
@@ -7953,62 +7957,22 @@ ${text}`;
   }
 
   // ── Google OAuth ────────────────────────────────────────────
-  async function signInWithGoogle() {
-    const SUPA_URL = 'https://rxedycriglsypezlpdrz.supabase.co/auth/v1/authorize';
-    const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app/');
-    const url = SUPA_URL + '?provider=google&redirect_to=' + redirectTo + '&skip_http_redirect=true';
-    window.location.assign(url);
-  }
+  // Google OAuth removed
 
   // Handle OAuth callback on page load
   async function handleAuthCallback() {
+    // Only handles password reset links from Supabase emails
     const hash = window.location.hash;
     if (!hash || !hash.includes('access_token')) return;
-
     const hashParams = new URLSearchParams(hash.replace('#', '?'));
     const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const tokenType = hashParams.get('type'); // 'recovery', 'signup', 'magiclink', etc.
-
+    const tokenType = hashParams.get('type');
     if (!accessToken) return;
     window.history.replaceState({}, '', window.location.pathname);
-
-    // ── Password reset flow ──
     if (tokenType === 'recovery') {
-      // Store token temporarily and show reset form
       localStorage.setItem('rc_recovery_token', accessToken);
       showPasswordResetForm();
-      return;
     }
-
-    // ── OAuth / signup callback ──
-    const userRes = await apiAuth('getuser', { access_token: accessToken });
-    if (!userRes.ok || !userRes.data.user) return;
-
-    const authUser = userRes.data.user;
-    const email = authUser.email;
-    const authId = authUser.id;
-    const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
-
-    let existingUser = await sbFetch('GET', 'users', null, 'auth_id=eq.' + authId + '&select=username').catch(() => null);
-    let username = existingUser && existingUser[0] ? existingUser[0].username : null;
-
-    if (!username) {
-      const byEmail = await sbFetch('GET', 'users', null, 'email=eq.' + encodeURIComponent(email) + '&select=username').catch(() => null);
-      username = byEmail && byEmail[0] ? byEmail[0].username : null;
-    }
-
-    if (!username) {
-      localStorage.setItem('rc_pending_google_auth', JSON.stringify({ authId, email, accessToken, refreshToken, googleName }));
-      showGoogleUsernamePrompt(googleName);
-      return;
-    }
-
-    await sbFetch('PATCH', 'users?username=eq.' + username, {
-      auth_id: authId, email, is_secured: true
-    }).catch(() => {});
-    localStorage.setItem('rc_session', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
-    enterApp(username);
   }
 
   function showPasswordResetForm() {
@@ -8118,21 +8082,20 @@ ${text}`;
     if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
     const banner = document.getElementById('securityBanner');
     if (!banner) return;
-    // Show banner immediately — hide it only if confirmed secured
-    banner.style.cssText = banner.style.cssText.replace('display:none','') + ';display:flex!important';
-    banner.style.display = 'flex';
+    // Show immediately — remove the inline display:none by setting attribute directly
+    banner.setAttribute('style',
+      'display:flex;background:rgba(224,165,0,0.12);border-bottom:1px solid rgba(224,165,0,0.4);' +
+      'padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;');
     try {
       const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email');
       const u = Array.isArray(userRow) ? userRow[0] : null;
       const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
       if (isSecured) {
-        banner.style.display = 'none';
-      } else {
-        banner.style.display = 'flex';
+        banner.setAttribute('style', 'display:none;');
       }
+      // If not secured, banner stays visible from setAttribute above
     } catch(e) {
-      // If check fails, keep banner visible
-      banner.style.display = 'flex';
+      // Keep banner visible on error
     }
   }
 
