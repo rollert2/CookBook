@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V5 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V6 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1904,9 +1904,11 @@
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
     renderSavedUsers();
-    document.getElementById('loginInput').value = '';
-    document.getElementById('loginError').style.display = 'none';
-    document.getElementById('loginWarning').style.display = 'none';
+    const li = document.getElementById('loginInput'); if (li) li.value = '';
+    const au = document.getElementById('authUsername'); if (au) au.value = '';
+    const ap = document.getElementById('authPassword'); if (ap) ap.value = '';
+    const le = document.getElementById('loginError'); if (le) le.style.display = 'none';
+    const lw = document.getElementById('loginWarning'); if (lw) lw.style.display = 'none';
   }
 
   async function renderSavedUsers() {
