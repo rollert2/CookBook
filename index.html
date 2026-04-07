@@ -608,17 +608,50 @@
 <!-- ═══ LOGIN ═══ -->
 <div id="loginScreen" class="login-screen">
   <div class="login-logo">Roll <span>Cookbook</span></div>
-  <div class="login-tagline login-sub" id="loginSubtitle">Who's cooking today?</div>
+  <div class="login-tagline login-sub" id="loginSubtitle">Your personal recipe collection</div>
   <div id="appVersionLabel" style="font-size:0.65em;color:var(--text-faint);text-align:center;margin-top:4px;"></div>
   <div class="login-box">
+
+    <!-- Saved accounts -->
     <div id="savedUsersSection" style="display:none;">
       <div class="login-section-title">Your accounts</div>
       <div class="saved-users" id="savedUsersList"></div>
-      <div class="login-divider">or sign in as someone new</div>
+      <div class="login-divider">or sign in as someone else</div>
     </div>
-    <input type="text" class="login-input" id="loginInput" placeholder="Enter a username..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter') attemptLogin()">
-    <button class="login-btn" onclick="attemptLogin()">Enter Kitchen →</button>
+
+    <!-- Auth tabs -->
+    <div id="authTabRow" style="display:flex;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);overflow:hidden;margin-bottom:16px;">
+      <button id="authTabSignIn" onclick="switchAuthTab('signin')" style="flex:1;padding:10px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">Sign In</button>
+      <button id="authTabSignUp" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;background:transparent;border:none;color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">Create Account</button>
+    </div>
+
+    <!-- Google sign-in button -->
+    <button onclick="signInWithGoogle()" style="width:100%;padding:12px;background:#fff;border:1px solid #dadce0;border-radius:var(--radius-sm);color:#3c4043;font-size:0.9em;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px;">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="login-divider">or</div>
+
+    <!-- Sign In form -->
+    <div id="authFormSignIn">
+      <input type="text" class="login-input" id="authUsername" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:8px;">
+      <input type="password" class="login-input" id="authPassword" placeholder="Password (optional — leave blank for guest access)" autocomplete="current-password" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')attemptAuthLogin()">
+      <button class="login-btn" onclick="attemptAuthLogin()">Sign In →</button>
+      <div style="text-align:center;margin-top:10px;"><button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;font-family:inherit;">Forgot password?</button></div>
+    </div>
+
+    <!-- Sign Up form -->
+    <div id="authFormSignUp" style="display:none;">
+      <input type="text" class="login-input" id="authSignupUsername" placeholder="Choose a username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:8px;">
+      <input type="email" class="login-input" id="authSignupEmail" placeholder="Email address" autocomplete="email" style="margin-bottom:8px;">
+      <input type="password" class="login-input" id="authSignupPassword" placeholder="Password (min 6 characters)" autocomplete="new-password" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')attemptAuthSignup()">
+      <button class="login-btn" onclick="attemptAuthSignup()">Create Account →</button>
+    </div>
+
     <div class="login-error" id="loginError"></div>
+
+    <!-- Legacy warning -->
     <div class="login-warning" id="loginWarning">
       <strong>⚠️ Username already in use</strong><br>
       <span id="loginWarningText"></span>
@@ -627,11 +660,30 @@
         <button class="warn-btn warn-cancel" onclick="cancelWarning()">Cancel</button>
       </div>
     </div>
+
+    <!-- Forgot password -->
+    <div id="forgotPasswordForm" style="display:none;">
+      <div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;">Enter your email and we'll send a reset link.</div>
+      <input type="email" class="login-input" id="resetEmail" placeholder="Email address" style="margin-bottom:10px;">
+      <button class="login-btn" onclick="sendPasswordReset()">Send Reset Link</button>
+      <div style="text-align:center;margin-top:8px;"><button onclick="hideForgotPassword()" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;font-family:inherit;">← Back</button></div>
+    </div>
+
+  </div>
+  <div style="font-size:0.72em;color:var(--text-faint);text-align:center;margin-top:16px;max-width:300px;line-height:1.5;">
+    By signing in you agree to our terms. Your data is stored securely.
   </div>
 </div>
 
 <!-- ═══ MAIN APP ═══ -->
 <div id="appScreen" style="display:none;">
+
+  <!-- Security banner for unsecured accounts -->
+  <div id="securityBanner" style="display:none;background:rgba(224,165,0,0.12);border-bottom:1px solid rgba(224,165,0,0.4);padding:10px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-size:0.82em;flex:1;color:var(--text-dim);">🔓 Your account has no password. Anyone who knows your username can access it.</span>
+    <button onclick="openSecureAccountSheet()" style="padding:6px 14px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Secure Account</button>
+    <button onclick="dismissSecurityBanner()" style="background:none;border:none;color:var(--text-faint);font-size:1em;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>
+  </div>
 
   <!-- Pull to refresh indicator -->
   <div class="ptr-indicator" id="ptrIndicator"><div class="ptr-spinner"></div></div>
@@ -1827,6 +1879,9 @@
     }
   });
 
+  // Call on page load to handle OAuth redirects
+  setTimeout(() => handleAuthCallback().catch(() => {}), 100);
+
   function showLoginScreen() {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
@@ -1875,29 +1930,6 @@
     renderSavedUsers();
   }
 
-  function attemptLogin() {
-    const raw = document.getElementById('loginInput').value.trim();
-    if (!raw) return;
-    const username = raw.toLowerCase();
-    if (!/^[a-z0-9_]+$/.test(username)) { showLoginError('Username can only contain letters, numbers, and underscores.'); return; }
-    if (username.length < 2) { showLoginError('Username must be at least 2 characters.'); return; }
-    document.getElementById('loginError').style.display = 'none';
-    document.getElementById('loginWarning').style.display = 'none';
-    checkUsername(username).then(res => {
-      if (res.status === 'Error') { showLoginError(res.message); return; }
-      if (res.exists) {
-        const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
-        if (allSaved.includes(username)) { enterApp(username); }
-        else { pendingLoginUsername = username; document.getElementById('loginWarningText').textContent = 'The username "' + username + '" already exists. If this is your account on another device, tap "Yes, it\'s me" to continue.'; document.getElementById('loginWarning').style.display = 'block'; }
-      } else {
-        createUser(username).then(r => {
-          if (r.status === 'Error') { showLoginError(r.message); return; }
-          enterApp(username);
-        });
-      }
-    }).catch(e => showLoginError(e.message));
-  }
-
   function proceedLogin() { if (pendingLoginUsername) enterApp(pendingLoginUsername); }
   function cancelWarning() { document.getElementById('loginWarning').style.display = 'none'; pendingLoginUsername = null; }
   function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.style.display = 'block'; }
@@ -1923,7 +1955,7 @@
     initScrollHideHeader();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
-    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); });
+    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); checkAccountSecurity(); });
   }
 
   function adjustHeaderPadding() {
@@ -7742,6 +7774,335 @@ ${text}`;
         }
       }
     } catch(e) { console.error('checkExpiredDeletionsAdmin:', e); }
+  }
+
+
+
+  // ═══════════════════════════════════════════════════════════
+  // SUPABASE AUTH SYSTEM
+  // ═══════════════════════════════════════════════════════════
+  // Auth handled via /api/auth server-side route
+
+  async function apiAuth(action, body) {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...body })
+    });
+    const data = await res.json();
+    return { ok: res.ok, data };
+  }
+
+  // ── Login screen helpers ───────────────────────────────────
+  function switchAuthTab(tab) {
+    const isSignIn = tab === 'signin';
+    document.getElementById('authFormSignIn').style.display = isSignIn ? 'block' : 'none';
+    document.getElementById('authFormSignUp').style.display = isSignIn ? 'none' : 'block';
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('authTabSignIn').style.background = isSignIn ? 'var(--gold)' : 'transparent';
+    document.getElementById('authTabSignIn').style.color = isSignIn ? 'var(--bg)' : 'var(--text-dim)';
+    document.getElementById('authTabSignUp').style.background = isSignIn ? 'transparent' : 'var(--gold)';
+    document.getElementById('authTabSignUp').style.color = isSignIn ? 'var(--text-dim)' : 'var(--bg)';
+  }
+
+  function showForgotPassword() {
+    document.getElementById('authFormSignIn').style.display = 'none';
+    document.getElementById('forgotPasswordForm').style.display = 'block';
+    document.getElementById('loginError').style.display = 'none';
+  }
+  function hideForgotPassword() {
+    document.getElementById('forgotPasswordForm').style.display = 'none';
+    document.getElementById('authFormSignIn').style.display = 'block';
+  }
+
+  // ── Email/password sign up ──────────────────────────────────
+  async function attemptAuthSignup() {
+    const username = (document.getElementById('authSignupUsername')?.value || '').trim().toLowerCase();
+    const email = (document.getElementById('authSignupEmail')?.value || '').trim();
+    const password = document.getElementById('authSignupPassword')?.value || '';
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+
+    if (!username || !/^[a-z0-9_]+$/.test(username) || username.length < 2) {
+      showLoginError('Username must be 2+ characters, letters/numbers/underscores only.'); return;
+    }
+    if (!email || !email.includes('@')) { showLoginError('Please enter a valid email address.'); return; }
+    if (password.length < 6) { showLoginError('Password must be at least 6 characters.'); return; }
+
+    // Check username availability
+    const existing = await checkUsername(username);
+    if (existing.exists) { showLoginError('That username is already taken.'); return; }
+
+    // Create Supabase auth user
+    const signupRes = await apiAuth('signup', { email, password, username });
+    if (!signupRes.ok) {
+      showLoginError(signupRes.data.error || 'Signup failed. That email may already be registered.'); return;
+    }
+
+    // Create app user row
+    await createUser(username);
+
+    // Link auth_id to user row
+    if (signupRes.data.user?.id) {
+      const userId = await getUserId(username);
+      if (userId) {
+        await sbFetch('PATCH', 'users?username=eq.' + username, {
+          auth_id: signupRes.data.user.id,
+          email: email,
+          is_secured: true
+        }).catch(() => {});
+      }
+    }
+
+    // Store session
+    if (signupRes.data.session) {
+      localStorage.setItem('rc_session', JSON.stringify(signupRes.data.session));
+    }
+    enterApp(username);
+  }
+
+  // ── Email/password sign in ──────────────────────────────────
+  async function attemptAuthLogin() {
+    const username = (document.getElementById('authUsername')?.value || '').trim().toLowerCase();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!username) { showLoginError('Please enter your username.'); return; }
+    if (!/^[a-z0-9_]+$/.test(username) || username.length < 2) {
+      showLoginError('Username can only contain letters, numbers, and underscores.'); return;
+    }
+
+    // If no password, use legacy guest flow
+    if (!password) {
+      return attemptLegacyLogin(username);
+    }
+
+    // Look up email from username
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + username + '&select=email,is_secured,auth_id').catch(() => null);
+    const user = userRow && userRow[0];
+
+    if (!user || !user.email) {
+      // User exists but no email — guest login
+      return attemptLegacyLogin(username);
+    }
+
+    // Auth login with email + password
+    const loginRes = await supabaseAuthFetch('/token?grant_type=password', {
+      email: user.email,
+      password
+    });
+
+    if (!loginRes.ok) {
+      showLoginError('Incorrect password. If you have not set one up, leave it blank.');
+      return;
+    }
+
+    localStorage.setItem('rc_session', JSON.stringify(loginRes.data));
+    enterApp(username);
+  }
+
+  // ── Legacy guest login (username only, no password) ─────────
+  async function attemptLegacyLogin(username) {
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    checkUsername(username).then(res => {
+      if (res.status === 'Error') { showLoginError(res.message); return; }
+      if (res.exists) {
+        const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
+        if (allSaved.includes(username)) {
+          enterApp(username);
+        } else {
+          pendingLoginUsername = username;
+          document.getElementById('loginWarningText').textContent =
+            'The username "' + username + '" already exists. If this is your account on another device, tap Yes to continue.';
+          document.getElementById('loginWarning').style.display = 'block';
+        }
+      } else {
+        // New user — create without email (guest)
+        createUser(username).then(r => {
+          if (r.status === 'Error') { showLoginError(r.message); return; }
+          enterApp(username);
+        });
+      }
+    }).catch(e => showLoginError(e.message));
+  }
+
+  // Keep old attemptLogin for compatibility
+  function attemptLogin() {
+    const raw = (document.getElementById('authUsername')?.value || document.getElementById('loginInput')?.value || '').trim();
+    if (!raw) return;
+    attemptLegacyLogin(raw.toLowerCase());
+  }
+
+  // ── Google OAuth ────────────────────────────────────────────
+  async function signInWithGoogle() {
+    const res = await apiAuth('google_url', {});
+    if (res.ok && res.data.url) {
+      window.location.href = res.data.url;
+    } else {
+      showLoginError('Google sign-in unavailable. Please use email and password.');
+    }
+  }
+
+  // Handle OAuth callback on page load
+  async function handleAuthCallback() {
+    const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+
+    // Check for token in hash (Supabase OAuth callback)
+    if (hash && hash.includes('access_token')) {
+      const hashParams = new URLSearchParams(hash.replace('#', '?'));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      if (accessToken) {
+        const userRes = await apiAuth('getuser', { access_token: accessToken });
+        if (userRes.ok && userRes.data.user) {
+          const authUser = userRes.data.user;
+          const email = authUser.email;
+          const authId = authUser.id;
+          const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
+
+          // Check if user exists by auth_id
+          let existingUser = await sbFetch('GET', 'users', null, 'auth_id=eq.' + authId + '&select=username').catch(() => null);
+          let username = existingUser && existingUser[0] ? existingUser[0].username : null;
+
+          if (!username) {
+            const byEmail = await sbFetch('GET', 'users', null, 'email=eq.' + encodeURIComponent(email) + '&select=username').catch(() => null);
+            username = byEmail && byEmail[0] ? byEmail[0].username : null;
+          }
+
+          if (!username) {
+            localStorage.setItem('rc_pending_google_auth', JSON.stringify({ authId, email, accessToken, refreshToken, googleName }));
+            window.history.replaceState({}, '', window.location.pathname);
+            showGoogleUsernamePrompt(googleName);
+            return;
+          }
+
+          await sbFetch('PATCH', 'users?username=eq.' + username, {
+            auth_id: authId, email, is_secured: true
+          }).catch(() => {});
+          localStorage.setItem('rc_session', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+          window.history.replaceState({}, '', window.location.pathname);
+          enterApp(username);
+        }
+      }
+    }
+  }
+
+  function showGoogleUsernamePrompt(suggestedName) {
+    const box = document.getElementById('loginScreen');
+    const loginBox = box?.querySelector('.login-box');
+    if (!loginBox) return;
+    // Generate a suggested username from Google name
+    const suggested = (suggestedName || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18) || 'user';
+    loginBox.innerHTML =
+      '<div style="font-size:1em;font-weight:800;margin-bottom:6px;">Almost there!</div>' +
+      '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:16px;">Choose a username for your Roll Cookbook account.</div>' +
+      '<input type="text" id="googleUsernameInput" class="login-input" value="' + escapeHtml(suggested) + '" placeholder="Choose a username" autocorrect="off" autocapitalize="off" style="margin-bottom:10px;">' +
+      '<div class="login-error" id="googleUsernameError" style="display:none;"></div>' +
+      '<button class="login-btn" onclick="completeGoogleSignup()">Create Account →</button>';
+  }
+
+  async function completeGoogleSignup() {
+    const username = (document.getElementById('googleUsernameInput')?.value || '').trim().toLowerCase();
+    const errEl = document.getElementById('googleUsernameError');
+    if (!username || !/^[a-z0-9_]+$/.test(username) || username.length < 2) {
+      errEl.textContent = 'Username must be 2+ chars, letters/numbers/underscores only.';
+      errEl.style.display = 'block'; return;
+    }
+    const existing = await checkUsername(username);
+    if (existing.exists) { errEl.textContent = 'That username is taken.'; errEl.style.display = 'block'; return; }
+
+    const pending = JSON.parse(localStorage.getItem('rc_pending_google_auth') || 'null');
+    if (!pending) { errEl.textContent = 'Session expired. Please try again.'; errEl.style.display = 'block'; return; }
+
+    await createUser(username);
+    await sbFetch('PATCH', 'users?username=eq.' + username, {
+      auth_id: pending.authId, email: pending.email, is_secured: true
+    }).catch(() => {});
+    localStorage.setItem('rc_session', JSON.stringify({ access_token: pending.accessToken, refresh_token: pending.refreshToken }));
+    localStorage.removeItem('rc_pending_google_auth');
+    enterApp(username);
+  }
+
+  // ── Password reset ──────────────────────────────────────────
+  async function sendPasswordReset() {
+    const email = (document.getElementById('resetEmail')?.value || '').trim();
+    if (!email || !email.includes('@')) { showLoginError('Please enter a valid email.'); return; }
+    const res = await apiAuth('reset', { email });
+    showLoginError(res.ok ? '✅ Reset link sent! Check your email.' : 'Could not send reset link. Is that email registered?');
+  }
+
+  // ── Security banner ─────────────────────────────────────────
+  let _securityBannerDismissed = false;
+
+  async function checkAccountSecurity() {
+    if (_securityBannerDismissed) return;
+    if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured').catch(() => null);
+    const isSecured = userRow && userRow[0] && userRow[0].is_secured;
+    const banner = document.getElementById('securityBanner');
+    if (!isSecured && banner) {
+      banner.style.display = 'flex';
+    }
+  }
+
+  function dismissSecurityBanner() {
+    _securityBannerDismissed = true;
+    localStorage.setItem('rc_security_dismissed_' + currentUser, '1');
+    const banner = document.getElementById('securityBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  function openSecureAccountSheet() {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:24px 20px 50px;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.innerHTML =
+      '<div style="font-size:1em;font-weight:800;margin-bottom:6px;">🔒 Secure Your Account</div>' +
+      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Add an email and password so only you can access your account.</div>' +
+      '<input type="email" id="secureEmail" class="edit-field" placeholder="Email address" style="margin-bottom:8px;">' +
+      '<input type="password" id="securePassword" class="edit-field" placeholder="Password (min 6 characters)" style="margin-bottom:8px;">' +
+      '<input type="password" id="securePasswordConfirm" class="edit-field" placeholder="Confirm password" style="margin-bottom:12px;">' +
+      '<div id="secureError" class="ai-result error" style="display:none;margin-bottom:10px;"></div>' +
+      '<button onclick="submitSecureAccount()" style="width:100%;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">Save & Secure</button>';
+    document.body.appendChild(ov); document.body.appendChild(sheet);
+    window._secureSheet = sheet; window._secureOv = ov;
+  }
+
+  async function submitSecureAccount() {
+    const email = (document.getElementById('secureEmail')?.value || '').trim();
+    const password = document.getElementById('securePassword')?.value || '';
+    const confirm = document.getElementById('securePasswordConfirm')?.value || '';
+    const errEl = document.getElementById('secureError');
+    errEl.style.display = 'none';
+    if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; errEl.style.display = 'block'; return; }
+    if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+    // Create Supabase auth user
+    const res = await apiAuth('signup', { email, password, username: currentUser });
+    if (!res.ok && !res.data?.user) {
+      errEl.textContent = res.data?.error || 'Could not secure account. That email may already be used.';
+      errEl.style.display = 'block'; return;
+    }
+
+    // Update user row
+    await sbFetch('PATCH', 'users?username=eq.' + currentUser, {
+      email,
+      auth_id: res.data?.user?.id || null,
+      is_secured: true
+    }).catch(() => {});
+
+    window._secureSheet?.remove(); window._secureOv?.remove();
+    dismissSecurityBanner();
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '🔒 Account secured! You can now log in with your email and password.';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 3500);
   }
 
 
