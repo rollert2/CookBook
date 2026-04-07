@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V7 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V9 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1421,9 +1421,9 @@
           <div class="settings-row-sub">Dark, light, or follow system</div>
         </div>
         <select class="settings-select" id="settingTheme" onchange="applyTheme(this.value);saveSetting('theme',this.value)">
-          <option value="dark">🌙 Dark</option>
           <option value="light" selected>☀️ Light</option>
-          <option value="system">⚙️ System</option>
+          <option value="dark">🌙 Dark</option>
+          <option value="system">⚙️ Device Default</option>
         </select>
       </div>
       <div class="settings-row">
@@ -1939,7 +1939,23 @@
     }
   }
 
-  function loginAsExisting(u) { enterApp(u); }
+  async function loginAsExisting(u) {
+    // Check if account is now secured — can't tap-to-login if it has a password
+    const userRow = await sbFetch('GET', 'users', null,
+      'username=eq.' + u + '&select=is_secured,email').catch(() => null);
+    const row = userRow && userRow[0];
+    const isSecured = row && (row.is_secured === true || (row.email && row.email.trim()));
+    if (isSecured) {
+      const unField = document.getElementById('authUsername');
+      if (unField) unField.value = u;
+      switchAuthTab('signin');
+      showLoginError('This account is password-protected. Please enter your password.');
+      const pwField = document.getElementById('authPassword');
+      if (pwField) { pwField.focus(); pwField.style.borderColor = 'var(--gold)'; }
+      return;
+    }
+    enterApp(u);
+  }
 
   function deleteUser(username) {
     if (!confirm('Remove "' + username + '" from this device?')) return;
@@ -1950,7 +1966,25 @@
     renderSavedUsers();
   }
 
-  function proceedLogin() { if (pendingLoginUsername) enterApp(pendingLoginUsername); }
+  async function proceedLogin() {
+    if (!pendingLoginUsername) return;
+    // Final security check — don't let "Yes it's me" bypass a secured account
+    const userRow = await sbFetch('GET', 'users', null,
+      'username=eq.' + pendingLoginUsername + '&select=is_secured,email').catch(() => null);
+    const u = userRow && userRow[0];
+    const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
+    if (isSecured) {
+      const wEl = document.getElementById('loginWarning');
+      if (wEl) wEl.style.display = 'none';
+      pendingLoginUsername = null;
+      showLoginError('This account is password-protected. Please enter your password to sign in.');
+      switchAuthTab('signin');
+      const pwField = document.getElementById('authPassword');
+      if (pwField) { pwField.focus(); pwField.style.borderColor = 'var(--gold)'; }
+      return;
+    }
+    enterApp(pendingLoginUsername);
+  }
   function cancelWarning() { document.getElementById('loginWarning').style.display = 'none'; pendingLoginUsername = null; }
   function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.style.display = 'block'; }
 
@@ -7926,18 +7960,38 @@ ${text}`;
   // ── Legacy guest login (username only, no password) ─────────
   async function attemptLegacyLogin(username) {
     const errEl = document.getElementById('loginError');
-    errEl.style.display = 'none';
-    checkUsername(username).then(res => {
+    if (errEl) errEl.style.display = 'none';
+
+    checkUsername(username).then(async res => {
       if (res.status === 'Error') { showLoginError(res.message); return; }
+
       if (res.exists) {
+        // Check if this account is secured (has password set)
+        const userRow = await sbFetch('GET', 'users', null,
+          'username=eq.' + username + '&select=is_secured,email').catch(() => null);
+        const u = userRow && userRow[0];
+        const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
+
+        if (isSecured) {
+          // Account has a password — block passwordless access
+          showLoginError('This account is password-protected. Please enter your password to sign in.');
+          // Make sure Sign In tab and password field are visible
+          switchAuthTab('signin');
+          const pwField = document.getElementById('authPassword');
+          if (pwField) { pwField.focus(); pwField.style.borderColor = 'var(--gold)'; }
+          return;
+        }
+
+        // Unsecured account — allow legacy access
         const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
         if (allSaved.includes(username)) {
           enterApp(username);
         } else {
           pendingLoginUsername = username;
-          document.getElementById('loginWarningText').textContent =
-            'The username "' + username + '" already exists. If this is your account on another device, tap Yes to continue.';
-          document.getElementById('loginWarning').style.display = 'block';
+          const wtEl = document.getElementById('loginWarningText');
+          if (wtEl) wtEl.textContent = 'The username "' + username + '" already exists. If this is your account on another device, tap Yes to continue.';
+          const wEl = document.getElementById('loginWarning');
+          if (wEl) wEl.style.display = 'block';
         }
       } else {
         // New user — create without email (guest)
