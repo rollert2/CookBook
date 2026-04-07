@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V11 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V12 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -5649,10 +5649,7 @@
 
   async function adminDeleteUser(username, userId) {
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
-    if (!confirm('Permanently delete user "'+username+'" and all their data? This cannot be undone.')) return;
-    if (!confirm('Are you absolutely sure? Type OK in the next prompt to confirm.')) return;
-    const check = prompt('Type DELETE to confirm:');
-    if (check !== 'DELETE') { alert('Cancelled.'); return; }
+    // Admin delete — no confirmation needed
     // Delete user's recipes, settings, planner, follows
     await sbFetch('DELETE', 'recipes?user_id=eq.'+userId, null);
     await sbFetch('DELETE', 'user_settings?user_id=eq.'+userId, null);
@@ -8386,6 +8383,28 @@ ${text}`;
         el.style.color = 'var(--gold)';
       }
     }).catch(() => {});
+  }
+
+
+
+  // ═══ ADMIN — SET/CLEAR EMAIL ══════════════════════════════
+  async function adminSetEmail(username, userId) {
+    document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+    const current = await sbFetch('GET', 'users', null, 'id=eq.' + userId + '&select=email').catch(() => null);
+    const currentEmail = current && current[0] && current[0].email || '';
+    const newEmail = prompt('Set email for ' + username + '\nCurrent: ' + (currentEmail || 'none') + '\n\nEnter new email (or leave blank to clear):');
+    if (newEmail === null) return; // cancelled
+    const val = newEmail.trim();
+    if (val && !val.includes('@')) { alert('Invalid email address.'); return; }
+    await sbFetch('PATCH', 'users?id=eq.' + userId, {
+      email: val || null,
+      is_secured: val ? true : false
+    });
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = val ? '✅ Email set to ' + val : '✅ Email cleared for ' + username;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+    loadAdminUsers();
   }
 
 
