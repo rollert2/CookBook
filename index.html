@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V3 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -7765,77 +7765,157 @@ ${text}`;
     renderShoppingPageShared(shopPageActiveListId, '');
   }
 
-  // addIngredientsToShop — with smart combining and dedup
+  // addIngredientsToShop — smart combining, dedup, Unicode fraction support
   function addIngredientsToShop(ings, groupLabel) {
-    // Strip quantity/units from ingredient text to get the core ingredient name
-    function getCore(text) {
-      return text.toLowerCase()
-        .replace(/^[\d\s\/\.\-]+/, '')                                           // leading numbers/fractions
-        .replace(/^\(.*?\)\s*/, '')                                              // leading parens
-        .replace(/^(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|ounces|lb|pound|pounds|g|gram|grams|kg|ml|liter|litre|bunch|bunches|clove|cloves|can|cans|jar|jars|slice|slices|piece|pieces|pinch|dash|handful|sprig|sprigs|stalk|stalks|head|heads|sheet|sheets|strip|strips|medium|large|small|whole|fresh|dried|chopped|minced|sliced|diced|shredded|grated|packed|heaping|rounded|scant|flat|level)s?[\s,]*/i, '')
-        .replace(/^[\d\s\/\.\-]+/, '')                                           // any remaining leading numbers
-        .trim();
+
+    const UNITS = ['cup','cups','tbsp','tsp','tablespoon','tablespoons','teaspoon','teaspoons',
+      'oz','ounce','ounces','lb','pound','pounds','g','gram','grams','kg','ml','liter','liters',
+      'litre','litres','l','quart','quarts','pint','pints','gallon','gallons','stick','sticks',
+      'bunch','bunches','clove','cloves','can','cans','jar','jars','slice','slices','piece','pieces',
+      'pinch','dash','handful','sprig','sprigs','stalk','stalks','head','heads','strip','strips',
+      'inch','inches','packet','packets','package','packages','bag','bags'];
+
+    const UNICODE_FRACS = { '½':0.5,'⅓':0.333,'⅔':0.667,'¼':0.25,'¾':0.75,'⅛':0.125,'⅜':0.375,'⅝':0.625,'⅞':0.875 };
+
+    // Normalise text: convert Unicode fractions to decimals for processing
+    function normaliseFracs(text) {
+      let out = text;
+      for (const [sym, val] of Object.entries(UNICODE_FRACS)) {
+        out = out.replace(new RegExp(sym, 'g'), ' ' + val + ' ');
+      }
+      return out.replace(/\s+/g, ' ').trim();
     }
 
-    // Parse quantity from start of ingredient text (returns number or null)
-    function parseQty(text) {
-      const m = text.trim().match(/^([\d]+(?:[\/\.\s][\d]+)?)/);
-      if (!m) return null;
-      const parts = m[1].split('/');
-      if (parts.length === 2) return parseFloat(parts[0]) / parseFloat(parts[1]);
-      return parseFloat(m[1]);
+    // Parse the leading quantity from an ingredient string (returns {qty, unit, rest})
+    function parseIngParts(text) {
+      let t = normaliseFracs(text.trim());
+
+      // Normalise plurals before parsing: eggs→egg, cups→cup etc handled by canonUnit
+      // Insert space between number and unit if missing (e.g. "1tbsp" → "1 tbsp", "2oz" → "2 oz")
+      t = t.replace(/(\d)(tbsp|tsp|oz|lb|kg|ml|g)(\b|(?=[A-Z\s]))/gi, '$1 $2$3');
+
+      // Parse leading quantity: whole + fraction, e.g. "1 1/2", "2 and 1/4", "3/4", "1.5", "1"
+      const qtyRx = /^(\d+(?:\.\d+)?)\s*(?:and\s+)?(\d+(?:\.\d+)?\/\d+(?:\.\d+)?|\d*\.\d+)?\s*/i;
+      const fracRx = /^(\d+(?:\.\d+)?\/\d+(?:\.\d+)?)\s*/;
+      let qty = null, rest = t;
+
+      const qm = t.match(qtyRx);
+      if (qm && qm[0].trim()) {
+        let n = parseFloat(qm[1]);
+        if (qm[2]) { const p = qm[2].split('/'); n += p.length === 2 ? parseFloat(p[0])/parseFloat(p[1]) : parseFloat(qm[2]); }
+        qty = n; rest = t.slice(qm[0].length).trim();
+      } else {
+        const fm = t.match(fracRx);
+        if (fm) { const p = fm[1].split('/'); qty = parseFloat(p[0])/parseFloat(p[1]); rest = t.slice(fm[0].length).trim(); }
+      }
+
+      // Parse unit (including plural forms)
+      let unit = null;
+      const unitRx = new RegExp('^(' + UNITS.join('|') + ')s?\\b[\\s,]*', 'i');
+      const um = rest.match(unitRx);
+      if (um) { unit = um[1].toLowerCase(); rest = rest.slice(um[0].length).trim(); }
+
+      // Strip qualifiers
+      rest = rest.replace(/^(large|extra.large|small|medium|fresh|dried|whole|chopped|minced|sliced|diced|shredded|grated|packed|heaping|softened|melted|toasted|cooked|raw|peeled|boneless|skinless|lightly|finely|roughly|thinly|coarsely|about|approximately|ripe|frozen|thawed|room.temperature)\s+/gi, '').trim();
+
+      // Strip parentheticals
+      rest = rest.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+
+      // Take only up to first comma (avoids "Oil, Salt, Garlic" multi-ingredient lines)
+      const ci = rest.indexOf(',');
+      if (ci > 0 && ci < 45) rest = rest.slice(0, ci).trim();
+
+      // Normalise plural ingredient names: eggs→egg, cloves→clove, etc.
+      let core = rest.toLowerCase().trim();
+      core = core.replace(/\beggs\b/, 'egg').replace(/\bcloves\b/, 'clove').replace(/\bonions\b/, 'onion')
+                 .replace(/\btomatoes\b/, 'tomato').replace(/\bpotatoes\b/, 'potato').replace(/\bcarrots\b/, 'carrot')
+                 .replace(/\bpeppers\b/, 'pepper').replace(/\bmushrooms\b/, 'mushroom');
+
+      return { qty, unit: unit || null, core };
     }
 
-    const newItems = ings.map(text => ({
-      text: text.trim(),
-      checked: false,
-      group: AISLE_LABELS[classifyIngredientAisle(text)] || groupLabel || '📦 Other',
-      _core: getCore(text),
-      _qty: parseQty(text)
-    }));
+    // Format quantity nicely
+    function fmtQty(n) {
+      if (n === Math.round(n)) return String(Math.round(n));
+      // Try to express as simple fraction
+      const fracs = [[0.25,'¼'],[0.5,'½'],[0.75,'¾'],[0.333,'⅓'],[0.667,'⅔'],[0.125,'⅛'],[0.375,'⅜'],[0.625,'⅝'],[0.875,'⅞']];
+      for (const [val, sym] of fracs) if (Math.abs(n - Math.round(n) - val) < 0.02) return Math.round(n) > 0 ? Math.round(n) + sym : sym;
+      for (const [val, sym] of fracs) if (Math.abs(n - val) < 0.02) return sym;
+      return n.toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    // Normalise a unit to canonical form
+    function canonUnit(u) {
+      if (!u) return null;
+      const map = { cups:'cup',tablespoon:'tbsp',tablespoons:'tbsp',teaspoon:'tsp',teaspoons:'tsp',
+        ounce:'oz',ounces:'oz',pound:'lb',pounds:'lb',gram:'g',grams:'g',liter:'l',litre:'l',
+        liters:'l',litres:'l',stick:'tbsp',sticks:'tbsp' };
+      return map[u.toLowerCase()] || u.toLowerCase();
+    }
+
+    const newItems = ings.map(raw => {
+      const text = raw.trim();
+      const parts = parseIngParts(text);
+      return {
+        text,
+        checked: false,
+        group: AISLE_LABELS[classifyIngredientAisle(text)] || groupLabel || '📦 Other',
+        _core: parts.core,
+        _qty: parts.qty,
+        _unit: canonUnit(parts.unit)
+      };
+    });
 
     newItems.forEach(newItem => {
-      // Look for an existing unchecked item with the same core ingredient
-      const existingIdx = shopItems.findIndex(s =>
-        !s.checked && s._core && newItem._core &&
-        s._core.length > 2 && newItem._core.length > 2 &&
-        (s._core === newItem._core ||
-         s._core.includes(newItem._core) ||
-         newItem._core.includes(s._core))
-      );
+      if (!newItem._core || newItem._core.length < 2) {
+        shopItems.unshift({ text: newItem.text, checked: false, group: newItem.group });
+        return;
+      }
+
+      // Find existing unchecked item with same core
+      const existingIdx = shopItems.findIndex(s => {
+        if (s.checked || !s._core || s._core.length < 2) return false;
+        const a = s._core, b = newItem._core;
+        return a === b || (a.length > 3 && b.length > 3 && (a.startsWith(b) || b.startsWith(a)));
+      });
 
       if (existingIdx >= 0) {
-        const existing = shopItems[existingIdx];
-        // Try to combine quantities
-        if (existing._qty != null && newItem._qty != null) {
-          const combined = existing._qty + newItem._qty;
-          // Extract unit from existing text
-          const unitMatch = existing.text.match(/^[\d\/\.\s]+(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|ounces|lb|pound|pounds|g|gram|grams|kg|ml|liter|litre)s?/i);
-          const unit = unitMatch ? unitMatch[1] : '';
-          if (unit) {
-            // Same unit — combine
-            shopItems[existingIdx] = { ...existing, text: combined + ' ' + unit + ' ' + existing._core, _qty: combined };
-          } else {
-            // Different or no unit — append note
-            shopItems[existingIdx] = { ...existing, text: existing.text + ' + ' + newItem.text };
-          }
+        const ex = shopItems[existingIdx];
+        const exUnit = canonUnit(ex._unit);
+        const newUnit = newItem._unit;
+
+        if (ex._qty != null && newItem._qty != null && (exUnit === newUnit || (!exUnit && !newUnit))) {
+          // Same unit (or both unitless) — add quantities
+          const total = ex._qty + newItem._qty;
+          const unitStr = exUnit ? ' ' + exUnit : '';
+          shopItems[existingIdx] = { ...ex,
+            text: fmtQty(total) + unitStr + ' ' + ex._core,
+            _qty: total
+          };
+        } else if (ex._qty != null && newItem._qty != null) {
+          // Different units — list both e.g. "2 tbsp + 1 cup butter"
+          const exUnit2 = exUnit || '';
+          const newUnit2 = newUnit || '';
+          shopItems[existingIdx] = { ...ex,
+            text: fmtQty(ex._qty) + (exUnit2 ? ' ' + exUnit2 : '') + ' + ' + fmtQty(newItem._qty) + (newUnit2 ? ' ' + newUnit2 : '') + ' ' + ex._core
+          };
         } else {
-          // Can't parse quantities — just note it was added again
-          if (!existing.text.includes('(×')) {
-            shopItems[existingIdx] = { ...existing, text: existing.text + ' (×2)' };
+          // No parseable quantities — just show count
+          const cur = ex.text;
+          const mCount = cur.match(/\(×(\d+)\)$/);
+          if (mCount) {
+            shopItems[existingIdx] = { ...ex, text: cur.replace(/\(×\d+\)$/, '(×' + (parseInt(mCount[1]) + 1) + ')') };
           } else {
-            // Increment the multiplier
-            shopItems[existingIdx] = { ...existing, text: existing.text.replace(/\(×(\d+)\)/, (_, n) => '(×' + (parseInt(n)+1) + ')') };
+            shopItems[existingIdx] = { ...ex, text: cur + ' (×2)' };
           }
         }
       } else {
-        shopItems.unshift({ text: newItem.text, checked: false, group: newItem.group, _core: newItem._core, _qty: newItem._qty });
+        shopItems.unshift({ text: newItem.text, checked: false, group: newItem.group, _core: newItem._core, _qty: newItem._qty, _unit: newItem._unit });
       }
     });
 
     saveShop();
     renderShopList();
-    // If shopping page is open, refresh it too
     const page = document.getElementById('shoppingPage');
     if (page && page.style.display !== 'none') renderShoppingPagePersonal();
   }
