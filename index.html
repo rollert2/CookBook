@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -602,6 +602,14 @@
     .empty-state .empty-icon { font-size:3em; margin-bottom:12px; opacity:0.4; }
     .empty-state p { font-size:0.9em; line-height:1.6; }
   </style>
+<script>
+// Runs before page renders — sets light mode for new users
+(function(){
+  var t = localStorage.getItem('rc_theme');
+  if (!t || t === 'light') { document.documentElement.style.colorScheme = 'light'; document.body && document.body.classList.add('light-mode'); }
+  else if (t === 'dark') { document.body && document.body.classList.remove('light-mode'); }
+})();
+</script>
 </head>
 <body>
 
@@ -1880,14 +1888,11 @@
   });
 
   // Call on page load to handle OAuth redirects
-  // Apply theme immediately on load (before login screen renders)
-  (function() {
-    const t = localStorage.getItem('rc_theme') || 'light';
-    if (t === 'dark') { document.body.classList.remove('light-mode'); }
-    else if (t === 'light') { document.body.classList.add('light-mode'); }
-    else { /* system — check media query */
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) document.body.classList.add('light-mode');
-    }
+  // Theme applied in <head> script — also re-apply here in case body wasn't ready
+  (function(){
+    var t = localStorage.getItem('rc_theme') || 'light';
+    if (t === 'dark') document.body.classList.remove('light-mode');
+    else document.body.classList.add('light-mode');
   })();
   setTimeout(() => handleAuthCallback().catch(() => {}), 100);
 
@@ -7949,12 +7954,10 @@ ${text}`;
 
   // ── Google OAuth ────────────────────────────────────────────
   async function signInWithGoogle() {
-    // Build the Supabase Google OAuth URL directly with correct redirect
     const SUPA_URL = 'https://rxedycriglsypezlpdrz.supabase.co/auth/v1/authorize';
     const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app/');
-    const url = SUPA_URL + '?provider=google&redirect_to=' + redirectTo;
-    // Open in same window — Median.co will handle the redirect back
-    window.location.href = url;
+    const url = SUPA_URL + '?provider=google&redirect_to=' + redirectTo + '&skip_http_redirect=true';
+    window.location.assign(url);
   }
 
   // Handle OAuth callback on page load
@@ -8113,16 +8116,23 @@ ${text}`;
   async function checkAccountSecurity() {
     if (_securityBannerDismissed) return;
     if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
-    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email').catch(() => null);
-    const u = userRow && userRow[0];
-    // Unsecured = no is_secured flag AND no email on record
-    const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
     const banner = document.getElementById('securityBanner');
-    if (!isSecured && banner) {
+    if (!banner) return;
+    // Show banner immediately — hide it only if confirmed secured
+    banner.style.cssText = banner.style.cssText.replace('display:none','') + ';display:flex!important';
+    banner.style.display = 'flex';
+    try {
+      const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email');
+      const u = Array.isArray(userRow) ? userRow[0] : null;
+      const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
+      if (isSecured) {
+        banner.style.display = 'none';
+      } else {
+        banner.style.display = 'flex';
+      }
+    } catch(e) {
+      // If check fails, keep banner visible
       banner.style.display = 'flex';
-      // Re-apply after short delay in case something overrides it
-      setTimeout(() => { if (banner) banner.style.display = 'flex'; }, 800);
-      setTimeout(() => { if (banner) banner.style.display = 'flex'; }, 2000);
     }
   }
 
