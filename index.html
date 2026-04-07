@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V2 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V3 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -4867,8 +4867,8 @@
     const doAdd = async (targetListId) => {
       sheet.remove(); ov.remove();
       if (targetListId === 'personal') {
-        allIngs.forEach(i => shopItems.unshift({ text: i.text, checked: false, group: i.group }));
-        saveShop();
+        // Use addIngredientsToShop so combining/dedup logic applies
+        addIngredientsToShop(allIngs.map(i => i.text), null);
         const t = document.createElement('div');
         t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
         t.textContent = '✅ ' + allIngs.length + ' ingredients added to My List!';
@@ -7765,11 +7765,77 @@ ${text}`;
     renderShoppingPageShared(shopPageActiveListId, '');
   }
 
-  // Override addIngredientsToShop to open shopping page if it's visible
-  const _origAddIngredientsToShop = addIngredientsToShop;
+  // addIngredientsToShop — with smart combining and dedup
   function addIngredientsToShop(ings, groupLabel) {
-    _origAddIngredientsToShop(ings, groupLabel);
-    // If shopping page is open, refresh it
+    // Strip quantity/units from ingredient text to get the core ingredient name
+    function getCore(text) {
+      return text.toLowerCase()
+        .replace(/^[\d\s\/\.\-]+/, '')                                           // leading numbers/fractions
+        .replace(/^\(.*?\)\s*/, '')                                              // leading parens
+        .replace(/^(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|ounces|lb|pound|pounds|g|gram|grams|kg|ml|liter|litre|bunch|bunches|clove|cloves|can|cans|jar|jars|slice|slices|piece|pieces|pinch|dash|handful|sprig|sprigs|stalk|stalks|head|heads|sheet|sheets|strip|strips|medium|large|small|whole|fresh|dried|chopped|minced|sliced|diced|shredded|grated|packed|heaping|rounded|scant|flat|level)s?[\s,]*/i, '')
+        .replace(/^[\d\s\/\.\-]+/, '')                                           // any remaining leading numbers
+        .trim();
+    }
+
+    // Parse quantity from start of ingredient text (returns number or null)
+    function parseQty(text) {
+      const m = text.trim().match(/^([\d]+(?:[\/\.\s][\d]+)?)/);
+      if (!m) return null;
+      const parts = m[1].split('/');
+      if (parts.length === 2) return parseFloat(parts[0]) / parseFloat(parts[1]);
+      return parseFloat(m[1]);
+    }
+
+    const newItems = ings.map(text => ({
+      text: text.trim(),
+      checked: false,
+      group: AISLE_LABELS[classifyIngredientAisle(text)] || groupLabel || '📦 Other',
+      _core: getCore(text),
+      _qty: parseQty(text)
+    }));
+
+    newItems.forEach(newItem => {
+      // Look for an existing unchecked item with the same core ingredient
+      const existingIdx = shopItems.findIndex(s =>
+        !s.checked && s._core && newItem._core &&
+        s._core.length > 2 && newItem._core.length > 2 &&
+        (s._core === newItem._core ||
+         s._core.includes(newItem._core) ||
+         newItem._core.includes(s._core))
+      );
+
+      if (existingIdx >= 0) {
+        const existing = shopItems[existingIdx];
+        // Try to combine quantities
+        if (existing._qty != null && newItem._qty != null) {
+          const combined = existing._qty + newItem._qty;
+          // Extract unit from existing text
+          const unitMatch = existing.text.match(/^[\d\/\.\s]+(cup|cups|tbsp|tsp|tablespoon|teaspoon|oz|ounce|ounces|lb|pound|pounds|g|gram|grams|kg|ml|liter|litre)s?/i);
+          const unit = unitMatch ? unitMatch[1] : '';
+          if (unit) {
+            // Same unit — combine
+            shopItems[existingIdx] = { ...existing, text: combined + ' ' + unit + ' ' + existing._core, _qty: combined };
+          } else {
+            // Different or no unit — append note
+            shopItems[existingIdx] = { ...existing, text: existing.text + ' + ' + newItem.text };
+          }
+        } else {
+          // Can't parse quantities — just note it was added again
+          if (!existing.text.includes('(×')) {
+            shopItems[existingIdx] = { ...existing, text: existing.text + ' (×2)' };
+          } else {
+            // Increment the multiplier
+            shopItems[existingIdx] = { ...existing, text: existing.text.replace(/\(×(\d+)\)/, (_, n) => '(×' + (parseInt(n)+1) + ')') };
+          }
+        }
+      } else {
+        shopItems.unshift({ text: newItem.text, checked: false, group: newItem.group, _core: newItem._core, _qty: newItem._qty });
+      }
+    });
+
+    saveShop();
+    renderShopList();
+    // If shopping page is open, refresh it too
     const page = document.getElementById('shoppingPage');
     if (page && page.style.display !== 'none') renderShoppingPagePersonal();
   }
