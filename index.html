@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V6 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V7 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -3799,25 +3799,15 @@
     localStorage.setItem('rc_theme', theme);
   }
   function loadTheme() {
-    // Use localStorage as source of truth — default to light for new users
+    // rc_theme in localStorage is the only source of truth (Supabase has no theme column)
+    // Migration: if no theme set at all, default to light
     if (!localStorage.getItem('rc_theme')) {
       localStorage.setItem('rc_theme', 'light');
     }
     const saved = localStorage.getItem('rc_theme');
     applyTheme(saved);
-    // Sync from Supabase ONLY if user has explicitly saved a theme preference there
-    if (currentUser) {
-      getUserSettings(currentUser).then(res => {
-        const dbTheme = res.settings && res.settings.theme;
-        // Only override if DB has an explicit value AND it differs from current
-        if (dbTheme && dbTheme !== saved) {
-          localStorage.setItem('rc_theme', dbTheme);
-          applyTheme(dbTheme);
-        }
-        const sel = document.getElementById('settingTheme');
-        if (sel) sel.value = localStorage.getItem('rc_theme');
-      });
-    }
+    const sel = document.getElementById('settingTheme');
+    if (sel) sel.value = saved;
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (localStorage.getItem('rc_theme') === 'system') applyTheme('system');
     });
@@ -6006,7 +5996,7 @@
       const cs = document.getElementById('settingCardSize');
       if (cs) cs.value = userSettings.card_size || 'normal';
       const th = document.getElementById('settingTheme');
-      if (th) th.value = userSettings.theme || localStorage.getItem('rc_theme') || 'light';
+      if (th) th.value = localStorage.getItem('rc_theme') || 'light';
       setToggle('toggleShowCookTime', userSettings.show_cook_time !== false);
       setToggle('toggleShowRating', userSettings.show_rating !== false);
       setToggle('toggleAutoShop', userSettings.auto_shop_planner === true);
@@ -8086,10 +8076,10 @@ ${text}`;
 
   // ── Security banner ─────────────────────────────────────────
   let _securityBannerDismissed = false;
+  // Note: banner dismissed flag is session-only, resets on each login
 
   async function checkAccountSecurity() {
     if (_securityBannerDismissed) return;
-    if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
     try {
       const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email');
       const u = Array.isArray(userRow) ? userRow[0] : null;
