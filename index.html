@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V10 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V11 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -2757,6 +2757,21 @@
   async function renderRotd() {
     const rotdEl = document.getElementById('rotdCard');
     if (!rotdEl) return;
+    // Check account security — show big banner instead of ROTD if unsecured
+    try {
+      const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email');
+      const u = Array.isArray(userRow) ? userRow[0] : null;
+      const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
+      if (!isSecured) {
+        rotdEl.innerHTML =
+          '<div style="margin:10px 12px;border-radius:var(--radius);background:rgba(224,85,85,0.12);border:2px solid var(--red);padding:20px 18px;">' +
+          '<div style="font-size:1.1em;font-weight:800;color:var(--red);margin-bottom:8px;">🔓 Account Not Secured</div>' +
+          '<div style="font-size:0.88em;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Anyone who knows your username <strong>' + escapeHtml(currentUser) + '</strong> can log into your account right now. Add an email and password to protect it.</div>' +
+          '<button onclick="openSecureAccountSheet()" style="width:100%;padding:13px;background:var(--red);border:none;border-radius:var(--radius-sm);color:#fff;font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">🔒 Secure My Account Now</button>' +
+          '</div>';
+        return;
+      }
+    } catch(e) { /* if check fails, show ROTD normally */ }
     const todayKey = 'rotdDismissed_' + new Date().toDateString();
     if (localStorage.getItem(todayKey)) { rotdEl.innerHTML = ''; return; }
     try {
@@ -7950,18 +7965,16 @@ ${text}`;
       return attemptLegacyLogin(username);
     }
 
-    // Auth login with email + password
-    const loginRes = await supabaseAuthFetch('/token?grant_type=password', {
-      email: user.email,
-      password
-    });
+    // Auth login with email + password via API route
+    const loginRes = await apiAuth('signin', { email: user.email, password });
 
     if (!loginRes.ok) {
-      showLoginError('Incorrect password. If you have not set one up, leave it blank.');
+      showLoginError(loginRes.data?.error || 'Incorrect password.');
       return;
     }
 
-    localStorage.setItem('rc_session', JSON.stringify(loginRes.data));
+    const session = loginRes.data?.session || loginRes.data;
+    localStorage.setItem('rc_session', JSON.stringify(session));
     enterApp(username);
   }
 
@@ -8187,10 +8200,11 @@ ${text}`;
     ov.onclick = () => { sheet.remove(); ov.remove(); };
     sheet.innerHTML =
       '<div style="font-size:1em;font-weight:800;margin-bottom:6px;">🔒 Secure Your Account</div>' +
-      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Add an email and password so only you can access your account.</div>' +
-      '<input type="email" id="secureEmail" class="edit-field" placeholder="Email address" style="margin-bottom:8px;">' +
-      '<input type="password" id="securePassword" class="edit-field" placeholder="Password (min 6 characters)" style="margin-bottom:8px;">' +
-      '<input type="password" id="securePasswordConfirm" class="edit-field" placeholder="Confirm password" style="margin-bottom:12px;">' +
+      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Add an email and password. You need both to protect your account.</div>' +
+      '<input type="email" id="secureEmail" class="edit-field" placeholder="Email address" style="margin-bottom:8px;" autocomplete="email">' +
+      '<input type="password" id="securePassword" class="edit-field" placeholder="Password (min 6 characters)" style="margin-bottom:8px;" autocomplete="new-password">' +
+      '<input type="password" id="securePasswordConfirm" class="edit-field" placeholder="Confirm password" style="margin-bottom:4px;" autocomplete="new-password">' +
+      '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:12px;">Password optional — leave blank to add email only. You can set a password later via Settings → Change Password.</div>' +
       '<div id="secureError" class="ai-result error" style="display:none;margin-bottom:10px;"></div>' +
       '<button onclick="submitSecureAccount()" style="width:100%;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">Save & Secure</button>';
     document.body.appendChild(ov); document.body.appendChild(sheet);
@@ -8204,11 +8218,14 @@ ${text}`;
     const errEl = document.getElementById('secureError');
     errEl.style.display = 'none';
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; errEl.style.display = 'block'; return; }
-    if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
-    if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+    if (password && password.length > 0 && password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if (password && password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+    // Use a placeholder password if none provided — user can reset via email later
+    const effectivePassword = password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
 
     // Create Supabase auth user
-    const res = await apiAuth('signup', { email, password, username: currentUser });
+    const res = await apiAuth('signup', { email, password: effectivePassword, username: currentUser });
     if (!res.ok && !res.data?.user) {
       errEl.textContent = res.data?.error || 'Could not secure account. That email may already be used.';
       errEl.style.display = 'block'; return;
