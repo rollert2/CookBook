@@ -52,9 +52,14 @@ export default async function handler(req, res) {
       const r = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({
+          email,
+          // Redirect back to the app after reset — handleAuthCallback detects type=recovery
+          redirect_to: 'https://rollcookbook.vercel.app/'
+        })
       });
-      return res.status(200).json({ ok: r.ok });
+      const data = await r.json().catch(() => ({}));
+      return res.status(200).json({ ok: r.ok, data });
     }
 
     // ── Get user from access token ──
@@ -70,7 +75,7 @@ export default async function handler(req, res) {
 
     // ── Get Google OAuth URL ──
     if (action === 'google_url') {
-      const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app');
+      const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app/');
       const url = `${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
       return res.status(200).json({ url });
     }

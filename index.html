@@ -679,7 +679,7 @@
 <div id="appScreen" style="display:none;">
 
   <!-- Security banner for unsecured accounts -->
-  <div id="securityBanner" style="display:none;background:rgba(224,165,0,0.12);border-bottom:1px solid rgba(224,165,0,0.4);padding:10px 16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+  <div id="securityBanner" style="display:none;background:rgba(224,165,0,0.12);border-bottom:1px solid rgba(224,165,0,0.4);padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;">
     <span style="font-size:0.82em;flex:1;color:var(--text-dim);">🔓 Your account has no password. Anyone who knows your username can access it.</span>
     <button onclick="openSecureAccountSheet()" style="padding:6px 14px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Secure Account</button>
     <button onclick="dismissSecurityBanner()" style="background:none;border:none;color:var(--text-faint);font-size:1em;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>
@@ -1880,6 +1880,15 @@
   });
 
   // Call on page load to handle OAuth redirects
+  // Apply theme immediately on load (before login screen renders)
+  (function() {
+    const t = localStorage.getItem('rc_theme') || 'light';
+    if (t === 'dark') { document.body.classList.remove('light-mode'); }
+    else if (t === 'light') { document.body.classList.add('light-mode'); }
+    else { /* system — check media query */
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) document.body.classList.add('light-mode');
+    }
+  })();
   setTimeout(() => handleAuthCallback().catch(() => {}), 100);
 
   function showLoginScreen() {
@@ -1950,12 +1959,16 @@
     });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
+    // Default light for new users
+    if (!localStorage.getItem('rc_theme')) { localStorage.setItem('rc_theme', 'light'); }
     loadTheme();
     initPullToRefresh();
     initScrollHideHeader();
     adjustHeaderPadding();
     window.addEventListener('resize', adjustHeaderPadding);
-    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); checkAccountSecurity(); });
+    // Show security banner immediately for unsecured accounts (before init completes)
+    checkAccountSecurity();
+    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); });
   }
 
   function adjustHeaderPadding() {
@@ -7936,56 +7949,117 @@ ${text}`;
 
   // ── Google OAuth ────────────────────────────────────────────
   async function signInWithGoogle() {
-    const res = await apiAuth('google_url', {});
-    if (res.ok && res.data.url) {
-      window.location.href = res.data.url;
-    } else {
-      showLoginError('Google sign-in unavailable. Please use email and password.');
-    }
+    // Build the Supabase Google OAuth URL directly with correct redirect
+    const SUPA_URL = 'https://rxedycriglsypezlpdrz.supabase.co/auth/v1/authorize';
+    const redirectTo = encodeURIComponent('https://rollcookbook.vercel.app/');
+    const url = SUPA_URL + '?provider=google&redirect_to=' + redirectTo;
+    // Open in same window — Median.co will handle the redirect back
+    window.location.href = url;
   }
 
   // Handle OAuth callback on page load
   async function handleAuthCallback() {
     const hash = window.location.hash;
-    const params = new URLSearchParams(window.location.search);
+    if (!hash || !hash.includes('access_token')) return;
 
-    // Check for token in hash (Supabase OAuth callback)
-    if (hash && hash.includes('access_token')) {
-      const hashParams = new URLSearchParams(hash.replace('#', '?'));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      if (accessToken) {
-        const userRes = await apiAuth('getuser', { access_token: accessToken });
-        if (userRes.ok && userRes.data.user) {
-          const authUser = userRes.data.user;
-          const email = authUser.email;
-          const authId = authUser.id;
-          const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
+    const hashParams = new URLSearchParams(hash.replace('#', '?'));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const tokenType = hashParams.get('type'); // 'recovery', 'signup', 'magiclink', etc.
 
-          // Check if user exists by auth_id
-          let existingUser = await sbFetch('GET', 'users', null, 'auth_id=eq.' + authId + '&select=username').catch(() => null);
-          let username = existingUser && existingUser[0] ? existingUser[0].username : null;
+    if (!accessToken) return;
+    window.history.replaceState({}, '', window.location.pathname);
 
-          if (!username) {
-            const byEmail = await sbFetch('GET', 'users', null, 'email=eq.' + encodeURIComponent(email) + '&select=username').catch(() => null);
-            username = byEmail && byEmail[0] ? byEmail[0].username : null;
-          }
+    // ── Password reset flow ──
+    if (tokenType === 'recovery') {
+      // Store token temporarily and show reset form
+      localStorage.setItem('rc_recovery_token', accessToken);
+      showPasswordResetForm();
+      return;
+    }
 
-          if (!username) {
-            localStorage.setItem('rc_pending_google_auth', JSON.stringify({ authId, email, accessToken, refreshToken, googleName }));
-            window.history.replaceState({}, '', window.location.pathname);
-            showGoogleUsernamePrompt(googleName);
-            return;
-          }
+    // ── OAuth / signup callback ──
+    const userRes = await apiAuth('getuser', { access_token: accessToken });
+    if (!userRes.ok || !userRes.data.user) return;
 
-          await sbFetch('PATCH', 'users?username=eq.' + username, {
-            auth_id: authId, email, is_secured: true
-          }).catch(() => {});
-          localStorage.setItem('rc_session', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
-          window.history.replaceState({}, '', window.location.pathname);
-          enterApp(username);
-        }
-      }
+    const authUser = userRes.data.user;
+    const email = authUser.email;
+    const authId = authUser.id;
+    const googleName = authUser.user_metadata?.full_name || authUser.user_metadata?.name || '';
+
+    let existingUser = await sbFetch('GET', 'users', null, 'auth_id=eq.' + authId + '&select=username').catch(() => null);
+    let username = existingUser && existingUser[0] ? existingUser[0].username : null;
+
+    if (!username) {
+      const byEmail = await sbFetch('GET', 'users', null, 'email=eq.' + encodeURIComponent(email) + '&select=username').catch(() => null);
+      username = byEmail && byEmail[0] ? byEmail[0].username : null;
+    }
+
+    if (!username) {
+      localStorage.setItem('rc_pending_google_auth', JSON.stringify({ authId, email, accessToken, refreshToken, googleName }));
+      showGoogleUsernamePrompt(googleName);
+      return;
+    }
+
+    await sbFetch('PATCH', 'users?username=eq.' + username, {
+      auth_id: authId, email, is_secured: true
+    }).catch(() => {});
+    localStorage.setItem('rc_session', JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
+    enterApp(username);
+  }
+
+  function showPasswordResetForm() {
+    // Show the login screen with a password reset form
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+    const loginBox = document.querySelector('.login-box');
+    if (!loginBox) return;
+    loginBox.innerHTML =
+      '<div style="font-size:1em;font-weight:800;margin-bottom:6px;">🔒 Set New Password</div>' +
+      '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Enter your new password below.</div>' +
+      '<input type="password" id="newPasswordInput" class="login-input" placeholder="New password (min 6 chars)" style="margin-bottom:8px;">' +
+      '<input type="password" id="newPasswordConfirm" class="login-input" placeholder="Confirm new password" style="margin-bottom:12px;">' +
+      '<div id="resetFormError" class="login-error" style="display:none;"></div>' +
+      '<button class="login-btn" onclick="submitNewPassword()">Save New Password</button>';
+  }
+
+  async function submitNewPassword() {
+    const pw = document.getElementById('newPasswordInput')?.value || '';
+    const pw2 = document.getElementById('newPasswordConfirm')?.value || '';
+    const errEl = document.getElementById('resetFormError');
+    errEl.style.display = 'none';
+    if (pw.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if (pw !== pw2) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+    const token = localStorage.getItem('rc_recovery_token');
+    if (!token) { errEl.textContent = 'Session expired. Please request a new reset link.'; errEl.style.display = 'block'; return; }
+
+    // Update password via Supabase Auth
+    const res = await fetch('https://rxedycriglsypezlpdrz.supabase.co/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4ZWR5Y3JpZ2xzeXBlemxwZHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTEwODIsImV4cCI6MjA5MDQ4NzA4Mn0.K1mqdJ8ciemSJ6Xn1rfOOakzbB7AcWOOmr9ra17WScg',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ password: pw })
+    });
+
+    localStorage.removeItem('rc_recovery_token');
+
+    if (res.ok) {
+      // Show success and go back to login
+      const loginBox = document.querySelector('.login-box');
+      if (loginBox) loginBox.innerHTML =
+        '<div style="text-align:center;padding:20px;">' +
+        '<div style="font-size:2em;margin-bottom:12px;">✅</div>' +
+        '<div style="font-weight:700;margin-bottom:8px;">Password updated!</div>' +
+        '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:20px;">You can now sign in with your new password.</div>' +
+        '<button class="login-btn" onclick="location.reload()">Go to Sign In</button>' +
+        '</div>';
+    } else {
+      errEl.textContent = 'Could not update password. Please request a new reset link.';
+      errEl.style.display = 'block';
     }
   }
 
@@ -8039,11 +8113,16 @@ ${text}`;
   async function checkAccountSecurity() {
     if (_securityBannerDismissed) return;
     if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
-    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured').catch(() => null);
-    const isSecured = userRow && userRow[0] && userRow[0].is_secured;
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email').catch(() => null);
+    const u = userRow && userRow[0];
+    // Unsecured = no is_secured flag AND no email on record
+    const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
     const banner = document.getElementById('securityBanner');
     if (!isSecured && banner) {
       banner.style.display = 'flex';
+      // Re-apply after short delay in case something overrides it
+      setTimeout(() => { if (banner) banner.style.display = 'flex'; }, 800);
+      setTimeout(() => { if (banner) banner.style.display = 'flex'; }, 2000);
     }
   }
 
