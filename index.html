@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V4 -->
+<!DOCTYPE html><!-- 2026-04-07 BUILD-AUTH-V5 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1968,8 +1968,10 @@
     });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
-    // Default light for new users
-    if (!localStorage.getItem('rc_theme')) { localStorage.setItem('rc_theme', 'light'); }
+    // Default light for new users who have never set a theme
+    if (!localStorage.getItem('rc_theme')) {
+      localStorage.setItem('rc_theme', 'light');
+    }
     loadTheme();
     initPullToRefresh();
     initScrollHideHeader();
@@ -3795,21 +3797,27 @@
     localStorage.setItem('rc_theme', theme);
   }
   function loadTheme() {
-    // Load from localStorage first (instant, no flicker)
-    const saved = localStorage.getItem('rc_theme') || 'light';
+    // Use localStorage as source of truth — default to light for new users
+    if (!localStorage.getItem('rc_theme')) {
+      localStorage.setItem('rc_theme', 'light');
+    }
+    const saved = localStorage.getItem('rc_theme');
     applyTheme(saved);
-    // Then sync from Supabase settings if available
+    // Sync from Supabase ONLY if user has explicitly saved a theme preference there
     if (currentUser) {
       getUserSettings(currentUser).then(res => {
-        const t = (res.settings && res.settings.theme) || saved;
-        if (t !== saved) applyTheme(t);
+        const dbTheme = res.settings && res.settings.theme;
+        // Only override if DB has an explicit value AND it differs from current
+        if (dbTheme && dbTheme !== saved) {
+          localStorage.setItem('rc_theme', dbTheme);
+          applyTheme(dbTheme);
+        }
         const sel = document.getElementById('settingTheme');
-        if (sel) sel.value = t;
+        if (sel) sel.value = localStorage.getItem('rc_theme');
       });
     }
-    // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if ((localStorage.getItem('rc_theme') || 'light') === 'system') applyTheme('system');
+      if (localStorage.getItem('rc_theme') === 'system') applyTheme('system');
     });
   }
 
@@ -8080,23 +8088,34 @@ ${text}`;
   async function checkAccountSecurity() {
     if (_securityBannerDismissed) return;
     if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
-    const banner = document.getElementById('securityBanner');
-    if (!banner) return;
-    // Show immediately — remove the inline display:none by setting attribute directly
-    banner.setAttribute('style',
-      'display:flex;background:rgba(224,165,0,0.12);border-bottom:1px solid rgba(224,165,0,0.4);' +
-      'padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;');
     try {
       const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email');
       const u = Array.isArray(userRow) ? userRow[0] : null;
       const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
-      if (isSecured) {
-        banner.setAttribute('style', 'display:none;');
+      if (!isSecured) {
+        showSecurityBanner();
       }
-      // If not secured, banner stays visible from setAttribute above
     } catch(e) {
-      // Keep banner visible on error
+      showSecurityBanner(); // Show on error to be safe
     }
+  }
+
+  function showSecurityBanner() {
+    if (_securityBannerDismissed) return;
+    if (localStorage.getItem('rc_security_dismissed_' + currentUser)) return;
+    let banner = document.getElementById('securityBanner');
+    if (!banner) {
+      // Create it dynamically if not found
+      banner = document.createElement('div');
+      banner.id = 'securityBanner';
+      const appScreen = document.getElementById('appScreen');
+      if (appScreen) appScreen.insertBefore(banner, appScreen.firstChild);
+    }
+    banner.style.cssText = 'display:flex;background:rgba(224,165,0,0.12);border-bottom:2px solid rgba(201,168,76,0.5);padding:10px 16px;align-items:center;gap:10px;flex-wrap:wrap;width:100%;box-sizing:border-box;';
+    banner.innerHTML =
+      '<span style="font-size:0.82em;flex:1;color:var(--text-dim);">🔓 No password set — anyone who knows your username can access your account.</span>' +
+      '<button onclick="openSecureAccountSheet()" style="padding:6px 14px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Secure Account</button>' +
+      '<button onclick="dismissSecurityBanner()" style="background:none;border:none;color:var(--text-faint);font-size:1.1em;cursor:pointer;padding:0 4px;flex-shrink:0;">✕</button>';
   }
 
   function dismissSecurityBanner() {
