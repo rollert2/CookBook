@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-07 BUILD-PRELAUNCH-V5 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V7 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1423,7 +1423,7 @@
           <div class="settings-row-label">Theme</div>
           <div class="settings-row-sub">Dark, light, or follow system</div>
         </div>
-        <select class="settings-select" id="settingTheme" onchange="applyTheme(this.value);saveSetting('theme',this.value)">
+        <select class="settings-select" id="settingTheme" onchange="applyTheme(this.value, true);saveSetting('theme',this.value)">
           <option value="light" selected>☀️ Light</option>
           <option value="dark">🌙 Dark</option>
           <option value="system">⚙️ Device Default</option>
@@ -1443,7 +1443,7 @@
         <div class="settings-row-info"><div class="settings-row-label">Default serving scale</div></div>
         <select class="settings-select" id="settingDefaultScale" onchange="saveSetting('default_scale',this.value)">
           <option value="0.5">½×</option>
-          <option value="1">1×</option>
+          <option value="1" selected>1×</option>
           <option value="2">2×</option>
           <option value="3">3×</option>
         </select>
@@ -3880,28 +3880,40 @@
   // ═══ SETTINGS ═══
   let userSettings = {};
   // ═══ THEME ═══
-  function applyTheme(theme) {
+  function applyTheme(theme, persist) {
     if (theme === 'light') {
       document.body.classList.add('light-mode');
     } else if (theme === 'dark') {
       document.body.classList.remove('light-mode');
     } else {
-      // System default
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.body.classList.toggle('light-mode', !prefersDark);
     }
     localStorage.setItem('rc_theme', theme);
+    // Save to Supabase when called from settings (persist=true or from saveSetting)
+    if (persist && currentUser) {
+      updateUserSettings(currentUser, { theme }).catch(() => {});
+    }
   }
   function loadTheme() {
-    // rc_theme in localStorage is the only source of truth (Supabase has no theme column)
-    // Migration: if no theme set at all, default to light
-    if (!localStorage.getItem('rc_theme')) {
-      localStorage.setItem('rc_theme', 'light');
-    }
+    // Apply localStorage value immediately (no flicker)
+    if (!localStorage.getItem('rc_theme')) localStorage.setItem('rc_theme', 'light');
     const saved = localStorage.getItem('rc_theme');
     applyTheme(saved);
     const sel = document.getElementById('settingTheme');
     if (sel) sel.value = saved;
+    // Sync from Supabase — theme is now stored in user_settings.theme column
+    if (currentUser) {
+      getUserSettings(currentUser).then(res => {
+        const dbTheme = res.settings && res.settings.theme;
+        if (dbTheme && dbTheme !== saved) {
+          localStorage.setItem('rc_theme', dbTheme);
+          applyTheme(dbTheme);
+          const sel2 = document.getElementById('settingTheme');
+          if (sel2) sel2.value = dbTheme;
+        }
+      }).catch(() => {});
+    }
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (localStorage.getItem('rc_theme') === 'system') applyTheme('system');
     });
@@ -4176,11 +4188,16 @@
     el.textContent = '✅ ROTD set to: ' + title; el.style.color = 'var(--green)';
     document.getElementById('rotdSearchInput').value = '';
     document.getElementById('rotdSearchResults').innerHTML = '';
+    // Refresh ROTD display
+    localStorage.removeItem('rotdDismissed_' + new Date().toDateString());
+    renderRotd();
   }
   async function clearRotdOverride() {
     await updateAdminSettings({ rotd_override_id: null, rotd_override_date: null });
     document.getElementById('rotdCurrentOverride').textContent = '✅ Override cleared — users will see their own ROTD';
     document.getElementById('rotdCurrentOverride').style.color = 'var(--text-dim)';
+    localStorage.removeItem('rotdDismissed_' + new Date().toDateString());
+    renderRotd();
   }
 
   // ── APP SETTINGS ──
@@ -5994,6 +6011,7 @@
     try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
     // Apply default scale from user settings
     currentScale = parseFloat(userSettings.default_scale) || 1;
+    if (currentScale !== 0.5 && currentScale !== 1 && currentScale !== 2 && currentScale !== 3) currentScale = 1;
     // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
     if (timerStates._recipeIdx !== idx) {
       Object.values(timerStates).forEach(t => { if (t.interval) clearInterval(t.interval); });
