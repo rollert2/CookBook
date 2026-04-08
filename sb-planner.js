@@ -5,11 +5,13 @@
 
 // ── PLANNER ENTRIES ────────────────────────────────────────────
 
-async function addPlannerEntry(username, date, recipeId, mealType) {
+async function addPlannerEntry(username, date, recipeId, mealType, customTitle) {
   const userId = await getUserId(username);
   if (!userId) return { status: 'Error' };
-  await sbFetch('POST', 'planner_entries',
-    { user_id: userId, entry_date: date, recipe_id: recipeId, meal_type: mealType });
+  const entry = { user_id: userId, entry_date: date, meal_type: mealType };
+  if (recipeId) entry.recipe_id = recipeId;
+  if (customTitle) entry.custom_title = customTitle;
+  await sbFetch('POST', 'planner_entries', entry);
   return { status: 'Success' };
 }
 
@@ -22,7 +24,7 @@ async function getPlannerRange(username, startDate, endDate) {
   const userId = await getUserId(username);
   if (!userId) return [];
   const entries = await sbFetch('GET', 'planner_entries', null,
-    `user_id=eq.${userId}&entry_date=gte.${startDate}&entry_date=lte.${endDate}&select=id,entry_date,recipe_id,meal_type&order=entry_date.asc`);
+    `user_id=eq.${userId}&entry_date=gte.${startDate}&entry_date=lte.${endDate}&select=id,entry_date,recipe_id,meal_type,custom_title&order=entry_date.asc`);
   if (!entries || entries.length === 0) return [];
   const recipeIds = [...new Set(entries.map(e => e.recipe_id).filter(Boolean))];
   let recipesMap = {};
@@ -31,7 +33,7 @@ async function getPlannerRange(username, startDate, endDate) {
       `id=in.(${recipeIds.join(',')})&select=id,title,image_url,cook_time,prep_time,category,ingredients`);
     (recipes || []).forEach(r => { recipesMap[r.id] = r; });
   }
-  return entries.map(e => ({ ...e, date: e.entry_date, recipes: recipesMap[e.recipe_id] || null }));
+  return entries.map(e => ({ ...e, date: e.entry_date, recipes: recipesMap[e.recipe_id] || null, custom_title: e.custom_title || null }));
 }
 
 // Legacy compat

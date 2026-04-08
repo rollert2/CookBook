@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V7 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V8 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1668,6 +1668,7 @@
       <div class="modal-header">
         <button class="modal-back" onclick="closeModalAnimated('messagingModal')">← Back</button>
         <h2>Messages</h2>
+        <button onclick="openNewMessagePicker()" style="background:var(--gold);border:none;border-radius:20px;padding:6px 14px;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;">✏️ New</button>
         <div id="msgRequestsBadge" style="display:none;background:var(--red);color:#fff;border-radius:20px;padding:3px 9px;font-size:0.72em;font-weight:700;cursor:pointer;" onclick="showMsgRequests()">Requests</div>
       </div>
       <div id="msgRequestsSection" style="display:none;">
@@ -4731,14 +4732,39 @@
         leftovers.map(l => '<div class="planner-picker-item-row" data-recipe-id="leftover_' + l.id + '" data-date="'+dateStr+'" data-meal="'+mealType+'" data-leftover-title="' + escapeHtml(l.recipeTitle) + '" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:rgba(201,168,76,0.08);border:1px solid var(--gold);margin-bottom:6px;cursor:pointer;"><div style="font-size:1.2em;flex-shrink:0;">🫙</div><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(l.recipeTitle) + ' (leftover)</div><div style="font-size:0.7em;color:var(--text-faint);">' + (l.servings ? l.servings + ' servings · ' : '') + new Date(l.date).toLocaleDateString('en',{month:'short',day:'numeric'}) + '</div></div></div>').join('') +
         '<div style="padding:6px 0 8px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);">From Cookbook</div>'
       : '';
+    // Build generic meals section for this meal type
+    const genericMeals = getGenericMeals(mealType);
+    const genericSection = buildGenericMealsSection(genericMeals, dateStr, mealType);
+
     sheet.innerHTML =
       '<div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 14px;"></div>' +
       '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">' + (MEAL_EMOJIS[mealType]||'🍽️') + ' Pick a recipe for ' + mealType + '</div>' +
       '<input type="text" placeholder="Search all recipes..." class="edit-field" style="margin-bottom:12px;" oninput="filterPickerList(this.value)">' +
-      '<div id="plannerPickerList">' + leftoverHtml + buildPickerList(matching, others, dateStr, mealType) + '</div>';
+      '<div id="plannerPickerList">' + leftoverHtml + genericSection + buildPickerList(matching, others, dateStr, mealType) + '</div>';
 
     // Delegated click — avoids all inline onclick quoting issues
     sheet.addEventListener('click', e => {
+      // Generic meals toggle
+      const toggle = e.target.closest('.generic-meals-toggle');
+      if (toggle) {
+        const body = document.getElementById('genericMealsBody');
+        const arrow = toggle.querySelector('.generic-arrow');
+        if (body) {
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          if (arrow) arrow.textContent = open ? '▶' : '▼';
+        }
+        return;
+      }
+      // Add generic meal button
+      const addGeneric = e.target.closest('.add-generic-meal-btn');
+      if (addGeneric) {
+        const mt = addGeneric.dataset.meal;
+        const dt = addGeneric.dataset.date;
+        showAddGenericMealInput(mt, dt, sheet);
+        return;
+      }
+      // Generic meal item row
       const row = e.target.closest('.planner-picker-item-row');
       if (!row) return;
       const rid = row.dataset.recipeId;
@@ -4746,12 +4772,14 @@
       const mt = row.dataset.meal;
       if (rid && dt) {
         if (rid.startsWith('leftover_')) {
-          // It's a leftover — add as a text note entry using the title
           const lt = row.dataset.leftoverTitle || 'Leftover';
-          // Find matching recipe by title if possible
           const match = allRecipes.find(r => r.title === lt.replace(' (leftover)',''));
           if (match) selectPlannerRecipe(match.id, dt, mt);
-          else { alert('Could not find matching recipe in your cookbook.'); }
+          else alert('Could not find matching recipe in your cookbook.');
+        } else if (rid.startsWith('generic_')) {
+          // Generic meal — add to planner as a custom text entry
+          const title = row.dataset.genericTitle || 'Meal';
+          selectGenericPlannerMeal(title, dt, mt);
         } else {
           selectPlannerRecipe(rid, dt, mt);
         }
@@ -8698,6 +8726,195 @@ ${text}`;
     toast.textContent = val ? '✅ Email set to ' + val : '✅ Email cleared for ' + username;
     document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
     loadAdminUsers();
+  }
+
+
+
+  // ═══ GENERIC MEALS (planner) ═══════════════════════════════
+
+  function getGenericMeals(mealType) {
+    const key = 'genericMeals_' + currentUser + '_' + mealType;
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+  }
+
+  function saveGenericMeal(mealType, title) {
+    const key = 'genericMeals_' + currentUser + '_' + mealType;
+    const meals = getGenericMeals(mealType);
+    const clean = title.trim();
+    if (!clean || meals.includes(clean)) return;
+    meals.push(clean);
+    localStorage.setItem(key, JSON.stringify(meals));
+  }
+
+  function deleteGenericMeal(mealType, title) {
+    const key = 'genericMeals_' + currentUser + '_' + mealType;
+    const meals = getGenericMeals(mealType).filter(m => m !== title);
+    localStorage.setItem(key, JSON.stringify(meals));
+  }
+
+  function buildGenericMealsSection(meals, dateStr, mealType) {
+    const itemsHtml = meals.map(m =>
+      '<div class="planner-picker-item-row" data-recipe-id="generic_' + escapeHtml(m) + '" data-date="' + dateStr + '" data-meal="' + mealType + '" data-generic-title="' + escapeHtml(m) + '" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
+        '<div style="width:38px;height:38px;background:var(--gold-dim);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2em;flex-shrink:0;">🍴</div>' +
+        '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(m) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Quick meal</div></div>' +
+      '</div>'
+    ).join('');
+
+    const addBtn =
+      '<div class="add-generic-meal-btn" data-meal="' + mealType + '" data-date="' + dateStr + '" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px dashed var(--glass-border);margin-bottom:6px;cursor:pointer;color:var(--text-faint);">' +
+        '<div style="width:38px;height:38px;background:var(--glass);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.1em;flex-shrink:0;">＋</div>' +
+        '<div style="font-size:0.88em;font-weight:600;">Add quick meal...</div>' +
+      '</div>';
+
+    return (
+      '<div style="margin-bottom:10px;">' +
+        '<div class="generic-meals-toggle" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--gold-dim);border:1px solid var(--gold);cursor:pointer;margin-bottom:6px;user-select:none;">' +
+          '<span style="font-size:1em;">🍴</span>' +
+          '<span style="font-size:0.88em;font-weight:700;color:var(--gold);flex:1;">Generic Meals</span>' +
+          '<span class="generic-arrow" style="font-size:0.75em;color:var(--gold);">▶</span>' +
+        '</div>' +
+        '<div id="genericMealsBody" style="display:none;">' +
+          itemsHtml + addBtn +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function showAddGenericMealInput(mealType, dateStr, sheet) {
+    // Replace add button with inline input
+    const addBtn = sheet.querySelector('.add-generic-meal-btn');
+    if (!addBtn) return;
+    const inputRow = document.createElement('div');
+    inputRow.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;margin-bottom:6px;';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-field';
+    input.placeholder = 'e.g. Cereal, Frozen Waffles...';
+    input.style.cssText = 'flex:1;margin:0;';
+    input.autofocus = true;
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = 'Add';
+    confirmBtn.style.cssText = 'padding:10px 16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;';
+    confirmBtn.onclick = () => {
+      const val = input.value.trim();
+      if (!val) return;
+      saveGenericMeal(mealType, val);
+      // Refresh the picker
+      const body = document.getElementById('genericMealsBody');
+      if (body) {
+        const meals = getGenericMeals(mealType);
+        const newSection = buildGenericMealsSection(meals, dateStr, mealType);
+        const temp = document.createElement('div');
+        temp.innerHTML = newSection;
+        const newBody = temp.querySelector('#genericMealsBody');
+        if (newBody) {
+          body.innerHTML = newBody.innerHTML;
+          body.style.display = 'block';
+          const arrow = sheet.querySelector('.generic-arrow');
+          if (arrow) arrow.textContent = '▼';
+        }
+      }
+      inputRow.remove();
+    };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '✕';
+    cancelBtn.style.cssText = 'padding:10px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);cursor:pointer;flex-shrink:0;';
+    cancelBtn.onclick = () => inputRow.remove();
+    input.onkeydown = e => { if (e.key === 'Enter') confirmBtn.onclick(); if (e.key === 'Escape') cancelBtn.onclick(); };
+    inputRow.append(input, confirmBtn, cancelBtn);
+    addBtn.parentNode.insertBefore(inputRow, addBtn);
+    setTimeout(() => input.focus(), 50);
+  }
+
+  async function selectGenericPlannerMeal(title, dateStr, mealType) {
+    document.getElementById('plannerPickerSheet')?.remove();
+    document.getElementById('plannerPickerOverlay')?.remove();
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--glass-border);color:var(--text-dim);padding:8px 16px;border-radius:20px;font-size:0.82em;z-index:9999;white-space:nowrap;';
+    toast.textContent = 'Adding ' + title + '...';
+    document.body.appendChild(toast);
+    try {
+      // Store as a custom recipe-less planner entry using a sentinel recipe ID
+      // We'll save it using a special "generic" entry in the planner
+      await addPlannerEntry(currentUser, dateStr, null, mealType, title);
+      
+      toast.remove();
+      renderPlanner();
+    } catch(e) {
+      toast.remove();
+      // Fallback: just render without saving
+      renderPlanner();
+    }
+  }
+
+  // ═══ NEW MESSAGE PICKER ═════════════════════════════════════
+
+  async function openNewMessagePicker() {
+    const friendsRes = await getFriends(currentUser).catch(() => ({ following: [], mutuals: [] }));
+    const following = friendsRes.following || [];
+    const mutuals = new Set(friendsRes.mutuals || []);
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:75vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    ov.onclick = () => { sheet.remove(); ov.remove(); };
+
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-weight:800;font-size:0.95em;margin-bottom:14px;';
+    heading.textContent = 'New Message';
+    sheet.appendChild(heading);
+
+    if (following.length === 0) {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'color:var(--text-faint);font-size:0.85em;padding:20px 0;text-align:center;';
+      msg.textContent = 'Follow someone to send them a message.';
+      sheet.appendChild(msg);
+    } else {
+      following.forEach(username => {
+        const isMutual = mutuals.has(username);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;';
+        const av = document.createElement('div');
+        av.style.cssText = 'width:38px;height:38px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;overflow:hidden;';
+        av.textContent = username.charAt(0).toUpperCase();
+        getUserAvatar(username).then(url => { if (url) av.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">'; }).catch(() => {});
+        const info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        const name = document.createElement('div');
+        name.style.cssText = 'font-size:0.9em;font-weight:700;';
+        name.textContent = username;
+        info.appendChild(name);
+        if (!isMutual) {
+          const note = document.createElement('div');
+          note.style.cssText = 'font-size:0.72em;color:var(--gold);margin-top:2px;';
+          note.textContent = '⚠️ Not following you back — they must accept your message';
+          info.appendChild(note);
+        } else {
+          const note = document.createElement('div');
+          note.style.cssText = 'font-size:0.72em;color:var(--text-faint);margin-top:2px;';
+          note.textContent = 'Friends';
+          info.appendChild(note);
+        }
+        const arrow = document.createElement('div');
+        arrow.style.cssText = 'color:var(--text-faint);font-size:0.85em;';
+        arrow.textContent = '›';
+        row.append(av, info, arrow);
+        row.onclick = () => {
+          sheet.remove(); ov.remove();
+          openMsgThread(username);
+        };
+        sheet.appendChild(row);
+      });
+    }
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:4px;';
+    cancelBtn.onclick = () => { sheet.remove(); ov.remove(); };
+    sheet.appendChild(cancelBtn);
+    document.body.appendChild(ov);
+    document.body.appendChild(sheet);
   }
 
 
