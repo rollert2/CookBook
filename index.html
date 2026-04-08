@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V8 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V9 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -4457,6 +4457,7 @@
       if (userSettings.default_sort) { currentSort = userSettings.default_sort; }
       if (userSettings.card_size) { applyCardSize(userSettings.card_size); }
       allRecipes = await getRecipes(currentUser);
+      await loadGenericMeals(); // Load generic meals for planner
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
@@ -4640,7 +4641,11 @@
       const entries = plannerData.filter(p => p.date === dateStr);
       if (entries.length === 0) continue;
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-size:0.72em;font-weight:700;color:var(--text-faint);width:30px;">' + days[i] + '</div>';
-      html += entries.map(e => e.recipes ? '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:0.78em;font-weight:600;">' + (MEAL_EMOJIS[e.meal_type||'Dinner']||'🍽️') + ' ' + e.recipes.title + '</div>' : '').join('');
+      html += entries.map(e => {
+        if (e.recipes) return '<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:0.78em;font-weight:600;">' + (MEAL_EMOJIS[e.meal_type||'Dinner']||'🍽️') + ' ' + escapeHtml(e.recipes.title) + '</div>';
+        if (e.custom_title) return '<div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:8px;padding:4px 10px;font-size:0.78em;font-weight:600;">🍴 ' + escapeHtml(e.custom_title) + '</div>';
+        return '';
+      }).join('');
       html += '</div>';
     }
     document.getElementById('plannerSummary').innerHTML = html;
@@ -4697,6 +4702,7 @@
     renderPlannerDayBody(dateStr);
     if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
     else renderWeekView(getWeekStart(plannerWeekOffset));
+    renderWeeklySummary(getWeekStart(plannerWeekOffset));
   }
 
   let plannerPickerCallback = null;
@@ -4861,6 +4867,9 @@
     getPlannerRange(currentUser, monthStart, monthEnd).then(data => {
       plannerData = data;
       if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
+      else renderWeekView(getWeekStart(plannerWeekOffset));
+      renderWeeklySummary(getWeekStart(plannerWeekOffset));
+      renderWeeklySummary(getWeekStart(plannerWeekOffset));
     });
   }
   function getPlannerDateRange() {
@@ -8732,24 +8741,36 @@ ${text}`;
 
   // ═══ GENERIC MEALS (planner) ═══════════════════════════════
 
+  // Generic meals stored in user_settings.generic_meals (JSON) — syncs across devices
+  let _genericMealsCache = null; // { Breakfast: [], Lunch: [], Dinner: [], Sides: [] }
+
+  async function loadGenericMeals() {
+    try {
+      const res = await getUserSettings(currentUser);
+      const raw = res.settings && res.settings.generic_meals;
+      _genericMealsCache = raw ? JSON.parse(raw) : {};
+    } catch(e) { _genericMealsCache = {}; }
+  }
+
   function getGenericMeals(mealType) {
-    const key = 'genericMeals_' + currentUser + '_' + mealType;
-    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+    if (!_genericMealsCache) return [];
+    return (_genericMealsCache[mealType] || []);
   }
 
-  function saveGenericMeal(mealType, title) {
-    const key = 'genericMeals_' + currentUser + '_' + mealType;
-    const meals = getGenericMeals(mealType);
+  async function saveGenericMeal(mealType, title) {
     const clean = title.trim();
-    if (!clean || meals.includes(clean)) return;
-    meals.push(clean);
-    localStorage.setItem(key, JSON.stringify(meals));
+    if (!clean) return;
+    if (!_genericMealsCache) _genericMealsCache = {};
+    if (!_genericMealsCache[mealType]) _genericMealsCache[mealType] = [];
+    if (_genericMealsCache[mealType].includes(clean)) return;
+    _genericMealsCache[mealType].push(clean);
+    await updateUserSettings(currentUser, { generic_meals: JSON.stringify(_genericMealsCache) }).catch(() => {});
   }
 
-  function deleteGenericMeal(mealType, title) {
-    const key = 'genericMeals_' + currentUser + '_' + mealType;
-    const meals = getGenericMeals(mealType).filter(m => m !== title);
-    localStorage.setItem(key, JSON.stringify(meals));
+  async function deleteGenericMeal(mealType, title) {
+    if (!_genericMealsCache) return;
+    _genericMealsCache[mealType] = (_genericMealsCache[mealType] || []).filter(m => m !== title);
+    await updateUserSettings(currentUser, { generic_meals: JSON.stringify(_genericMealsCache) }).catch(() => {});
   }
 
   function buildGenericMealsSection(meals, dateStr, mealType) {
@@ -8795,10 +8816,10 @@ ${text}`;
     const confirmBtn = document.createElement('button');
     confirmBtn.textContent = 'Add';
     confirmBtn.style.cssText = 'padding:10px 16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;';
-    confirmBtn.onclick = () => {
+    confirmBtn.onclick = async () => {
       const val = input.value.trim();
       if (!val) return;
-      saveGenericMeal(mealType, val);
+      await saveGenericMeal(mealType, val);
       // Refresh the picker
       const body = document.getElementById('genericMealsBody');
       if (body) {
@@ -8834,15 +8855,17 @@ ${text}`;
     toast.textContent = 'Adding ' + title + '...';
     document.body.appendChild(toast);
     try {
-      // Store as a custom recipe-less planner entry using a sentinel recipe ID
-      // We'll save it using a special "generic" entry in the planner
       await addPlannerEntry(currentUser, dateStr, null, mealType, title);
-      
       toast.remove();
-      renderPlanner();
+      // Refresh planner data and update all views
+      const [start, end] = getPlannerDateRange();
+      plannerData = await getPlannerRange(currentUser, start, end);
+      renderPlannerDayBody(dateStr);
+      renderWeeklySummary(getWeekStart(plannerWeekOffset));
+      if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
+      else renderWeekView(getWeekStart(plannerWeekOffset));
     } catch(e) {
       toast.remove();
-      // Fallback: just render without saving
       renderPlanner();
     }
   }
