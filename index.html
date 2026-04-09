@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V16 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V17 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1967,8 +1967,8 @@
     enterApp(u);
   }
 
-  function deleteUser(username) {
-    if (!confirm('Remove "' + username + '" from this device?')) return;
+  async function deleteUser(username) {
+    if (!await rcConfirm('Remove "' + username + '" from this device?', {icon:'🗑',title:'Remove account',confirmText:'Remove',danger:true})) return;
     let allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
     allSaved = allSaved.filter(u => u !== username);
     localStorage.setItem('savedUsers', JSON.stringify(allSaved));
@@ -2047,8 +2047,8 @@
     setTimeout(apply, 350);
   }
 
-  function logout() {
-    if (!confirm('Log out of "' + currentUser + '"?')) return;
+  async function logout() {
+    if (!await rcConfirm('Log out of "' + currentUser + '"?', {icon:'👋',title:'Log out',confirmText:'Log out',danger:false})) return;
     localStorage.removeItem('currentUser');
     currentUser = null; allRecipes = []; shopItems = [];
     activeCategories = new Set(['All']); currentSort = 'newest'; showFavsOnly = false;
@@ -2396,7 +2396,7 @@
   function contextShop() { closeContextMenu(); const r = allRecipes[contextTargetIndex]; addIngredientsToShop(parseIngredients(r.ingredients), r.category); openShopPanel(); }
   function contextShare() { closeContextMenu(); openDetails(contextTargetIndex); setTimeout(openSharePanel, 300); }
   function contextOpen() { closeContextMenu(); openDetails(contextTargetIndex); }
-  function contextDelete() { closeContextMenu(); if (!confirm('Delete this recipe?')) return; const idx = contextTargetIndex; deleteRecipe(allRecipes[idx].id).then(() => { allRecipes.splice(idx,1); renderRecipes(); }); }
+  async function contextDelete() { closeContextMenu(); if (!await rcConfirm('This recipe will be permanently deleted.', {icon:'🗑',title:'Delete recipe?',confirmText:'Delete',danger:true})) return; const idx = contextTargetIndex; deleteRecipe(allRecipes[idx].id).then(() => { allRecipes.splice(idx,1); renderRecipes(); }); }
 
   // ═══ DETAIL ═══
   function swipeRecipe(dir) { const newIdx = activeRecipeIndex + dir; if (newIdx < 0 || newIdx >= allRecipes.length) return; Object.values(timerStates).forEach(t => clearInterval(t.interval)); timerStates = {}; activeRecipeIndex = newIdx; currentScale = 1; renderDetailContent(); document.getElementById('detailModal').scrollTop = 0; }
@@ -2608,9 +2608,9 @@
       document.getElementById('editNotes').value !== snap.notes ||
       document.getElementById('imageInput').files.length > 0;
   }
-  function exitEditModeWithCheck() {
+  async function exitEditModeWithCheck() {
     if (editHasChanges()) {
-      if (!confirm('You have unsaved changes. Go back without saving?')) return;
+      if (!await rcConfirm('You have unsaved changes.', {icon:'⚠️',title:'Discard changes?',confirmText:'Discard',cancelText:'Keep editing',danger:true})) return;
     }
     exitEditMode();
   }
@@ -2631,13 +2631,13 @@
       if (file.size > MAX_MB * 1024 * 1024) {
         const sBtn = document.getElementById('saveEditBtn');
         if (sBtn) { sBtn.innerHTML = 'Save Changes'; sBtn.disabled = false; }
-        alert('Image is too large (' + (file.size/1024/1024).toFixed(1) + 'MB). Please use an image under ' + MAX_MB + 'MB.');
+        rcAlert('Image is too large (' + (file.size/1024/1024).toFixed(1) + 'MB). Please use an image under ' + MAX_MB + 'MB.', {icon:'🖼️',title:'Image too large'}); return;
         return;
       }
       const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, file.name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
     else { finish(); }
   }
-  function executeDelete() { if (!confirm('Delete this recipe?')) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); }); }
+  async function executeDelete() { if (!await rcConfirm('This recipe will be permanently deleted.', {icon:'🗑',title:'Delete recipe?',confirmText:'Delete',danger:true})) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); }); }
 
   // ═══ SHARE ═══
   function quickSendToFriend(username) {
@@ -2650,8 +2650,8 @@
     });
   }
   function closeSharePanel() { document.getElementById('sharePanel').classList.remove('open'); document.getElementById('shareOverlay').classList.remove('open'); }
-  function doSendRecipe() {
-    const toUser = document.getElementById('shareUsernameInput').value.trim().toLowerCase(); if (!toUser) { alert('Enter a username.'); return; }
+  async function doSendRecipe() {
+    const toUser = document.getElementById('shareUsernameInput').value.trim().toLowerCase(); if (!toUser) { await rcAlert('Please enter a username.', {icon:'👤'}); return; }
     const el = document.getElementById('shareUserResult'); el.style.display = 'block'; el.className = 'ai-result'; el.innerHTML = 'Sending...';
     sendRecipe(currentUser, toUser, allRecipes[activeRecipeIndex]).then(res => { el.className = res.status==='Success'?'ai-result success':'ai-result error'; el.innerHTML = res.status==='Success'?'✅ '+res.message:'❌ '+res.message; });
   }
@@ -2732,12 +2732,12 @@
     if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
     addRecipe(currentUser, r).then(res => {
       if (res.status === 'Success') { init(); loadFeatured(); }
-      else { if (btn) { btn.textContent = '+ Add to Cookbook'; btn.disabled = false; } alert(res.message); }
+      else { if (btn) { btn.textContent = '+ Add to Cookbook'; btn.disabled = false; } rcAlert(res.message, {icon:'⚠️'}); }
     });
   }
 
-  function removeFeaturedRecipe(featuredId) {
-    if (!confirm('Remove this recipe from Featured?')) return;
+  async function removeFeaturedRecipe(featuredId) {
+    if (!await rcConfirm('Remove this recipe from Featured?', {icon:'⭐',confirmText:'Remove',danger:true})) return;
     removeFromFeatured(featuredId, currentUser).then(res => {
       if (res.status === 'Success') loadFeatured();
     });
@@ -2881,7 +2881,7 @@
   function toggleShopItem(i) { shopItems[i].checked = !shopItems[i].checked; saveShop(); renderShopList(); }
   function deleteShopItem(i) { shopItems.splice(i,1); saveShop(); renderShopList(); }
   function clearCheckedItems() { shopItems = shopItems.filter(i => !i.checked); saveShop(); renderShopList(); }
-  function clearAllItems() { if (!confirm('Clear the whole shopping list?')) return; shopItems = []; saveShop(); renderShopList(); }
+  async function clearAllItems() { if (!await rcConfirm('Clear your entire shopping list?', {icon:'🛒',title:'Clear list?',confirmText:'Clear all',danger:true})) return; shopItems = []; saveShop(); renderShopList(); }
   function addRecipeToShop() {
     const r = allRecipes[activeRecipeIndex];
     if (!r) return;
@@ -2931,7 +2931,7 @@
     const input = document.getElementById('newCollectionInput'); const name = input.value.trim(); if (!name) return;
     createCollection(currentUser, name).then(res => { if (res.status==='Success') { input.value = ''; loadCollections(); setTimeout(() => renderCollectionsList(), 500); } });
   }
-  function deleteCollectionItem(id) { if (!confirm('Delete this collection?')) return; deleteCollection(id, currentUser).then(res => { if (res.status==='Success') { loadCollections(); setTimeout(() => renderCollectionsList(), 500); } }); }
+  async function deleteCollectionItem(id) { if (!await rcConfirm('Delete this collection and remove all recipes from it?', {icon:'📁',title:'Delete collection?',confirmText:'Delete',danger:true})) return; deleteCollection(id, currentUser).then(res => { if (res.status==='Success') { loadCollections(); setTimeout(() => renderCollectionsList(), 500); } }); }
   function filterByCollection(id) { closeCollectionsPanel(); const col = userCollections.find(c => c.id === id); if (!col) return; const colRecipes = allRecipes.filter(r => col.recipeIds.includes(r.id)); filteredRecipes = colRecipes; const container = document.getElementById('recipeContainer'); if (colRecipes.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><p>No recipes in this collection yet.</p></div>'; return; } container.innerHTML = colRecipes.map((r,i) => { const hasImg = r.image && r.image.trim(); const globalIdx = allRecipes.indexOf(r); const imgHtml = hasImg ? '<img src="'+r.image+'" loading="lazy">' : '<div class="card-placeholder">'+r.title.charAt(0)+'</div>'; return '<div class="glass-card" onclick="openDetails('+globalIdx+')" style="animation-delay:'+(i*0.03)+'s">'+(r.favourite?'<div class="fav-badge">⭐</div>':'')+'<div class="card-img-wrap">'+imgHtml+'</div><div class="card-info"><div class="card-meta">'+r.category+'</div><div class="card-title">'+r.title+'</div></div></div>'; }).join(''); }
 
   function openAddToColPanel(recipeIdx) {
@@ -3101,8 +3101,8 @@
     });
   }
 
-  function doUnfollow(target) {
-    if (!confirm('Unfollow ' + target + '?')) return;
+  async function doUnfollow(target) {
+    if (!await rcConfirm('Unfollow ' + target + '?', {icon:'👤',confirmText:'Unfollow',danger:true})) return;
     unfollowUser(currentUser, target).then(res => { if (res.status==='Success') openProfile(); });
   }
 
@@ -3159,7 +3159,7 @@
     if (btn) { btn.textContent = 'Adding...'; btn.disabled = true; }
     addRecipe(currentUser, r).then(res => {
       if (res.status === 'Success') { if (btn) { btn.textContent = '✓ Added!'; btn.style.background = 'var(--green)'; } init(); }
-      else { if (btn) { btn.textContent = '+ Add to My Cookbook'; btn.disabled = false; } alert(res.message); }
+      else { if (btn) { btn.textContent = '+ Add to My Cookbook'; btn.disabled = false; } rcAlert(res.message, {icon:'⚠️'}); }
     });
   }
 
@@ -3397,10 +3397,10 @@
       }
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
-  function performManualAdd() {
+  async function performManualAdd() {
     const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : ''; const tags = document.getElementById('manualTags') ? document.getElementById('manualTags').value.trim() : '';
     const el = document.getElementById('manualResult'); const btn = document.getElementById('manualSaveBtn');
-    if (!title) { alert('Please enter a recipe title.'); return; } if (!ingredients) { alert('Please enter at least one ingredient.'); return; } if (!instructions) { alert('Please enter at least one instruction step.'); return; }
+    if (!title) { await rcAlert('Please enter a recipe title.', {icon:'📝'}); return; } if (!ingredients) { await rcAlert('Please enter at least one ingredient.', {icon:'🥦'}); return; } if (!instructions) { await rcAlert('Please enter at least one instruction step.', {icon:'📋'}); return; }
     btn.disabled = true; btn.innerHTML = 'Saving...';
     addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
@@ -3947,9 +3947,9 @@
 
   // ═══ AVATAR UPLOAD ═══
   let cropState = { x:0, y:0, scale:1, dragging:false, startX:0, startY:0, imgW:0, imgH:0 };
-  function handleAvatarUpload(input) {
+  async function handleAvatarUpload(input) {
     if (!input.files[0]) return;
-    if (input.files[0].size > 8 * 1024 * 1024) { alert('Image too large. Please use an image under 8MB.'); input.value = ''; return; }
+    if (input.files[0].size > 8 * 1024 * 1024) { await rcAlert('Please use an image under 8MB.', {icon:'🖼️',title:'Image too large'}); input.value = ''; return; }
     const reader = new FileReader();
     reader.onload = e => {
       document.getElementById('avatarCropWrap').style.display = 'block';
@@ -4092,9 +4092,9 @@
     const urlField = document.getElementById('adminBroadcastBtnUrl');
     urlField.style.display = (action === 'url_browser' || action === 'url_app') ? 'block' : 'none';
   }
-  function publishBroadcast() {
+  async function publishBroadcast() {
     const message = document.getElementById('adminBroadcastText').value.trim();
-    if (!message) { alert('Enter a message first.'); return; }
+    if (!message) { await rcAlert('Please enter a message first.', {icon:'💬'}); return; }
     const btnEnabled = document.getElementById('toggleBroadcastBtn').classList.contains('on');
     const btnLabel = document.getElementById('adminBroadcastBtnLabel').value.trim();
     const btnAction = document.getElementById('adminBroadcastBtnAction').value;
@@ -4106,14 +4106,14 @@
       broadcast_button_label: btnLabel,
       broadcast_button_url: btnUrl,
       broadcast_button_action: btnAction
-    }).then(() => { alert('✅ Broadcast published!'); loadBroadcast(); });
+    }).then(() => { rcAlert('Broadcast is now live for all users.', {icon:'✅',title:'Broadcast published'}); loadBroadcast(); });
   }
-  function clearBroadcast() {
-    if (!confirm('Remove the broadcast for all users?')) return;
+  async function clearBroadcast() {
+    if (!await rcConfirm('Remove the broadcast for all users?', {icon:'📢',confirmText:'Remove',danger:true})) return;
     updateAdminSettings({ broadcast_active: false, broadcast_message: null }).then(() => {
       document.getElementById('adminBroadcastText').value = '';
       loadBroadcast();
-      alert('Broadcast cleared.');
+      rcAlert('Broadcast has been removed.', {icon:'📢',title:'Broadcast cleared'});
     });
   }
   function loadBroadcast() {
@@ -4399,10 +4399,10 @@
   function updateMsgCharCount() { const len = document.getElementById('msgInput').value.length; document.getElementById('msgCharCount').textContent = len + ' / 300'; }
   function acceptMsgRequest(msgId, fromUser) { respondToMessage(msgId, true).then(() => { openMsgThread(fromUser); }); }
   function declineMsgRequest(msgId) { respondToMessage(msgId, false).then(() => loadConversations()); }
-  function blockCurrentMsgUser() {
+  async function blockCurrentMsgUser() {
     if (!currentMsgPartner) return;
-    if (!confirm('Block ' + currentMsgPartner + '? They will not be able to message you.')) return;
-    blockUser(currentUser, currentMsgPartner).then(() => { alert(currentMsgPartner + ' has been blocked.'); showMsgConvList(); });
+    if (!await rcConfirm(currentMsgPartner + ' will not be able to message you.', {icon:'🚫',title:'Block ' + currentMsgPartner + '?',confirmText:'Block',danger:true})) return;
+    blockUser(currentUser, currentMsgPartner).then(() => { rcAlert(currentMsgPartner + ' has been blocked.', {icon:'🚫',title:'User blocked'}); showMsgConvList(); });
   }
   function formatMsgTime(iso) {
     if (!iso) return '';
@@ -4730,7 +4730,7 @@
   }
 
   async function clearPlannerDay(dateStr) {
-    if (!confirm('Remove all meals from this day?')) return;
+    if (!await rcConfirm('Remove all meals from this day?', {icon:'🗑',title:'Clear whole day?',confirmText:'Clear day',danger:true})) return;
     const dayEntries = plannerData.filter(p => p.date === dateStr);
     for (const e of dayEntries) await removePlannerEntry(e.id);
     plannerData = plannerData.filter(p => p.date !== dateStr);
@@ -4841,7 +4841,7 @@
           const lt = row.dataset.leftoverTitle || 'Leftover';
           const match = allRecipes.find(r => r.title === lt.replace(' (leftover)',''));
           if (match) selectPlannerRecipe(match.id, dt, mt);
-          else alert('Could not find matching recipe in your cookbook.');
+          else rcAlert('Could not find a matching recipe in your cookbook.', {icon:'🍽️'}); return;
         } else if (rid.startsWith('generic_')) {
           // Generic meal — add to planner as a custom text entry
           const title = row.dataset.genericTitle || 'Meal';
@@ -5030,7 +5030,7 @@
     document.body.appendChild(sheet);
   }
   async function shufflePlanner() {
-    if (!confirm('Shuffle recipes into this week? Existing entries will be replaced.')) return;
+    if (!await rcConfirm('This will replace all current entries for the week.', {icon:'🔀',title:'Shuffle this week?',confirmText:'Shuffle',danger:false})) return;
     const ws = getWeekStart(plannerWeekOffset);
     const [startStr, endStr] = getPlannerDateRange();
     // Delete all existing entries first
@@ -5048,7 +5048,7 @@
     const needsRepeat = Object.entries(pools).some(([mt, pool]) => pool.length > 0 && pool.length < 7);
     let allowRepeats = false;
     if (needsRepeat) {
-      allowRepeats = confirm('You don\'t have enough variety in some categories to avoid repeats. Allow the same recipe to appear multiple times this week?\n\n(It will be spaced out as much as possible)');
+      allowRepeats = await rcConfirm('Not enough recipe variety to avoid repeats. Allow duplicates?', {icon:'🔀',confirmText:'Allow duplicates',cancelText:'Cancel'});
       if (!allowRepeats) {
         // Re-insert the old entries since user cancelled
         for (const e of existing) await addPlannerEntry(currentUser, e.date, e.recipe_id, e.meal_type || 'Dinner');
@@ -5369,7 +5369,7 @@
   }
 
   async function adminRemoveCommunityPost(postId) {
-    if (!confirm('Remove this post from community?')) return;
+    if (!await rcConfirm('Remove this post from the community?', {icon:'🗑',confirmText:'Remove',danger:true})) return;
     await removeCommunityPost(postId);
     const el = document.getElementById('cpost-' + postId);
     if (el) el.remove();
@@ -5594,7 +5594,7 @@
 
   async function batchShareFriend() {
     document.querySelector('[data-batchoverlay]')?.remove();
-    const username = prompt('Send to username:');
+    const username = await rcPrompt('', {icon:'📤',title:'Send to username',placeholder:'Enter username...',confirmText:'Send'});
     if (!username) return;
     const recipes = getBatchRecipes();
     let sent = 0;
@@ -5651,7 +5651,7 @@
   }
 
   async function createCollectionFromBatch(recipeIds, btn) {
-    const name = prompt('New collection name:');
+    const name = await rcPrompt('', {icon:'📁',title:'New collection',placeholder:'Collection name...',confirmText:'Create'});
     if (!name) return;
     btn.textContent = 'Creating...'; btn.disabled = true;
     const res = await createCollectionWithVisibility(currentUser, name, false);
@@ -5659,7 +5659,7 @@
       await loadCollections();
       const newCol = userCollections.find(c => c.name === name);
       if (newCol && recipeIds.length > 0) {
-        const addAll = confirm('Add ' + recipeIds.length + ' selected recipe' + (recipeIds.length > 1 ? 's' : '') + ' to "' + name + '"?');
+        const addAll = await rcConfirm('Add ' + recipeIds.length + ' selected recipe' + (recipeIds.length > 1 ? 's' : '') + ' to "' + name + '"?', {icon:'📁',confirmText:'Add all'});
         if (addAll) {
           for (const id of recipeIds) await addRecipeToCollection(newCol.id, id, currentUser);
           const resultEl = document.getElementById('batchColResult');
@@ -5734,7 +5734,7 @@
   async function customBatchCategory(recipeIds) {
     document.querySelectorAll('[style*="position:fixed"][style*="z-index:600"]').forEach(el => el.remove());
     document.querySelectorAll('[style*="position:fixed"][style*="z-index:599"]').forEach(el => el.remove());
-    const cat = prompt('Enter custom category:');
+    const cat = await rcPrompt('', {icon:'🏷️',title:'Custom category',placeholder:'e.g. Quick Meals...',confirmText:'Apply'});
     if (!cat) return;
     await applyBatchCategory(cat, recipeIds);
   }
@@ -5742,7 +5742,7 @@
   async function batchDelete() {
     const recipes = getBatchRecipes();
     if (recipes.length === 0) return;
-    if (!confirm('Delete ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
+    if (!await rcConfirm('Delete ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
     for (const r of recipes) {
       await deleteRecipe(r.id);
       const idx = allRecipes.findIndex(x => x.id === r.id);
@@ -5797,7 +5797,7 @@
 
   // ═══ COMMUNITY COMMENT DELETION ═══
   async function deleteCommunityComment(commentId, postId) {
-    if (!confirm('Delete this comment?')) return;
+    if (!await rcConfirm('Delete this comment?', {icon:'🗑',confirmText:'Delete',danger:true})) return;
     await sbFetch('DELETE', `community_comments?id=eq.${commentId}`, null);
     loadCommunityComments(postId);
   }
@@ -6761,7 +6761,7 @@ ${text}`;
     };
   }
   async function deleteJournalEntryUI(entryId) {
-    if (!confirm('Delete this journal entry?')) return;
+    if (!await rcConfirm('Delete this journal entry?', {icon:'📓',confirmText:'Delete',danger:true})) return;
     await deleteJournalEntry(entryId);
     loadJournalEntries();
   }
@@ -6788,12 +6788,12 @@ ${text}`;
     } else { wrap.style.display = 'none'; btn.style.display = 'block'; }
   }
   async function requestDeletionFromSettings() {
-    if (!confirm('Request account deletion? You have 12 hours to cancel.')) return;
+    if (!await rcConfirm('You have 12 hours to cancel this request.', {icon:'⚠️',title:'Delete your account?',confirmText:'Request deletion',danger:true})) return;
     const res = await requestAccountDeletion(currentUser);
     if (res.status === 'Success') checkDeletionStatus();
   }
   async function cancelDeletionFromSettings() {
-    if (!confirm('Cancel your deletion request?')) return;
+    if (!await rcConfirm('Cancel your account deletion request?', {icon:'↩️',confirmText:'Yes, cancel',danger:false})) return;
     await cancelDeletionRequest(currentUser);
     clearInterval(_deletionCountdownTimer);
     const wrap = document.getElementById('deletionStatusWrap');
@@ -6954,7 +6954,7 @@ ${text}`;
       delBtn.textContent = '🗑';
       delBtn.style.cssText = 'background:none;border:none;color:var(--red);font-size:1em;cursor:pointer;padding:4px 8px;';
       delBtn.onclick = async () => {
-        if (!confirm('Delete "' + l.name + '"? This removes it for all members.')) return;
+        if (!await rcConfirm('"' + l.name + '" will be removed for all members.', {icon:'🛒',title:'Delete shared list?',confirmText:'Delete',danger:true})) return;
         await deleteSharedList(l.id, currentUser);
         openSharedListsPanel();
       };
@@ -6964,7 +6964,7 @@ ${text}`;
   }
 
   async function createSharedListFromPage() {
-    const name = prompt('List name:');
+    const name = await rcPrompt('', {icon:'🛒',title:'New shared list',placeholder:'e.g. Weekly Shop...',confirmText:'Create'});
     if (!name || !name.trim()) return;
     await createSharedList(currentUser, name.trim());
     await loadShopPanelSharedLists();
@@ -7056,14 +7056,14 @@ ${text}`;
   }
 
   async function deleteSharedListItems_all(listId, listName) {
-    if (!confirm('Remove ALL items from this list?')) return;
+    if (!await rcConfirm('Remove all items from this shared list?', {icon:'🗑',confirmText:'Clear all',danger:true})) return;
     const items = await getSharedListItems(listId);
     await Promise.all(items.map(i => deleteSharedListItem(i.id)));
     refreshSharedListPage(listId, listName);
   }
 
   async function createNewSharedList() {
-    const name = prompt('List name (e.g. Weekly Shop):');
+    const name = await rcPrompt('', {icon:'🛒',title:'New shared list',placeholder:'e.g. Weekly Shop...',confirmText:'Create'});
     if (!name || !name.trim()) return;
     await createSharedList(currentUser, name.trim());
     document.getElementById('sharedListsModal')?.remove();
@@ -7233,7 +7233,7 @@ ${text}`;
   }
 
   async function saveCurrentWeekAsTemplate() {
-    const name = prompt('Template name (e.g. "Healthy Week"):');
+    const name = await rcPrompt('', {icon:'📋',title:'Save as template',placeholder:'e.g. Healthy Week...',confirmText:'Save'});
     if (!name || !name.trim()) return;
     const weekStart = getWeekStart(plannerWeekOffset);
     const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
@@ -7258,7 +7258,7 @@ ${text}`;
   }
 
   async function applyTemplate(templateId) {
-    if (!confirm('Apply this template to the current week? Existing entries will not be removed.')) return;
+    if (!await rcConfirm('Apply this template to the current week? Existing entries will not be removed.')) return;
     const templates = await getMealPlanTemplates(currentUser).catch(() => []);
     const tmpl = templates.find(t => t.id === templateId);
     if (!tmpl) return;
@@ -7282,7 +7282,7 @@ ${text}`;
   }
 
   async function deletePlannerTemplate(templateId) {
-    if (!confirm('Delete this template?')) return;
+    if (!await rcConfirm('Delete this meal plan template?', {icon:'📋',confirmText:'Delete',danger:true})) return;
     await deleteMealPlanTemplate(templateId);
     document.getElementById('plannerTemplatesModal')?.remove();
     openPlannerTemplates();
@@ -7811,7 +7811,7 @@ ${text}`;
   }
 
   async function createAndSwitchSharedList() {
-    const name = prompt('New shared list name:');
+    const name = await rcPrompt('', {icon:'🛒',title:'New shared list',placeholder:'e.g. Family Shop...',confirmText:'Create'});
     if (!name || !name.trim()) return;
     const list = await createSharedList(currentUser, name.trim());
     await loadShopPanelSharedLists();
@@ -7854,7 +7854,7 @@ ${text}`;
     });
   }
 
-  function switchShoppingPageTab(tabId, tabName) {
+  async function switchShoppingPageTab(tabId, tabName) {
     shopPageActiveListId = tabId === 'personal' ? null : tabId;
     document.querySelectorAll('[id^="shopPageTab_"]').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('shopPageTab_' + tabId);
@@ -7876,14 +7876,14 @@ ${text}`;
       const deleteList = document.getElementById('shopPageDeleteList');
       if (clearChecked) clearChecked.onclick = () => clearCheckedSharedItems(tabId).then(() => renderShoppingPageShared(tabId, tabName));
       if (removeAll) removeAll.onclick = async () => {
-        if (!confirm('Remove ALL items from this list?')) return;
+        if (!await rcConfirm('Remove all items from this list?', {icon:'🗑',confirmText:'Clear all',danger:true})) return;
         const items = await getSharedListItems(tabId);
         await Promise.all(items.map(i => deleteSharedListItem(i.id)));
         renderShoppingPageShared(tabId, tabName);
       };
       if (invite) invite.onclick = () => inviteToSharedList(tabId);
       if (deleteList) deleteList.onclick = async () => {
-        if (!confirm('Delete "' + tabName + '"? This removes it for all members.')) return;
+        if (!await rcConfirm('"' + tabName + '" will be removed for all members.', {icon:'🛒',title:'Delete shared list?',confirmText:'Delete',danger:true})) return;
         await deleteSharedList(tabId, currentUser);
         await loadShoppingPageSharedTabs();
         switchShoppingPageTab('personal');
@@ -7956,8 +7956,8 @@ ${text}`;
     saveShop(); renderShoppingPagePersonal();
   }
 
-  function clearAllPageItems() {
-    if (!confirm('Clear your entire personal shopping list?')) return;
+  async function clearAllPageItems() {
+    if (!await rcConfirm('Clear your entire personal shopping list?', {icon:'🛒',title:'Clear shopping list?',confirmText:'Clear all',danger:true})) return;
     shopItems = []; saveShop(); renderShoppingPagePersonal();
   }
 
@@ -8804,11 +8804,11 @@ ${text}`;
     const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=email').catch(() => null);
     const email = userRow && userRow[0] && userRow[0].email;
     if (!email) {
-      alert('No email on file. Please secure your account first.');
+      await rcAlert('Please add an email to your account first via Settings → Account Security.', {icon:'📧',title:'No email on file'});
       return;
     }
     const res = await apiAuth('reset', { email });
-    alert(res.ok ? '✅ Reset link sent to ' + email : '❌ Could not send reset link.');
+    rcAlert(res.ok ? '✅ Reset link sent to ' + email : '❌ Could not send reset link. Check the email address.', {icon: res.ok ? '✅' : '❌', title: res.ok ? 'Check your inbox' : 'Something went wrong'});
   }
 
   async function submitChangePassword() {
@@ -8917,10 +8917,10 @@ ${text}`;
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
     const current = await sbFetch('GET', 'users', null, 'id=eq.' + userId + '&select=email').catch(() => null);
     const currentEmail = current && current[0] && current[0].email || '';
-    const newEmail = prompt('Set email for ' + username + '\nCurrent: ' + (currentEmail || 'none') + '\n\nEnter new email (or leave blank to clear):');
+    const newEmail = await rcPrompt('Current: ' + (currentEmail || 'none'), {icon:'📧',title:'Set email for ' + username,placeholder:'Enter new email or leave blank to clear',confirmText:'Save'});
     if (newEmail === null) return; // cancelled
     const val = newEmail.trim();
-    if (val && !val.includes('@')) { alert('Invalid email address.'); return; }
+    if (val && !val.includes('@')) { await rcAlert('Please enter a valid email address.', {icon:'📧'}); return; }
     await sbFetch('PATCH', 'users?id=eq.' + userId, {
       email: val || null,
       is_secured: val ? true : false
@@ -9153,6 +9153,75 @@ ${text}`;
     sheet.appendChild(cancelBtn);
     document.body.appendChild(ov);
     document.body.appendChild(sheet);
+  }
+
+
+
+  // ═══ CUSTOM DIALOG SYSTEM ════════════════════════════
+
+  function rcAlert(msg, { icon = '💬', title = '' } = {}) {
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'rc-dialog-overlay';
+      ov.innerHTML =
+        '<div class="rc-dialog">' +
+          (icon ? '<div class="rc-dialog-icon">' + icon + '</div>' : '') +
+          (title ? '<div class="rc-dialog-title">' + title + '</div>' : '') +
+          '<div class="rc-dialog-msg">' + msg + '</div>' +
+          '<div class="rc-dialog-btns">' +
+            '<button class="rc-dialog-btn primary" id="rcAlertOk">OK</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      const close = () => { ov.remove(); resolve(); };
+      ov.querySelector('#rcAlertOk').onclick = close;
+    });
+  }
+
+  function rcConfirm(msg, { icon = '❓', title = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false } = {}) {
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'rc-dialog-overlay';
+      ov.innerHTML =
+        '<div class="rc-dialog">' +
+          (icon ? '<div class="rc-dialog-icon">' + icon + '</div>' : '') +
+          (title ? '<div class="rc-dialog-title">' + title + '</div>' : '') +
+          '<div class="rc-dialog-msg">' + msg + '</div>' +
+          '<div class="rc-dialog-btns">' +
+            '<button class="rc-dialog-btn ' + (danger ? 'danger' : 'primary') + '" id="rcConfirmYes">' + confirmText + '</button>' +
+            '<button class="rc-dialog-btn cancel" id="rcConfirmNo">' + cancelText + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      ov.querySelector('#rcConfirmYes').onclick = () => { ov.remove(); resolve(true); };
+      ov.querySelector('#rcConfirmNo').onclick  = () => { ov.remove(); resolve(false); };
+    });
+  }
+
+  function rcPrompt(msg, { icon = '✏️', title = '', placeholder = '', defaultValue = '', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'rc-dialog-overlay';
+      ov.innerHTML =
+        '<div class="rc-dialog">' +
+          (icon ? '<div class="rc-dialog-icon">' + icon + '</div>' : '') +
+          (title ? '<div class="rc-dialog-title">' + title + '</div>' : '') +
+          (msg ? '<div class="rc-dialog-msg">' + msg + '</div>' : '') +
+          '<input class="rc-dialog-input" id="rcPromptInput" placeholder="' + placeholder + '" value="' + defaultValue + '">' +
+          '<div class="rc-dialog-btns">' +
+            '<button class="rc-dialog-btn primary" id="rcPromptOk">' + confirmText + '</button>' +
+            '<button class="rc-dialog-btn cancel" id="rcPromptCancel">' + cancelText + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(ov);
+      const input = ov.querySelector('#rcPromptInput');
+      setTimeout(() => input.focus(), 50);
+      const ok = () => { const v = input.value; ov.remove(); resolve(v || null); };
+      const cancel = () => { ov.remove(); resolve(null); };
+      ov.querySelector('#rcPromptOk').onclick = ok;
+      ov.querySelector('#rcPromptCancel').onclick = cancel;
+      input.onkeydown = e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); };
+    });
   }
 
 
