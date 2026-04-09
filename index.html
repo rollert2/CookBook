@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V10 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V12 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -4458,6 +4458,10 @@
       userSettings = settingsRes.settings || {};
       if (userSettings.default_sort) { currentSort = userSettings.default_sort; }
       if (userSettings.card_size) { applyCardSize(userSettings.card_size); }
+      // Sync ALL preference columns from DB → localStorage so openDetails always reads correctly
+      if (userSettings.default_scale) localStorage.setItem('rc_default_scale_' + currentUser, String(userSettings.default_scale));
+      if (userSettings.default_sort)  localStorage.setItem('rc_default_sort_'  + currentUser, String(userSettings.default_sort));
+      if (userSettings.theme)         localStorage.setItem('rc_theme', String(userSettings.theme));
       allRecipes = await getRecipes(currentUser);
       await loadGenericMeals(); // Load generic meals for planner
       await loadLeftovers(); // Load leftovers from server
@@ -4679,6 +4683,13 @@
           (r.image_url ? '<img src="'+r.image_url+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;">' : '<div style="width:44px;height:44px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">🍳</div>') +
           '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + r.title + '</div>' +
           (r.cook_time ? '<div style="font-size:0.72em;color:var(--text-faint);">⏱ ' + r.cook_time + '</div>' : '') + '</div>' +
+          '<button onclick="removePlannerSlot(\'' + entry.id + '\',\'' + dateStr + '\')" style="background:none;border:none;color:var(--red);font-size:1em;cursor:pointer;padding:4px;">✕</button></div>';
+      } else if (entry && entry.custom_title) {
+        // Generic / quick meal
+        html += '<div style="background:var(--glass);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:12px;display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:44px;height:44px;background:var(--gold-dim);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em;">🍴</div>' +
+          '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:0.92em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(entry.custom_title) + '</div>' +
+          '<div style="font-size:0.72em;color:var(--text-faint);">Quick meal</div></div>' +
           '<button onclick="removePlannerSlot(\'' + entry.id + '\',\'' + dateStr + '\')" style="background:none;border:none;color:var(--red);font-size:1em;cursor:pointer;padding:4px;">✕</button></div>';
       } else {
         html += '<div onclick="openPlannerRecipePicker(\'' + dateStr + '\',\'' + mt + '\')" style="border:2px dashed var(--glass-border);border-radius:var(--radius-sm);padding:14px;text-align:center;color:var(--text-faint);font-size:0.85em;cursor:pointer;">+ Add ' + mt + '</div>';
@@ -6074,10 +6085,11 @@
   function openDetails(idx) {
     activeRecipeIndex = idx;
     try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
-    // Apply default scale from user settings
-    // Read from userSettings (DB) or localStorage fallback
-    const _scalePref = userSettings.default_scale || localStorage.getItem('rc_default_scale_' + currentUser) || '1';
-    currentScale = parseFloat(_scalePref) || 1;
+    // Default scale: localStorage is always synced from DB on init, so this is reliable
+    const _scalePref = localStorage.getItem('rc_default_scale_' + currentUser)
+                    || (userSettings.default_scale && String(userSettings.default_scale))
+                    || '1';
+    currentScale = parseFloat(_scalePref);
     if (![0.5, 1, 2, 3].includes(currentScale)) currentScale = 1;
     // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
     if (timerStates._recipeIdx !== idx) {
@@ -6256,11 +6268,23 @@
     }).catch(() => {});
     checkDeletionStatus();
     getUserSettings(currentUser).then(res => {
-      userSettings = res.settings || {};
+      const fresh = res.settings || {};
+      // Merge DB settings but preserve any localStorage-synced keys to avoid race condition
+      const localScaleKey = localStorage.getItem('rc_default_scale_' + currentUser);
+      const localSortKey = localStorage.getItem('rc_default_sort_' + currentUser);
+      userSettings = { ...fresh };
+      if (localScaleKey) userSettings.default_scale = localScaleKey;
+      if (localSortKey) userSettings.default_sort = localSortKey;
       const ds = document.getElementById('settingDefaultSort');
       if (ds) ds.value = userSettings.default_sort || 'newest';
       const dsc = document.getElementById('settingDefaultScale');
-      if (dsc) dsc.value = userSettings.default_scale || '1';
+      if (dsc) {
+        // Prefer localStorage (set by saveSetting) over DB to avoid race condition
+        const localScale = localStorage.getItem('rc_default_scale_' + currentUser);
+        dsc.value = localScale || userSettings.default_scale || '1';
+        // Sync userSettings to match what will actually be used
+        if (localScale) userSettings.default_scale = localScale;
+      }
       const cs = document.getElementById('settingCardSize');
       if (cs) cs.value = userSettings.card_size || 'normal';
       const th = document.getElementById('settingTheme');
@@ -7372,46 +7396,86 @@ ${text}`;
   }
 
   function addLeftoverFromCookbook() {
-    // Show a picker of recent recipes
     const sheet = document.createElement('div');
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:75vh;overflow-y:auto;animation:slideUp 0.25s ease;';
-    sheet.dataset.leftoverPicker = '1';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;';
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
-    ov.dataset.leftoverPicker = '1';
     ov.onclick = () => { sheet.remove(); ov.remove(); };
-    sheet.innerHTML = '<div style="font-weight:800;font-size:1em;margin-bottom:14px;">Select a recipe</div>' +
-      '<div style="margin-bottom:12px;"><input id="leftoverServings" class="edit-field" type="number" placeholder="Servings left (optional)" min="1" style="margin-bottom:6px;"><input id="leftoverNotes" class="edit-field" placeholder="Notes (optional)"></div>' +
-      allRecipes.slice(0,30).map((r,i) => {
-        return '<div data-leftover-idx="' + i + '" onclick="(function(el){var idx=parseInt(el.dataset.leftoverIdx);addLeftoverEntry(allRecipes[idx].id,allRecipes[idx].title);})(this)" style="padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;font-size:0.88em;font-weight:600;">' + escapeHtml(r.title) + '</div>';
-      }).join('') +
-      '<button onclick="document.querySelectorAll(\'[data-leftover-picker]\').forEach(e=>e.remove())" style="width:100%;padding:12px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:8px;">Cancel</button>';
+
+    const close = () => { sheet.remove(); ov.remove(); };
+
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-weight:800;font-size:1em;margin-bottom:10px;';
+    heading.textContent = '🥡 Pick a recipe to log as leftover';
+    sheet.appendChild(heading);
+
+    // Servings + notes
+    const servInput = document.createElement('input');
+    servInput.id = 'leftoverServings'; servInput.type = 'number'; servInput.className = 'edit-field';
+    servInput.placeholder = 'Servings left (optional)'; servInput.min = '1';
+    servInput.style.cssText = 'margin-bottom:6px;';
+    const notesInput = document.createElement('input');
+    notesInput.id = 'leftoverNotes'; notesInput.className = 'edit-field';
+    notesInput.placeholder = 'Notes (optional)';
+    notesInput.style.cssText = 'margin-bottom:10px;';
+    sheet.append(servInput, notesInput);
+
+    // Search
+    const searchInput = document.createElement('input');
+    searchInput.className = 'edit-field';
+    searchInput.placeholder = 'Search recipes...';
+    searchInput.style.cssText = 'margin-bottom:10px;';
+    sheet.appendChild(searchInput);
+
+    const list = document.createElement('div');
+    sheet.appendChild(list);
+
+    const renderList = (q) => {
+      const filtered = q ? allRecipes.filter(r => r.title.toLowerCase().includes(q.toLowerCase())) : allRecipes;
+      list.innerHTML = '';
+      filtered.slice(0, 50).forEach(r => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;';
+        row.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;">' : '<div style="width:36px;height:36px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;">' + r.title.charAt(0) + '</div>') +
+          '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.7em;color:var(--text-faint);">' + (r.category||'') + '</div></div>';
+        row.onclick = () => addLeftoverEntry(r.id, r.title, close);
+        list.appendChild(row);
+      });
+      if (filtered.length === 0) list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">No recipes found.</div>';
+    };
+
+    searchInput.oninput = () => renderList(searchInput.value);
+    renderList('');
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;padding:12px;background:transparent;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;margin-top:6px;';
+    cancelBtn.onclick = close;
+    sheet.appendChild(cancelBtn);
+
     document.body.appendChild(ov);
     document.body.appendChild(sheet);
   }
 
-  function addLeftoverEntry(recipeId, recipeTitle) {
+  async function addLeftoverEntry(recipeId, recipeTitle, closeFn) {
     const servings = parseInt(document.getElementById('leftoverServings')?.value) || null;
     const notes = document.getElementById('leftoverNotes')?.value.trim() || '';
     const leftovers = getLeftovers();
     leftovers.unshift({ id: Date.now().toString(), recipeId, recipeTitle, date: new Date().toISOString(), servings, notes, eaten: false });
-    saveLeftovers(leftovers);
-    // Close picker sheet
-    document.querySelectorAll('[style*="border-radius: 20px"]').forEach(el => el.remove());
-    document.querySelectorAll('[style*="rgba(0,0,0,0.5)"]').forEach(el => el.remove());
+    await saveLeftovers(leftovers);
+    if (typeof closeFn === 'function') closeFn();
     refreshLeftoversModal();
   }
 
-  function markLeftoverEaten(id) {
+  async function markLeftoverEaten(id) {
     const leftovers = getLeftovers();
     const item = leftovers.find(l => l.id === id);
-    if (item) item.eaten = true;
-    saveLeftovers(leftovers);
+    if (item) { item.eaten = true; await saveLeftovers(leftovers); }
     refreshLeftoversModal();
   }
 
-  function deleteLeftover(id) {
-    saveLeftovers(getLeftovers().filter(l => l.id !== id));
+  async function deleteLeftover(id) {
+    await saveLeftovers(getLeftovers().filter(l => l.id !== id));
     refreshLeftoversModal();
   }
 
@@ -8863,7 +8927,8 @@ ${text}`;
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'edit-field';
-    input.placeholder = 'e.g. Cereal, Frozen Waffles...';
+    const gmExamples = { Breakfast: 'e.g. Cereal, Oatmeal, Toast, Yogurt...', Lunch: 'e.g. Sandwich, Soup, Salad, Leftovers...', Dinner: 'e.g. Takeout, Pizza, Leftovers, Pasta...', Sides: 'e.g. Salad, Bread, Fries, Soup...' };
+    input.placeholder = gmExamples[mealType] || 'Enter a quick meal name...';
     input.style.cssText = 'flex:1;margin:0;';
     input.autofocus = true;
     const confirmBtn = document.createElement('button');
@@ -8918,9 +8983,21 @@ ${text}`;
       renderWeeklySummary(getWeekStart(plannerWeekOffset));
       if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
       else renderWeekView(getWeekStart(plannerWeekOffset));
-      // Quietly refresh in background to get real ID
+      // Quietly refresh in background to get real ID — preserve custom_title from temp entries
       const [start, end] = getPlannerDateRange();
-      getPlannerRange(currentUser, start, end).then(data => { plannerData = data; }).catch(() => {});
+      getPlannerRange(currentUser, start, end).then(data => {
+        // Merge: if DB entry has no custom_title but we have a temp entry for same date+meal, keep temp's title
+        const merged = data.map(dbEntry => {
+          if (!dbEntry.custom_title && !dbEntry.recipes) {
+            const tempMatch = plannerData.find(p => p.id && p.id.startsWith('temp_') && p.date === dbEntry.date && p.meal_type === dbEntry.meal_type);
+            if (tempMatch && tempMatch.custom_title) return { ...dbEntry, custom_title: tempMatch.custom_title };
+          }
+          return dbEntry;
+        });
+        plannerData = merged;
+        renderPlannerDayBody(dateStr);
+        renderWeeklySummary(getWeekStart(plannerWeekOffset));
+      }).catch(() => {});
     } catch(e) {
       toast.remove();
       renderPlanner();
