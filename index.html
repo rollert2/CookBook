@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V14 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V15 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -4048,6 +4048,8 @@
       if (adminSettings.broadcast_button_label) document.getElementById('adminBroadcastBtnLabel').value = adminSettings.broadcast_button_label;
       if (adminSettings.broadcast_button_action) document.getElementById('adminBroadcastBtnAction').value = adminSettings.broadcast_button_action;
       if (adminSettings.broadcast_button_url) document.getElementById('adminBroadcastBtnUrl').value = adminSettings.broadcast_button_url;
+      // Load maintenance mode toggle
+      setToggle('toggleMaintenance', adminSettings.maintenance_mode === true);
       // Load app settings fields
       const vi = document.getElementById('adminVersionInput');
       const gi = document.getElementById('adminGreetingInput');
