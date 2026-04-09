@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V13 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V14 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -698,8 +698,6 @@
   </div>
 
   <!-- Offline broadcast banner -->
-  <div id="broadcastBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9990;background:rgba(20,20,30,0.97);padding:10px 16px;text-align:center;font-size:0.82em;font-weight:600;color:#fff;"></div>
-
   <!-- Pull to refresh indicator -->
   <div class="ptr-indicator" id="ptrIndicator"><div class="ptr-spinner"></div></div>
 
@@ -4123,6 +4121,22 @@
       if (s.login_greeting) { const el = document.getElementById('loginSubtitle'); if (el) el.textContent = s.login_greeting; }
       // Apply app version if set
       if (s.app_version) { const el = document.getElementById('appVersionLabel'); if (el) el.textContent = s.app_version; }
+      // Maintenance mode — show full-screen block for non-admins
+      const maintenanceEl = document.getElementById('maintenanceScreen');
+      if (s.maintenance_mode && currentUser !== 'rollert2') {
+        if (!maintenanceEl) {
+          const ms = document.createElement('div');
+          ms.id = 'maintenanceScreen';
+          ms.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;';
+          ms.innerHTML = '<div style="font-size:3em;margin-bottom:20px;">🔧</div>' +
+            '<div style="font-size:1.4em;font-weight:800;margin-bottom:12px;color:var(--text);">Down for Maintenance</div>' +
+            '<div style="font-size:0.9em;color:var(--text-dim);line-height:1.6;max-width:300px;">' + (s.broadcast_message || 'Roll Cookbook is undergoing maintenance. Check back soon!') + '</div>';
+          document.body.appendChild(ms);
+        }
+        return; // Don't show broadcast banner during maintenance
+      } else if (maintenanceEl) {
+        maintenanceEl.remove(); // Maintenance ended
+      }
       const banner = document.getElementById('broadcastBanner');
       if (!banner) return;
       if (!s.broadcast_active || !s.broadcast_message) { banner.classList.remove('visible'); return; }
@@ -5821,30 +5835,90 @@
   // ═══ ADMIN USER MANAGEMENT ═══
   async function loadAdminUsers() {
     const el = document.getElementById('adminUserList');
-    el.innerHTML = 'Loading...';
-    const data = await sbFetch('GET', 'users', null, 'select=id,username,created_at&order=created_at.desc');
-    el.innerHTML = (data||[]).map(u =>
-      '<div style="padding:8px 0;border-bottom:0.5px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;" onclick="showAdminUserOptions(\''+u.username+'\',\''+u.id+'\')">' +
-      '<div><div style="font-size:0.88em;font-weight:600;">'+u.username+'</div><div style="font-size:0.72em;color:var(--text-faint);">'+new Date(u.created_at).toLocaleDateString()+'</div></div>' +
-      '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>'
-    ).join('');
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
+    const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at&order=created_at.desc');
+    if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
+    el.innerHTML = (data||[]).map(u => {
+      const secIcon = u.is_secured ? '🔒' : '🔓';
+      const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
+      return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + '</div>' +
+        '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>' +
+        '<div style="font-size:0.72em;color:var(--text-faint);margin-top:2px;">' + emailStr + ' · joined ' + new Date(u.created_at).toLocaleDateString() + '</div>' +
+        '</div>';
+    }).join('');
   }
-
-  function showAdminUserOptions(username, userId) {
+  async function showAdminUserOptions(username, userId) {
+    document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
     const sheet = document.createElement('div');
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:85vh;overflow-y:auto;';
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
-    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:16px;">👤 '+username+'</div>' +
-      '<div onclick="adminFollowUser(\''+username+'\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow '+username+'</div>' +
-      '<div onclick="adminSendMessage(\''+username+'\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message '+username+'</div>' +
-      '<div onclick="adminDeleteUser(\''+username+'\',\''+userId+'\')" style="padding:13px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid var(--red);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--red);">🗑 Delete '+username+'\'s account</div>' +
-      '<button onclick="this.closest(\'div[style*=fixed]\').previousSibling.remove();this.closest(\'div[style*=fixed]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:4px;">Cancel</button>';
-    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    const close = () => { sheet.remove(); overlay.remove(); };
+    overlay.onclick = close;
+
+    // Build header while fetching extra data
+    sheet.innerHTML = '<div style="font-size:0.95em;font-weight:800;margin-bottom:4px;">👤 ' + username + '</div>' +
+      '<div id="adminUserMeta" style="font-size:0.75em;color:var(--text-faint);margin-bottom:14px;">Loading details...</div>' +
+      '<div id="adminUserActions"></div>';
+
     document.body.appendChild(overlay);
     document.body.appendChild(sheet);
-  }
 
+    // Fetch user details in parallel
+    const [userRow, recipeCount, settingsRow] = await Promise.all([
+      sbFetch('GET', 'users', null, 'id=eq.' + userId + '&select=*').catch(() => null),
+      sbFetch('GET', 'recipes', null, 'user_id=eq.' + userId + '&select=id').catch(() => null),
+      sbFetch('GET', 'user_settings', null, 'user_id=eq.' + userId + '&select=*').catch(() => null)
+    ]);
+
+    const u = userRow && userRow[0];
+    const recipes = recipeCount ? recipeCount.length : '?';
+    const settings = settingsRow && settingsRow[0];
+    const emailDisplay = u?.email || '<em style="color:var(--text-faint);">no email</em>';
+    const secStatus = u?.is_secured ? '🔒 Secured' : '🔓 Unsecured';
+    const joined = u?.created_at ? new Date(u.created_at).toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'}) : '?';
+    const scale = settings?.default_scale || '1';
+    const theme = settings?.theme || 'light';
+
+    const metaEl = document.getElementById('adminUserMeta');
+    if (metaEl) metaEl.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Email</div>' +
+        '<div style="font-size:0.85em;color:var(--text);word-break:break-all;">' + emailDisplay + '</div>' +
+      '</div>' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Security</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + secStatus + '</div>' +
+      '</div>' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Recipes</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + recipes + ' saved</div>' +
+      '</div>' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Joined</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + joined + '</div>' +
+      '</div>' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Theme</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + theme + '</div>' +
+      '</div>' +
+      '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Default Scale</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + scale + '×</div>' +
+      '</div>' +
+      '</div>';
+
+    const actionsEl = document.getElementById('adminUserActions');
+    if (actionsEl) actionsEl.innerHTML =
+      '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
+      '<div onclick="adminSendMessage(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message ' + username + '</div>' +
+      '<div onclick="adminSetEmail(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">📧 Set / Clear Email</div>' +
+      '<div onclick="adminDeleteUser(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid var(--red);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--red);">🗑 Delete account</div>' +
+      '<button onclick="this.closest(\'[style*=z-index]\').nextSibling?.remove();this.closest(\'[style*=z-index]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+  }
   async function adminFollowUser(username) {
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
     await followUser(currentUser, username);

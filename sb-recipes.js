@@ -308,9 +308,15 @@ async function getOrSetRotd(username) {
   try {
     const adminRes = await getAdminSettings();
     const s = adminRes.settings || {};
-    if (s.rotd_override_id && s.rotd_override_date === today) {
-      const r = await sbFetch('GET', 'recipes', null, `id=eq.${s.rotd_override_id}&select=*`);
-      if (r && r[0]) return r[0];
+    const todayEST = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    if (s.rotd_override_id && s.rotd_override_date) {
+      if (s.rotd_override_date < todayEST) {
+        // Override has expired — clear it
+        await updateAdminSettings({ rotd_override_id: null, rotd_override_date: null }).catch(() => {});
+      } else if (s.rotd_override_date === todayEST) {
+        const r = await sbFetch('GET', 'recipes', null, `id=eq.${s.rotd_override_id}&select=*`);
+        if (r && r[0]) return r[0];
+      }
     }
   } catch(e) {}
   try {
