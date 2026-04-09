@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V12 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V13 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -831,12 +831,12 @@
     <!-- Planner top bar -->
     <div style="padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;">📅 Meal Planner</div>
-      <div style="display:flex;gap:8px;">
-        <button id="plannerViewToggle" onclick="togglePlannerView()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📆 Calendar</button>
-        <button onclick="openMealPrepPanel()" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🥡 Meal Prep</button>
-        <button onclick="openLeftoversPanel()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🫙 Leftovers</button>
-        <button onclick="openPlannerTemplates()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📋 Templates</button>
-        <button onclick="shufflePlanner()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:20px;font-size:0.78em;cursor:pointer;font-family:inherit;" title="Shuffle week">🔀</button>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button id="plannerViewToggle" onclick="togglePlannerView()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">📆 Calendar</button>
+        <button onclick="openMealPrepPanel()" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">🥡 Meal Prep</button>
+        <button onclick="openLeftoversPanel()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">🫙 Leftovers</button>
+        <button onclick="openPlannerTemplates()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">📋 Templates</button>
+        <button onclick="shufflePlanner()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;" title="Shuffle week">🔀</button>
       </div>
     </div>
     <!-- Week nav -->
@@ -1065,7 +1065,7 @@
           <span id="servingsDisplay" style="font-size:0.88em;font-weight:700;color:var(--text);min-width:60px;text-align:right;"></span>
         </div>
         <div style="display:flex;gap:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:4px;">
-          <button class="scale-btn active" data-scale="0.5" onclick="changeScale(0.5)">½×</button>
+          <button class="scale-btn" data-scale="0.5" onclick="changeScale(0.5)">½×</button>
           <button class="scale-btn" data-scale="1" onclick="changeScale(1)">1×</button>
           <button class="scale-btn" data-scale="2" onclick="changeScale(2)">2×</button>
           <button class="scale-btn" data-scale="3" onclick="changeScale(3)">3×</button>
@@ -4571,10 +4571,14 @@
       for (const mt of MEAL_TYPES) {
         const entry = plannerData.find(p => p.date === dateStr && (p.meal_type||'Dinner') === mt);
         const r = entry?.recipes;
+        const gm = entry?.custom_title;
         const chip = r
           ? '<div class="planner-meal-chip filled" onclick="event.stopPropagation();openPlannerDay(\''+dateStr+'\',\''+days[i]+'\')">'+
             (r.image_url ? '<img src="'+r.image_url+'">' : '') +
             '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+r.title+'</span></div>'
+          : gm
+          ? '<div class="planner-meal-chip filled" onclick="event.stopPropagation();openPlannerDay(\''+dateStr+'\',\''+days[i]+'\')">'+
+            '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🍴 '+escapeHtml(gm)+'</span></div>'
           : '<div class="planner-meal-chip" onclick="event.stopPropagation();openPlannerRecipePicker(\''+dateStr+'\',\''+mt+'\')" style="color:var(--text-faint);font-size:0.75em;justify-content:center;">+ Add</div>';
         mealsHtml += '<div class="planner-meal-row"><span class="planner-meal-label">'+MEAL_EMOJIS[mt]+' '+mt+'</span>'+chip+'</div>';
       }
@@ -4618,9 +4622,10 @@
       const isToday = cellDate.getTime() === today.getTime();
       const inCurrentWeek = cellDate >= realWeekStart && cellDate <= realWeekEnd;
       const totalMeals = plannerData.filter(p => p.date === dateStr).length;
+      const dotColour = isToday ? 'var(--bg)' : 'var(--gold)';
       const dotHtml = totalMeals > 0
         ? '<div style="display:flex;gap:2px;justify-content:center;margin-top:2px;">' +
-          Array(Math.min(totalMeals,3)).fill('<div style="width:5px;height:5px;background:var(--gold);border-radius:50%;"></div>').join('') + '</div>'
+          Array(Math.min(totalMeals,3)).fill('<div style="width:5px;height:5px;background:' + dotColour + ';border-radius:50%;"></div>').join('') + '</div>'
         : '<div style="height:9px;"></div>';
       const bg = isToday
         ? 'background:var(--gold);color:var(--bg);font-weight:900;'
@@ -6147,8 +6152,8 @@
     ).join('');
     document.getElementById('ratingLabelB').textContent = cur ? cur + '/10' : 'Not rated';
 
-    // Scale buttons
-    document.querySelectorAll('.detail-scale-b-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
+    // Scale buttons — update both detail-scale-b-btn (meal prep) and scale-btn (recipe modal)
+    document.querySelectorAll('.detail-scale-b-btn, .scale-btn').forEach(b => b.classList.toggle('active', parseFloat(b.getAttribute('data-scale')) === currentScale));
 
     // Ingredients
     const ings = parseIngredients(r.ingredients);
