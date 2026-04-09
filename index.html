@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V15 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V16 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -683,7 +683,7 @@
 
   </div>
   <div style="font-size:0.72em;color:var(--text-faint);text-align:center;margin-top:16px;max-width:300px;line-height:1.5;">
-    By signing in you agree to our <a href="https://rollcookbook.vercel.app/privacy_policy.html" target="_blank" style="color:var(--gold);text-decoration:none;">Privacy Policy</a>. Your data is stored securely.
+    By signing in you agree to our <a href="https://rollcookbook.com/privacy_policy.html" target="_blank" style="color:var(--gold);text-decoration:none;">Privacy Policy</a>. Your data is stored securely.
   </div>
 </div>
 
@@ -3668,7 +3668,7 @@
         if (label) label.textContent = s.active ? 'Link active' : 'Link disabled';
         if (sub) sub.textContent = s.active ? 'Anyone with the link can view this recipe' : 'Enable to generate a shareable link';
         if (s.active) {
-          shareLinkUrl = 'https://rollcookbook.vercel.app/api/recipe?id=' + r.id;
+          shareLinkUrl = 'https://rollcookbook.com/api/recipe?id=' + r.id;
           document.getElementById('shareLinkResult').style.display = 'block';
           document.getElementById('shareLinkResult').textContent = shareLinkUrl;
           document.getElementById('copyLinkBtn').style.display = 'block';
@@ -3698,7 +3698,7 @@
     toggle.classList.toggle('on', nowActive);
     setShareActive(r.id, currentUser, nowActive).then(() => {
       if (nowActive) {
-        shareLinkUrl = 'https://rollcookbook.vercel.app/api/recipe?id=' + r.id;
+        shareLinkUrl = 'https://rollcookbook.com/api/recipe?id=' + r.id;
         label.textContent = 'Link active';
         sub.textContent = 'Anyone with the link can view this recipe';
         document.getElementById('shareLinkResult').style.display = 'block';
