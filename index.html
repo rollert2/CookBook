@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V9 -->
+<!DOCTYPE html><!-- 2026-04-08 BUILD-PRELAUNCH-V10 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -3927,6 +3927,8 @@
   function saveSetting(key, value) {
     userSettings[key] = value;
     updateUserSettings(currentUser, { [key]: value });
+    // Also save to localStorage as fallback
+    localStorage.setItem('rc_' + key + '_' + currentUser, String(value));
     if (key === 'default_sort') { currentSort = value; renderSortBar(); renderRecipes(); }
   }
   function toggleSetting(key, toggleId) {
@@ -4458,6 +4460,7 @@
       if (userSettings.card_size) { applyCardSize(userSettings.card_size); }
       allRecipes = await getRecipes(currentUser);
       await loadGenericMeals(); // Load generic meals for planner
+      await loadLeftovers(); // Load leftovers from server
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
@@ -4750,6 +4753,31 @@
 
     // Delegated click — avoids all inline onclick quoting issues
     sheet.addEventListener('click', e => {
+      // Delete generic meal button
+      const delGeneric = e.target.closest('.delete-generic-meal-btn');
+      if (delGeneric) {
+        e.stopPropagation();
+        const mt = delGeneric.dataset.meal;
+        const titleToDelete = delGeneric.dataset.title;
+        deleteGenericMeal(mt, titleToDelete).then(() => {
+          // Refresh the section in the picker
+          const body = document.getElementById('genericMealsBody');
+          const sheet = document.getElementById('plannerPickerSheet');
+          if (body && sheet) {
+            const meals = getGenericMeals(mt);
+            const data = window._allPlannerPickerRecipes;
+            const newSection = buildGenericMealsSection(meals, data ? data.dateStr : '', mt);
+            const temp = document.createElement('div');
+            temp.innerHTML = newSection;
+            const newBody = temp.querySelector('#genericMealsBody');
+            if (newBody) {
+              body.innerHTML = newBody.innerHTML;
+              body.style.display = 'block';
+            }
+          }
+        });
+        return;
+      }
       // Generic meals toggle
       const toggle = e.target.closest('.generic-meals-toggle');
       if (toggle) {
@@ -6047,8 +6075,10 @@
     activeRecipeIndex = idx;
     try { cacheRecipeViewed(allRecipes[idx]); } catch(e) {}
     // Apply default scale from user settings
-    currentScale = parseFloat(userSettings.default_scale) || 1;
-    if (currentScale !== 0.5 && currentScale !== 1 && currentScale !== 2 && currentScale !== 3) currentScale = 1;
+    // Read from userSettings (DB) or localStorage fallback
+    const _scalePref = userSettings.default_scale || localStorage.getItem('rc_default_scale_' + currentUser) || '1';
+    currentScale = parseFloat(_scalePref) || 1;
+    if (![0.5, 1, 2, 3].includes(currentScale)) currentScale = 1;
     // Only clear timers if opening a DIFFERENT recipe — preserve timers for same recipe
     if (timerStates._recipeIdx !== idx) {
       Object.values(timerStates).forEach(t => { if (t.interval) clearInterval(t.interval); });
@@ -7270,11 +7300,31 @@ ${text}`;
 
   // ═══ LEFTOVERS TRACKER ════════════════════════════════════
   // Stored in localStorage per user: [{id, recipeId, recipeTitle, date, servings, notes}]
-  function getLeftovers() {
-    try { return JSON.parse(localStorage.getItem('rc_leftovers_' + currentUser) || '[]'); } catch(e) { return []; }
+  let _leftoversCache = null;
+
+  async function loadLeftovers() {
+    try {
+      const res = await getUserSettings(currentUser);
+      const raw = res.settings && res.settings.leftovers;
+      _leftoversCache = raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      // Fall back to localStorage
+      try { _leftoversCache = JSON.parse(localStorage.getItem('rc_leftovers_' + currentUser) || '[]'); } catch(e2) { _leftoversCache = []; }
+    }
   }
-  function saveLeftovers(items) {
-    localStorage.setItem('rc_leftovers_' + currentUser, JSON.stringify(items));
+
+  function getLeftovers() {
+    if (_leftoversCache === null) {
+      // Sync fallback while async load is pending
+      try { return JSON.parse(localStorage.getItem('rc_leftovers_' + currentUser) || '[]'); } catch(e) { return []; }
+    }
+    return _leftoversCache;
+  }
+
+  async function saveLeftovers(items) {
+    _leftoversCache = items;
+    localStorage.setItem('rc_leftovers_' + currentUser, JSON.stringify(items)); // keep local copy as backup
+    await updateUserSettings(currentUser, { leftovers: JSON.stringify(items) }).catch(() => {});
   }
 
   function openLeftoversPanel() {
@@ -8775,9 +8825,12 @@ ${text}`;
 
   function buildGenericMealsSection(meals, dateStr, mealType) {
     const itemsHtml = meals.map(m =>
-      '<div class="planner-picker-item-row" data-recipe-id="generic_' + escapeHtml(m) + '" data-date="' + dateStr + '" data-meal="' + mealType + '" data-generic-title="' + escapeHtml(m) + '" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;cursor:pointer;">' +
-        '<div style="width:38px;height:38px;background:var(--gold-dim);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2em;flex-shrink:0;">🍴</div>' +
-        '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(m) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Quick meal</div></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+        '<div class="planner-picker-item-row" data-recipe-id="generic_' + escapeHtml(m) + '" data-date="' + dateStr + '" data-meal="' + mealType + '" data-generic-title="' + escapeHtml(m) + '" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);cursor:pointer;flex:1;min-width:0;">' +
+          '<div style="width:38px;height:38px;background:var(--gold-dim);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2em;flex-shrink:0;">🍴</div>' +
+          '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(m) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Quick meal</div></div>' +
+        '</div>' +
+        '<button class="delete-generic-meal-btn" data-meal="' + mealType + '" data-title="' + escapeHtml(m) + '" style="width:30px;height:30px;background:none;border:1px solid var(--glass-border);border-radius:50%;color:var(--text-faint);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8em;" title="Remove">✕</button>' +
       '</div>'
     ).join('');
 
@@ -8855,15 +8908,19 @@ ${text}`;
     toast.textContent = 'Adding ' + title + '...';
     document.body.appendChild(toast);
     try {
-      await addPlannerEntry(currentUser, dateStr, null, mealType, title);
+      const res = await addPlannerEntry(currentUser, dateStr, null, mealType, title);
       toast.remove();
-      // Refresh planner data and update all views
-      const [start, end] = getPlannerDateRange();
-      plannerData = await getPlannerRange(currentUser, start, end);
+      // Inject into plannerData immediately so render works without waiting for DB refetch
+      const tempId = 'temp_' + Date.now();
+      plannerData = plannerData.filter(p => !(p.date === dateStr && p.meal_type === mealType));
+      plannerData.push({ id: tempId, date: dateStr, entry_date: dateStr, meal_type: mealType, recipe_id: null, recipes: null, custom_title: title });
       renderPlannerDayBody(dateStr);
       renderWeeklySummary(getWeekStart(plannerWeekOffset));
       if (plannerView === 'calendar') renderCalendarView(getWeekStart(plannerWeekOffset));
       else renderWeekView(getWeekStart(plannerWeekOffset));
+      // Quietly refresh in background to get real ID
+      const [start, end] = getPlannerDateRange();
+      getPlannerRange(currentUser, start, end).then(data => { plannerData = data; }).catch(() => {});
     } catch(e) {
       toast.remove();
       renderPlanner();
