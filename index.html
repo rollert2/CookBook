@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V29 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V30 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1343,19 +1343,19 @@
   </div>
 
   <!-- SHOPPING PAGE (full screen) -->
-  <div id="shoppingPage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;flex-direction:column;">
-    <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+  <div id="shoppingPage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;">
+    <div style="position:fixed;top:0;left:0;right:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:510;">
       <button onclick="closeShoppingPage()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
       <span style="font-weight:800;font-size:1em;flex:1;">🛒 Shopping</span>
     </div>
     <!-- List tabs -->
-    <div id="shopPageTabRow" style="display:flex;gap:7px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--glass-border);">
+    <div id="shopPageTabRow" style="display:flex;gap:7px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--glass-border);position:fixed;top:53px;left:0;right:0;background:var(--bg);z-index:509;">
       <button class="sort-chip active" id="shopPageTab_personal" onclick="switchShoppingPageTab('personal')">📋 My List</button>
       <div id="shopPageSharedTabs" style="display:contents;"></div>
       <button onclick="createSharedListFromPage()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ New Shared</button>
     </div>
     <!-- Personal list content -->
-    <div id="shopPagePersonal">
+    <div id="shopPagePersonal" style="padding-top:112px;">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <button onclick="openCommonItemsPicker()" style="padding:10px 13px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
         <input type="text" id="shopPageInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPagePersonalItem()">
@@ -1368,7 +1368,7 @@
       </div>
     </div>
     <!-- Shared list content -->
-    <div id="shopPageShared" style="display:none;flex-direction:column;">
+    <div id="shopPageShared" style="display:none;flex-direction:column;padding-top:112px;">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <input type="text" id="shopPageSharedInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPageSharedItem()">
         <button onclick="addShopPageSharedItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
