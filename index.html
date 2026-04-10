@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V20 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V21 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -962,6 +962,7 @@
       <button onclick="createAndSwitchSharedList()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ New Shared</button>
     </div>
     <div class="shop-add-row" id="shopAddRow">
+      <button onclick="openCommonItemsPicker()" style="padding:8px 11px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
       <input type="text" id="shopInput" placeholder="Add item..." onkeydown="if(event.key==='Enter') addShopItem()">
       <button class="shop-add-btn" onclick="addShopItem()">+</button>
     </div>
@@ -1356,6 +1357,7 @@
     <!-- Personal list content -->
     <div id="shopPagePersonal" style="display:flex;flex-direction:column;height:100%;">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
+        <button onclick="openCommonItemsPicker()" style="padding:10px 13px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
         <input type="text" id="shopPageInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPagePersonalItem()">
         <button onclick="addShopPagePersonalItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
       </div>
@@ -9335,6 +9337,270 @@ ${text}`;
     return new Promise(resolve => {
       showCategoryPickerBanner(recipeTitle, aiCategory, resolve);
     });
+  }
+
+
+
+  // ═══ COMMON ITEMS PICKER ═════════════════════════════
+
+  const COMMON_ITEMS = {
+    '🥦 Produce': [
+      'Bananas','Apples','Avocados','Lemons','Limes','Oranges','Strawberries','Blueberries',
+      'Spinach','Kale','Lettuce','Broccoli','Carrots','Celery','Cucumber','Tomatoes',
+      'Cherry Tomatoes','Bell Peppers','Zucchini','Corn','Mushrooms','Onions','Red Onion',
+      'Garlic','Ginger','Potatoes','Sweet Potatoes','Green Beans','Asparagus','Cauliflower'
+    ],
+    '🥩 Meat & Seafood': [
+      'Chicken Breast','Chicken Thighs','Ground Beef','Beef Steak','Pork Chops','Ground Turkey',
+      'Bacon','Sausages','Ham','Salmon','Tuna','Shrimp','Tilapia','Ground Pork','Lamb Chops'
+    ],
+    '🧀 Dairy & Eggs': [
+      'Eggs','Milk','Butter','Cheddar Cheese','Mozzarella','Parmesan','Cream Cheese',
+      'Sour Cream','Heavy Cream','Greek Yogurt','Yogurt','Cottage Cheese','Feta Cheese'
+    ],
+    '🍞 Bakery': [
+      'Bread','Whole Wheat Bread','Sourdough','Bagels','English Muffins','Tortillas',
+      'Pita Bread','Rolls','Croissants','Buns'
+    ],
+    '🥫 Pantry': [
+      'Pasta','Spaghetti','Rice','Brown Rice','Quinoa','Oats','Flour','Sugar','Brown Sugar',
+      'Olive Oil','Vegetable Oil','Soy Sauce','Hot Sauce','Ketchup','Mustard','Mayonnaise',
+      'Honey','Maple Syrup','Vinegar','Chicken Broth','Vegetable Broth','Canned Tomatoes',
+      'Tomato Paste','Canned Beans','Chickpeas','Lentils','Peanut Butter','Jam','Cereal',
+      'Breadcrumbs','Panko','Cornstarch','Baking Soda','Baking Powder','Vanilla Extract',
+      'Coconut Milk','Salsa','Tomato Sauce'
+    ],
+    '🧊 Frozen': [
+      'Frozen Peas','Frozen Corn','Frozen Broccoli','Frozen Spinach','Frozen Berries',
+      'Frozen Pizza','Ice Cream','Frozen Waffles','Frozen Fries','Edamame'
+    ],
+    '🥤 Drinks': [
+      'Orange Juice','Apple Juice','Sparkling Water','Water','Coffee','Tea','Almond Milk',
+      'Oat Milk','Soy Milk','Energy Drinks','Soda'
+    ],
+    '🧴 Health & Household': [
+      'Dish Soap','Laundry Detergent','Paper Towels','Toilet Paper','Tin Foil',
+      'Plastic Wrap','Ziplock Bags','Garbage Bags','Sponges'
+    ]
+  };
+
+  function openCommonItemsPicker() {
+    // Track quantities per item: { 'Bananas': 2, 'Eggs': 1 }
+    const selected = {};
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:700;';
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:701;display:flex;flex-direction:column;background:var(--bg);';
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--glass-border);flex-shrink:0;';
+    header.innerHTML = '<div style="font-size:1em;font-weight:800;">🧺 Common Items</div>' +
+      '<button onclick="this.closest(\'[style*=z-index:701]\').remove();document.querySelector(\'[style*=z-index:700]\').remove();" style="background:none;border:none;color:var(--text-faint);font-size:1.2em;cursor:pointer;padding:4px;">✕</button>';
+
+    // Search bar
+    const searchWrap = document.createElement('div');
+    searchWrap.style.cssText = 'padding:10px 16px 8px;flex-shrink:0;';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'edit-field';
+    searchInput.placeholder = 'Search items...';
+    searchInput.style.cssText = 'margin:0;';
+    searchWrap.appendChild(searchInput);
+
+    // Scrollable content
+    const body = document.createElement('div');
+    body.style.cssText = 'flex:1;overflow-y:auto;padding:0 16px 100px;';
+
+    const renderItems = (query) => {
+      body.innerHTML = '';
+      const q = (query||'').toLowerCase();
+      Object.entries(COMMON_ITEMS).forEach(([category, items]) => {
+        const filtered = q ? items.filter(i => i.toLowerCase().includes(q)) : items;
+        if (filtered.length === 0) return;
+
+        const catLabel = document.createElement('div');
+        catLabel.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);padding:14px 0 8px;';
+        catLabel.textContent = category;
+        body.appendChild(catLabel);
+
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;';
+
+        filtered.forEach(item => {
+          const qty = selected[item] || 0;
+          const pill = document.createElement('div');
+          pill.dataset.item = item;
+          pill.style.cssText = 'display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:20px;border:1px solid ' +
+            (qty > 0 ? 'var(--gold)' : 'var(--glass-border)') +
+            ';background:' + (qty > 0 ? 'var(--gold-dim)' : 'var(--glass)') +
+            ';cursor:pointer;transition:all 0.15s;user-select:none;';
+
+          const minusBtn = document.createElement('button');
+          minusBtn.textContent = '−';
+          minusBtn.style.cssText = 'background:none;border:none;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-faint)') + ';font-size:1em;font-weight:700;cursor:pointer;padding:0;line-height:1;width:16px;';
+          minusBtn.onclick = (e) => {
+            e.stopPropagation();
+            if ((selected[item] || 0) > 0) {
+              selected[item]--;
+              if (selected[item] === 0) delete selected[item];
+            }
+            renderItems(searchInput.value);
+          };
+
+          const label = document.createElement('span');
+          label.style.cssText = 'font-size:0.82em;font-weight:600;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-dim)') + ';';
+          label.textContent = item + (qty > 0 ? ' ×' + qty : '');
+
+          const plusBtn = document.createElement('button');
+          plusBtn.textContent = '+';
+          plusBtn.style.cssText = 'background:none;border:none;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-faint)') + ';font-size:1em;font-weight:700;cursor:pointer;padding:0;line-height:1;width:16px;';
+          plusBtn.onclick = (e) => {
+            e.stopPropagation();
+            selected[item] = (selected[item] || 0) + 1;
+            renderItems(searchInput.value);
+          };
+
+          // Tapping the pill itself = toggle (add 1 if 0, remove if already selected)
+          pill.onclick = () => {
+            if ((selected[item] || 0) === 0) {
+              selected[item] = 1;
+            } else {
+              delete selected[item];
+            }
+            renderItems(searchInput.value);
+          };
+
+          if (qty > 0) pill.append(minusBtn, label, plusBtn);
+          else pill.append(label, plusBtn);
+
+          grid.appendChild(pill);
+        });
+
+        body.appendChild(grid);
+      });
+    };
+
+    searchInput.oninput = () => renderItems(searchInput.value);
+    renderItems('');
+
+    // Fixed confirm button
+    const footer = document.createElement('div');
+    footer.style.cssText = 'position:absolute;bottom:0;left:0;right:0;padding:12px 16px 32px;background:var(--bg);border-top:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+
+    const countLabel = document.createElement('div');
+    countLabel.id = 'commonItemsCount';
+    countLabel.style.cssText = 'font-size:0.82em;color:var(--text-faint);';
+    countLabel.textContent = 'Nothing selected yet';
+
+    // Update count label reactively
+    const origRender = renderItems;
+    const renderWithCount = (q) => {
+      origRender(q);
+      const total = Object.keys(selected).length;
+      countLabel.textContent = total === 0 ? 'Nothing selected yet' : total + ' item' + (total !== 1 ? 's' : '') + ' selected';
+    };
+    searchInput.oninput = () => renderWithCount(searchInput.value);
+    // Re-render all with count update
+    const allPlusButtons = () => modal.querySelectorAll('[data-item]');
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = '✓ Add to List';
+    confirmBtn.style.cssText = 'padding:12px 22px;background:var(--gold);border:none;border-radius:20px;color:var(--bg);font-weight:700;font-size:0.88em;cursor:pointer;font-family:inherit;flex-shrink:0;';
+    confirmBtn.onclick = () => {
+      const entries = Object.entries(selected);
+      if (entries.length === 0) { modal.remove(); overlay.remove(); return; }
+
+      entries.forEach(([item, qty]) => {
+        const text = qty > 1 ? qty + 'x ' + item : item;
+        if (activeShopTab && activeShopTab !== 'personal') {
+          // Shared list
+          addSharedListItem(activeShopTab, text, AISLE_LABELS[classifyIngredientAisle(item)] || '📦 Other', null, null, currentUser);
+        } else {
+          shopItems.unshift({
+            text,
+            checked: false,
+            group: AISLE_LABELS[classifyIngredientAisle(item)] || '📦 Other',
+            _core: item.toLowerCase(),
+            _qty: qty > 1 ? qty : null
+          });
+        }
+      });
+
+      if (!activeShopTab || activeShopTab === 'personal') {
+        saveShop();
+        renderShopList();
+        const page = document.getElementById('shoppingPage');
+        if (page && page.style.display !== 'none') renderShoppingPagePersonal();
+      }
+
+      modal.remove();
+      overlay.remove();
+
+      // Toast
+      const total = entries.length;
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ ' + total + ' item' + (total !== 1 ? 's' : '') + ' added to your list!';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    };
+
+    footer.append(countLabel, confirmBtn);
+    modal.append(header, searchWrap, body, footer);
+
+    // Wire pill clicks to also update count label
+    // We do this by re-wiring renderItems to always update footer count
+    const _r = (q) => {
+      body.innerHTML = '';
+      const query = (q||'').toLowerCase();
+      Object.entries(COMMON_ITEMS).forEach(([category, items]) => {
+        const filtered = query ? items.filter(i => i.toLowerCase().includes(query)) : items;
+        if (filtered.length === 0) return;
+        const catLabel = document.createElement('div');
+        catLabel.style.cssText = 'font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);padding:14px 0 8px;';
+        catLabel.textContent = category;
+        body.appendChild(catLabel);
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;';
+        filtered.forEach(item => {
+          const qty = selected[item] || 0;
+          const pill = document.createElement('div');
+          pill.style.cssText = 'display:flex;align-items:center;gap:5px;padding:7px 10px;border-radius:20px;border:1px solid ' +
+            (qty > 0 ? 'var(--gold)' : 'var(--glass-border)') +
+            ';background:' + (qty > 0 ? 'var(--gold-dim)' : 'var(--glass)') + ';cursor:pointer;user-select:none;';
+          const minus = document.createElement('button');
+          minus.textContent = '−';
+          minus.style.cssText = 'background:none;border:none;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-faint)') + ';font-weight:800;font-size:0.9em;cursor:pointer;padding:0;width:14px;line-height:1;flex-shrink:0;';
+          minus.onclick = e => { e.stopPropagation(); if ((selected[item]||0)>0){selected[item]--;if(selected[item]===0)delete selected[item];} _r(searchInput.value); updateCount(); };
+          const lbl = document.createElement('span');
+          lbl.style.cssText = 'font-size:0.82em;font-weight:600;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-dim)') + ';white-space:nowrap;';
+          lbl.textContent = item + (qty > 0 ? ' ×' + qty : '');
+          const plus = document.createElement('button');
+          plus.textContent = '+';
+          plus.style.cssText = 'background:none;border:none;color:' + (qty > 0 ? 'var(--gold)' : 'var(--text-faint)') + ';font-weight:800;font-size:0.9em;cursor:pointer;padding:0;width:14px;line-height:1;flex-shrink:0;';
+          plus.onclick = e => { e.stopPropagation(); selected[item]=(selected[item]||0)+1; _r(searchInput.value); updateCount(); };
+          pill.onclick = () => { if((selected[item]||0)===0){selected[item]=1;}else{delete selected[item];} _r(searchInput.value); updateCount(); };
+          pill.append(minus, lbl, plus);
+          grid.appendChild(pill);
+        });
+        body.appendChild(grid);
+      });
+    };
+
+    const updateCount = () => {
+      const total = Object.keys(selected).length;
+      countLabel.textContent = total === 0 ? 'Nothing selected yet' : total + ' item' + (total !== 1 ? 's' : '') + ' selected';
+    };
+
+    searchInput.oninput = () => { _r(searchInput.value); updateCount(); };
+    _r('');
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+    setTimeout(() => searchInput.focus(), 100);
   }
 
 
