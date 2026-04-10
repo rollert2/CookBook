@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V27 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V29 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1355,7 +1355,7 @@
       <button onclick="createSharedListFromPage()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ New Shared</button>
     </div>
     <!-- Personal list content -->
-    <div id="shopPagePersonal" style="display:flex;flex-direction:column;">
+    <div id="shopPagePersonal">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <button onclick="openCommonItemsPicker()" style="padding:10px 13px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
         <input type="text" id="shopPageInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPagePersonalItem()">
@@ -7938,7 +7938,7 @@ ${text}`;
     const personal = document.getElementById('shopPagePersonal');
     const shared = document.getElementById('shopPageShared');
     if (tabId === 'personal') {
-      if (personal) personal.style.display = 'flex';
+      if (personal) personal.style.display = 'block';
       if (shared) shared.style.display = 'none';
       renderShoppingPagePersonal();
     } else {
