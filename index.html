@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V18 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V19 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -3313,6 +3313,9 @@
       if (res.status === 'Success' && res.recipe) {
         // Apply category override if from quick browse
         if (suggestedCat) res.recipe.category = suggestedCat;
+        // Validate category — AI sometimes returns unknown values
+        const validatedCat2 = await validateRecipeCategory(res.recipe.title || 'Recipe', res.recipe.category || '');
+        res.recipe.category = validatedCat2;
         const saveRes = await addRecipe(currentUser, res.recipe);
         if (saveRes.status === 'Success') {
           document.getElementById('discoverPreviewSheet')?.remove();
@@ -3410,6 +3413,9 @@
       clearInterval(interval); document.getElementById('aiStatus').style.display = 'none';
       const el = document.getElementById('aiResult'); el.style.display = 'block';
       if (res.status==='Success' && res.recipe) {
+        // Validate category — AI sometimes returns unknown values
+        const validatedCat = await validateRecipeCategory(res.recipe.title || 'Recipe', res.recipe.category || '');
+        res.recipe.category = validatedCat;
         const saveRes = await addRecipe(currentUser, res.recipe);
         if (saveRes.status === 'Success') {
           el.className='ai-result success'; el.innerHTML='✅ '+saveRes.message;
@@ -4507,6 +4513,23 @@
       if (userSettings.default_sort)  localStorage.setItem('rc_default_sort_'  + currentUser, String(userSettings.default_sort));
       if (userSettings.theme)         localStorage.setItem('rc_theme', String(userSettings.theme));
       allRecipes = await getRecipes(currentUser);
+      // Check for any recipes with unknown categories and prompt user
+      const unknownCatRecipes = allRecipes.filter(r => r.category && !RC_VALID_CATS.includes(r.category));
+      if (unknownCatRecipes.length > 0) {
+        // Handle one at a time — banner for the first one
+        const fixNext = async (idx) => {
+          if (idx >= unknownCatRecipes.length) return;
+          const r = unknownCatRecipes[idx];
+          showCategoryPickerBanner(r.title, r.category, async (picked) => {
+            await updateRecipe(r.id, { category: picked });
+            const localR = allRecipes.find(x => x.id === r.id);
+            if (localR) localR.category = picked;
+            renderRecipes();
+            fixNext(idx + 1);
+          });
+        };
+        fixNext(0);
+      }
       await loadGenericMeals(); // Load generic meals for planner
       await loadLeftovers(); // Load leftovers from server
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
@@ -9249,6 +9272,61 @@ ${text}`;
       ov.querySelector('#rcPromptOk').onclick = ok;
       ov.querySelector('#rcPromptCancel').onclick = cancel;
       input.onkeydown = e => { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); };
+    });
+  }
+
+
+
+  // ═══ CATEGORY VALIDATION ══════════════════════════════
+  const RC_VALID_CATS = ['Breakfast','Lunch','Dinner','Snack','Drink','Dessert','Sides','General'];
+
+  function showCategoryPickerBanner(recipeTitle, currentCat, onPick) {
+    // Remove any existing banner
+    document.getElementById('rcCatBanner')?.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'rcCatBanner';
+    banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99998;background:var(--surface);border-top:2px solid var(--gold);padding:14px 16px 32px;animation:rcSlideUp 0.25s ease;';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:0.88em;font-weight:800;margin-bottom:4px;color:var(--text);';
+    title.textContent = '📂 Pick a meal type';
+
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:0.78em;color:var(--text-faint);margin-bottom:12px;line-height:1.4;';
+    sub.textContent = '\u201c' + recipeTitle + '\u201d was saved with category \u201c' + (currentCat||'unknown') + '\u201d \u2014 please pick the correct type:';
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:6px;';
+
+    const cats = [
+      {val:'Breakfast',icon:'🌅'},{val:'Lunch',icon:'🥗'},{val:'Dinner',icon:'🍽️'},
+      {val:'Snack',icon:'🍿'},{val:'Drink',icon:'🥤'},{val:'Dessert',icon:'🍰'},
+      {val:'Sides',icon:'🥘'},{val:'General',icon:'📦'}
+    ];
+
+    cats.forEach(({val, icon}) => {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'padding:10px 4px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.75em;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text-dim);display:flex;flex-direction:column;align-items:center;gap:3px;';
+      btn.innerHTML = '<span style="font-size:1.4em;">' + icon + '</span>' + val;
+      btn.onclick = () => {
+        banner.remove();
+        onPick(val);
+      };
+      grid.appendChild(btn);
+    });
+
+    banner.append(title, sub, grid);
+    document.body.appendChild(banner);
+    // Banner does NOT auto-dismiss — stays until user picks
+  }
+
+  // Validate category from AI/scrape — returns a Promise<string> with the final category
+  async function validateRecipeCategory(recipeTitle, aiCategory) {
+    if (RC_VALID_CATS.includes(aiCategory)) return aiCategory;
+    // Unknown category — save with General first, then show persistent banner
+    return new Promise(resolve => {
+      showCategoryPickerBanner(recipeTitle, aiCategory, resolve);
     });
   }
 
