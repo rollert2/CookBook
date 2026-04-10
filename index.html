@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V22 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V25 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1343,7 +1343,7 @@
   </div>
 
   <!-- SHOPPING PAGE (full screen) -->
-  <div id="shoppingPage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;flex-direction:column;overflow-y:auto;">
+  <div id="shoppingPage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;">
     <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:10;">
       <button onclick="closeShoppingPage()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
       <span style="font-weight:800;font-size:1em;flex:1;">🛒 Shopping</span>
@@ -1355,13 +1355,13 @@
       <button onclick="createSharedListFromPage()" style="flex-shrink:0;padding:6px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.75em;cursor:pointer;font-family:inherit;">+ New Shared</button>
     </div>
     <!-- Personal list content -->
-    <div id="shopPagePersonal" style="display:flex;flex-direction:column;">
+    <div id="shopPagePersonal" style="display:block;">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <button onclick="openCommonItemsPicker()" style="padding:10px 13px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
         <input type="text" id="shopPageInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPagePersonalItem()">
         <button onclick="addShopPagePersonalItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
       </div>
-      <div id="shopPageList" style="padding:0 16px;flex:1;overflow-y:auto;padding-bottom:80px;"></div>
+      <div id="shopPageList" style="padding:0 16px 80px;"></div>
       <div id="shopPageActions" style="display:none;padding:8px 16px;gap:8px;display:flex;">
         <button onclick="clearCheckedPageItems()" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;cursor:pointer;font-family:inherit;">🗑 Clear Checked</button>
         <button onclick="clearAllPageItems()" style="flex:1;padding:10px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.08);border:1px solid var(--red);color:var(--red);font-size:0.82em;cursor:pointer;font-family:inherit;">✕ Clear All</button>
@@ -2028,12 +2028,24 @@
   function cancelWarning() { document.getElementById('loginWarning').style.display = 'none'; pendingLoginUsername = null; }
   function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.style.display = 'block'; }
 
-  function enterApp(username) {
+  async function enterApp(username) {
     currentUser = username.toLowerCase();
     localStorage.setItem('currentUser', currentUser);
     const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
     if (!allSaved.includes(currentUser)) { allSaved.unshift(currentUser); localStorage.setItem('savedUsers', JSON.stringify(allSaved)); }
-    shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+    // Load shopping list — Supabase first, localStorage fallback
+    try {
+      const _shopRes = await getUserSettings(currentUser);
+      const _dbList = _shopRes.settings && _shopRes.settings.shopping_list;
+      if (_dbList) {
+        shopItems = JSON.parse(_dbList);
+        localStorage.setItem('shopItems_' + currentUser, _dbList);
+      } else {
+        shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+      }
+    } catch(e) {
+      shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+    }
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('userBadgeName').textContent = currentUser;
     // Load avatar into header badge
@@ -2906,7 +2918,11 @@
   }
 
   // ═══ SHOPPING ═══
-  function saveShop() { localStorage.setItem('shopItems_'+currentUser, JSON.stringify(shopItems)); }
+  function saveShop() {
+    localStorage.setItem('shopItems_'+currentUser, JSON.stringify(shopItems));
+    // Sync to Supabase in background
+    updateUserSettings(currentUser, { shopping_list: JSON.stringify(shopItems) }).catch(() => {});
+  }
   function addShopItem() { const input = document.getElementById('shopInput'); const text = input.value.trim(); if (!text) return; if (activeShopTab && activeShopTab !== 'personal') { input.value = ''; addSharedListItem(activeShopTab,text,'Other',null,null,currentUser).then(()=>switchShopListTab(activeShopTab)); return; } shopItems.unshift({text,checked:false,group:'Other'}); input.value = ''; saveShop(); renderShopList(); }
   function toggleShopItem(i) { shopItems[i].checked = !shopItems[i].checked; saveShop(); renderShopList(); }
   function deleteShopItem(i) { shopItems.splice(i,1); saveShop(); renderShopList(); }
