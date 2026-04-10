@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V31 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V33 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -745,7 +745,7 @@
         <div class="user-badge" id="userBadge" onclick="openProfile()">
           <div class="user-badge-avatar" id="userBadgeAvatar"></div>
           <span id="userBadgeName"></span>
-          <span id="notifBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;margin-left:2px;flex-shrink:0;"></span>
+          <span id="notifBadge" onclick="event.stopPropagation();openProfile().then?.(()=>{});setTimeout(()=>{const s=document.getElementById('profileNotifSection');if(s&&s.style.display!=='none')s.scrollIntoView({behavior:'smooth',block:'start'});},450);" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;margin-left:2px;flex-shrink:0;"></span>
         </div>
         <button class="icon-btn" id="inboxBtn" onclick="openInbox()">🔔<span class="notif-badge" id="inboxBadge" style="display:none;"></span></button>
         <button class="icon-btn" onclick="openMessaging(null)" style="position:relative;">💬<span id="msgBellBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:14px;height:14px;font-size:0.5em;font-weight:900;align-items:center;justify-content:center;position:absolute;top:-2px;right:-2px;"></span></button>
@@ -1566,7 +1566,7 @@
         <button onclick="cancelDeletionFromSettings()" style="margin-top:10px;width:100%;padding:10px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.82em;cursor:pointer;font-family:inherit;">↩ Cancel Deletion Request</button>
       </div>
       <button onclick="requestDeletionFromSettings()" id="requestDeletionBtn" style="width:100%;padding:12px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Request Account Deletion</button>
-      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;line-height:1.5;">Your account will be scheduled for deletion. You have 12 hours to cancel.</div>
+      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;line-height:1.5;">Your account will be scheduled for deletion. You have 1 hour to cancel.</div>
     </div>
     <div style="height:30px;"></div>
   </div>
@@ -3074,6 +3074,16 @@
       document.getElementById('followResult').style.display = 'none';
       openModalAnimated('profileModal');
       loadFollowingAndActivity();
+      // If there are pending notifications or follow requests, scroll to them
+      setTimeout(() => {
+        const notifSection = document.getElementById('profileNotifSection');
+        if (notifSection && notifSection.style.display !== 'none') {
+          notifSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          notifSection.style.outline = '2px solid var(--gold)';
+          notifSection.style.borderRadius = '8px';
+          setTimeout(() => { notifSection.style.outline = ''; notifSection.style.borderRadius = ''; }, 2000);
+        }
+      }, 400);
     });
   }
 
@@ -6867,7 +6877,7 @@ ${text}`;
     } else { wrap.style.display = 'none'; btn.style.display = 'block'; }
   }
   async function requestDeletionFromSettings() {
-    if (!await rcConfirm('You have 12 hours to cancel this request.', {icon:'⚠️',title:'Delete your account?',confirmText:'Request deletion',danger:true})) return;
+    if (!await rcConfirm('You have 1 hour to cancel this request.', {icon:'⚠️',title:'Delete your account?',confirmText:'Request deletion',danger:true})) return;
     const res = await requestAccountDeletion(currentUser);
     if (res.status === 'Success') checkDeletionStatus();
   }

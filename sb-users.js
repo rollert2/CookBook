@@ -131,7 +131,7 @@ async function getProfileStats(username) {
 async function requestAccountDeletion(username) {
   const userId = await getUserId(username);
   if (!userId) return { status: 'Error', message: 'User not found' };
-  const deleteAfter = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+  const deleteAfter = new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString();
   // Upsert deletion request
   const existing = await sbFetch('GET', 'deletion_requests', null, `username=eq.${username}&select=id`);
   if (existing && existing.length > 0) {
