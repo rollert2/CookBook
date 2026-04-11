@@ -89,9 +89,10 @@ export default async function handler(req, res) {
     const prompt = buildPrompt(recipeText, videoTitle, authorName, platform);
 
     // Try models in order — fall back on quota errors
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite-preview-06-17'];
+    const MODELS = ['gemini-2.5-flash'];
     let rawText = '';
     let aiOk = false;
+    let lastError = '';
     for (const model of MODELS) {
       try {
         const geminiRes = await fetch(
@@ -115,7 +116,7 @@ export default async function handler(req, res) {
       } catch(e) { continue; }
     }
     if (!aiOk || !rawText) {
-      return res.json({ status: 'Error', needsPaste: true, message: 'AI could not process this content. Try the Paste Description option.' });
+      return res.json({ status: 'Error', needsPaste: true, message: 'AI error: ' + (lastError || 'could not process content') });
     }
 
     let recipe;

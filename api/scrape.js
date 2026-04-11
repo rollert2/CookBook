@@ -79,9 +79,10 @@ PAGE TEXT:
 ${cleanText}`;
 
     // Try models in order — fall back on quota errors
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite-preview-06-17'];
+    const MODELS = ['gemini-2.5-flash'];
     let recipeText = '';
     let geminiOk = false;
+    let lastError = '';
     for (const model of MODELS) {
       try {
         const geminiRes = await fetch(
@@ -96,7 +97,12 @@ ${cleanText}`;
           }
         );
         const geminiData = await geminiRes.json();
-        if (geminiData.error?.code === 429) continue; // quota — try next model
+        if (geminiData.error) {
+          // Log actual error and try next model
+          console.error('Gemini error on', model, ':', JSON.stringify(geminiData.error));
+          lastError = geminiData.error.message || 'Unknown error';
+          continue;
+        }
         if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) continue;
         recipeText = geminiData.candidates[0].content.parts[0].text.trim()
           .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
@@ -105,7 +111,7 @@ ${cleanText}`;
       } catch(e) { continue; }
     }
     if (!geminiOk || !recipeText) {
-      return res.json({ status: 'Error', message: 'AI could not extract a recipe from this page.' });
+      return res.json({ status: 'Error', message: 'AI error: ' + (lastError || 'could not extract recipe') });
     }
 
     let recipe;
@@ -184,6 +190,6 @@ function parseJsonLdRecipe(schema) {
       image: typeof schema.image === 'string' ? schema.image
            : Array.isArray(schema.image) ? schema.image[0]
            : schema.image?.url || ''
-    };
+    });
   } catch(e) { return null; }
 }

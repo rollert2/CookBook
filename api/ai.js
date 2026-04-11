@@ -18,7 +18,6 @@ export default async function handler(req, res) {
   // Try models in order of preference — fall back if one is quota-limited
   const models = [
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite-preview-06-17',
   ];
 
   let lastError = '';
