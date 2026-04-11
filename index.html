@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V40 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V41 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -3494,6 +3494,16 @@
   function importFromUrl() {
     const url = document.getElementById('urlInput').value.trim();
     if (!url || !url.startsWith('http')) { showUrlImportError('Please enter a valid URL starting with http:// or https://'); return; }
+    // Route YouTube to social scraper (has ytInitialData parser)
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const inp = document.getElementById('socialUrlInput');
+      if (inp) inp.value = url;
+      openAddModal();
+      switchSyncTab('social');
+      setTimeout(() => importFromSocial(), 300);
+      closeSyncModalAnimated();
+      return;
+    }
     // Block known unsupported sites
     const unsupported = ['allrecipes.com','nytimes.com','cooking.nytimes.com','tasty.co','food.com'];
     if (unsupported.some(s => url.includes(s))) {
@@ -9745,6 +9755,11 @@ ${text}`;
       return;
     }
 
+    // Guard against double-import if called twice rapidly
+    if (window._socialImportInProgress) return;
+    window._socialImportInProgress = true;
+    setTimeout(() => { window._socialImportInProgress = false; }, 10000);
+
     openAddModal();
     switchSyncTab('social');
     setTimeout(() => {
@@ -9821,15 +9836,22 @@ ${text}`;
       if (status) status.style.display = 'none';
 
       if ((data.status === 'Success' || data.status === 'partial') && data.recipe) {
-        const validatedCat = await validateRecipeCategory(data.recipe.title || 'Recipe', data.recipe.category || '');
-        data.recipe.category = validatedCat;
-        const saveRes = await addRecipe(currentUser, data.recipe);
+        // Sanitize — flatten any array fields Gemini may have returned
+        const r = data.recipe;
+        const flatField = v => Array.isArray(v) ? v.join('\n') : (v || '');
+        r.ingredients = flatField(r.ingredients);
+        r.instructions = flatField(r.instructions);
+        r.notes = flatField(r.notes);
+
+        const validatedCat = await validateRecipeCategory(r.title || 'Recipe', r.category || '');
+        r.category = validatedCat;
+        const saveRes = await addRecipe(currentUser, r);
         if (saveRes.status === 'Success') {
           if (result) {
             result.style.display = 'block';
             result.className = 'ai-result success';
             result.innerHTML = '✅ ' + saveRes.message +
-              (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe imported — tap Edit to fill in any missing steps.</small>' : '');
+              (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe — tap Edit to add missing steps.</small>' : '');
           }
           if (btn) { btn.textContent = 'Import Another'; btn.disabled = false; }
           if (input) input.value = '';
@@ -9914,6 +9936,12 @@ Return ONLY raw JSON. No markdown, no backticks.`;
       catch(e) { throw new Error('Could not parse the extracted recipe. Try rewording the description.'); }
 
       if (!recipe.title) recipe.title = title || 'Imported Recipe';
+
+      // Sanitize arrays
+      const flatField2 = v => Array.isArray(v) ? v.join('\n') : (v || '');
+      recipe.ingredients = flatField2(recipe.ingredients);
+      recipe.instructions = flatField2(recipe.instructions);
+      recipe.notes = flatField2(recipe.notes);
 
       const validatedCat = await validateRecipeCategory(recipe.title, recipe.category || '');
       recipe.category = validatedCat;

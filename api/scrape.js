@@ -112,6 +112,8 @@ ${cleanText}`;
     try { recipe = JSON.parse(recipeText); }
     catch(e) { return res.json({ status: 'Error', message: 'AI could not parse the recipe data from this page.' }); }
 
+    sanitizeRecipe(recipe);
+
     if (!recipe.title || !recipe.ingredients || !recipe.instructions) {
       return res.json({ status: 'Error', message: 'AI extracted incomplete data. Try a different URL.' });
     }
@@ -124,6 +126,20 @@ ${cleanText}`;
   } catch(e) {
     return res.json({ status: 'Error', message: 'Failed to fetch page. The site may use JavaScript rendering that blocks scraping.' });
   }
+}
+
+function sanitizeRecipe(recipe) {
+  if (!recipe) return recipe;
+  const flatten = (val) => {
+    if (Array.isArray(val)) return val.join('\n');
+    if (typeof val === 'string') return val.trim();
+    return String(val || '');
+  };
+  recipe.ingredients  = flatten(recipe.ingredients);
+  recipe.instructions = flatten(recipe.instructions);
+  recipe.notes        = flatten(recipe.notes);
+  recipe.title        = flatten(recipe.title);
+  return recipe;
 }
 
 function parseJsonLdRecipe(schema) {
@@ -158,7 +174,7 @@ function parseJsonLdRecipe(schema) {
       }
     }
 
-    return {
+    return sanitizeRecipe({
       title,
       category: 'General',
       ingredients,

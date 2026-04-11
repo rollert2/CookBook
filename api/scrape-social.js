@@ -134,6 +134,8 @@ export default async function handler(req, res) {
       ? recipe.notes + '\n\n— ' + attribution
       : '— ' + attribution;
 
+    sanitizeRecipe(recipe);
+
     const isPartial = !recipe.ingredients || !recipe.instructions ||
       recipe.instructions.includes('See original video');
 
@@ -148,6 +150,27 @@ export default async function handler(req, res) {
   } catch(e) {
     return res.json({ status: 'Error', message: 'Import failed: ' + (e.message || 'Unknown error') });
   }
+}
+
+
+// ── Sanitize Gemini output — flatten arrays, clean strings ───
+function sanitizeRecipe(recipe) {
+  if (!recipe) return recipe;
+  // Gemini sometimes returns ingredients/instructions as JSON arrays instead of strings
+  const flatten = (val) => {
+    if (Array.isArray(val)) return val.join('\n');
+    if (typeof val === 'string') return val.trim();
+    return String(val || '');
+  };
+  recipe.ingredients   = flatten(recipe.ingredients);
+  recipe.instructions  = flatten(recipe.instructions);
+  recipe.notes         = flatten(recipe.notes);
+  recipe.title         = flatten(recipe.title);
+  recipe.cookTime      = flatten(recipe.cookTime);
+  recipe.prepTime      = flatten(recipe.prepTime);
+  recipe.servings      = flatten(recipe.servings);
+  recipe.category      = flatten(recipe.category);
+  return recipe;
 }
 
 // ── Platform detection ────────────────────────────────────────
