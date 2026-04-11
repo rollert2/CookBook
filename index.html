@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V41 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V42 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1338,54 +1338,48 @@
       </div>
       <!-- SOCIAL IMPORT TAB -->
       <div id="tabSocial" style="display:none;">
-        <div style="text-align:center;padding:16px 0 8px;">
-          <div style="font-size:2.5em;margin-bottom:8px;">📱</div>
-          <div style="font-size:1em;font-weight:800;margin-bottom:6px;">Import from Social Media</div>
-          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Share a TikTok, Instagram Reel, or YouTube Short directly into Roll Cookbook. The recipe gets extracted from the video description automatically.</div>
-        </div>
 
-        <!-- How to use -->
-        <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">
-          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">HOW TO USE</div>
-          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.8;">
-            1. Open TikTok, Instagram, or YouTube<br>
-            2. Find a cooking video with a recipe in the description<br>
-            3. Tap <strong>Share → Roll Cookbook</strong><br>
-            4. The recipe is imported automatically ✨
+        <!-- Paste description — PRIMARY path, shown first -->
+        <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px 14px 12px;margin-bottom:16px;">
+          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">✨ PASTE RECIPE DESCRIPTION</div>
+          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;margin-bottom:10px;">Copy the full video description from TikTok, Instagram, or YouTube and paste it below. AI will extract the recipe automatically.</div>
+
+          <!-- How to copy on TikTok -->
+          <div id="tiktokHelpToggle" onclick="document.getElementById('tiktokHelpBody').style.display=document.getElementById('tiktokHelpBody').style.display==='none'?'block':'none';this.querySelector('.help-arrow').textContent=document.getElementById('tiktokHelpBody').style.display==='none'?'▶':'▼';" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.78em;font-weight:700;color:var(--gold);margin-bottom:6px;">
+            <span class="help-arrow">▶</span> How to copy a TikTok description
           </div>
-        </div>
-
-        <!-- Supported platforms -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
-          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">🎵 TikTok</span>
-          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">📸 Instagram</span>
-          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">▶️ YouTube</span>
-          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">📌 Pinterest</span>
-          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">𝕏 X / Twitter</span>
-        </div>
-
-        <!-- Manual URL fallback -->
-        <div style="border-top:1px solid var(--glass-border);padding-top:16px;">
-          <div style="font-size:0.82em;font-weight:700;margin-bottom:8px;color:var(--text-dim);">Or paste a social media URL manually:</div>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <input type="text" id="socialUrlInput" class="edit-field" placeholder="https://tiktok.com/..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')importFromSocial()">
-            <button onclick="importFromSocial()" id="socialImportBtn" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Import</button>
+          <div id="tiktokHelpBody" style="display:none;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.78em;color:var(--text-dim);line-height:1.8;">
+            <strong style="color:var(--text);">On the TikTok app:</strong><br>
+            1. Open the video<br>
+            2. Tap the description area (below the video)<br>
+            3. Tap <strong>See more</strong> if it's collapsed<br>
+            4. Long-press any word → tap <strong>Select All</strong><br>
+            5. Tap <strong>Copy</strong><br>
+            6. Come back here and paste 👇<br><br>
+            <strong style="color:var(--text);">On YouTube:</strong><br>
+            1. Open the video<br>
+            2. Tap the title to expand the description<br>
+            3. Long-press the description text → <strong>Select All → Copy</strong>
           </div>
-          <div id="socialStatus" style="display:none;text-align:center;padding:12px 0;color:var(--text-faint);font-size:0.82em;">
-            <span id="socialStatusText">Fetching from social media...</span>
-          </div>
-          <div id="socialResult" class="ai-result" style="display:none;"></div>
-        </div>
 
-        <!-- Paste description fallback -->
-        <div style="border-top:1px solid var(--glass-border);padding-top:16px;margin-top:8px;">
-          <div style="font-size:0.82em;font-weight:700;margin-bottom:4px;color:var(--text-dim);">Can't share directly? Paste the video description:</div>
-          <div style="font-size:0.75em;color:var(--text-faint);margin-bottom:8px;line-height:1.4;">Copy the full description from the video and paste it here. Include ingredients and steps.</div>
-          <textarea id="socialDescInput" class="edit-field" rows="5" placeholder="Paste the video description here — ingredients, steps, everything...&#10;&#10;e.g. Chicken Adobo Recipe&#10;Ingredients:&#10;- 2 lbs chicken..."></textarea>
-          <input type="text" id="socialDescTitle" class="edit-field" placeholder="Dish name (optional — we'll try to detect it)" style="margin-top:6px;">
-          <button onclick="importFromSocialDescription()" id="socialDescBtn" style="width:100%;padding:12px;margin-top:8px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">✨ Extract Recipe</button>
+          <textarea id="socialDescInput" class="edit-field" rows="5" placeholder="Paste the video description here…&#10;&#10;Example:&#10;Chicken Adobo 🍗&#10;Ingredients:&#10;- 2 lbs chicken thighs&#10;- ½ cup soy sauce&#10;…"></textarea>
+          <input type="text" id="socialDescTitle" class="edit-field" placeholder="Dish name (optional — AI will detect it)" style="margin-top:6px;">
+          <button onclick="importFromSocialDescription()" id="socialDescBtn" style="width:100%;padding:13px;margin-top:8px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:800;font-size:0.95em;cursor:pointer;font-family:inherit;letter-spacing:-0.2px;">✨ Extract Recipe</button>
           <div id="socialDescResult" class="ai-result" style="display:none;margin-top:8px;"></div>
         </div>
+
+        <!-- URL import — secondary path -->
+        <div style="border-top:1px solid var(--glass-border);padding-top:14px;">
+          <div style="font-size:0.75em;font-weight:700;color:var(--text-faint);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Or try importing by URL</div>
+          <div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;line-height:1.5;">Works best for YouTube and Pinterest. TikTok and Instagram often block this.</div>
+          <div style="display:flex;gap:8px;margin-bottom:6px;">
+            <input type="text" id="socialUrlInput" class="edit-field" placeholder="https://tiktok.com/… or youtube.com/…" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')importFromSocial()">
+            <button onclick="importFromSocial()" id="socialImportBtn" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Try</button>
+          </div>
+          <div id="socialStatus" style="display:none;text-align:center;padding:8px 0;color:var(--text-faint);font-size:0.82em;"><span id="socialStatusText">Fetching...</span></div>
+          <div id="socialResult" class="ai-result" style="display:none;margin-top:6px;"></div>
+        </div>
+
       </div>
       <!-- Hidden legacy tabs (kept for JSON/bulk export access via direct calls) -->
       <div id="tabJson" style="display:none;">
