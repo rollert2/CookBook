@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V37 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V38 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9728,9 +9728,12 @@ ${text}`;
     const subject = data.subject || '';
     if (!url) return;
 
+    // Store the subject (caption) globally so importFromSocial can use it
+    // This is crucial for TikTok/Instagram where the caption is the only recipe source
+    window._socialShareSubject = subject;
+
     const platform = detectSocialPlatform(url);
     if (!platform) {
-      // Not a social platform — treat as regular URL import
       openAddModal();
       switchSyncTab('url');
       setTimeout(() => {
@@ -9740,18 +9743,20 @@ ${text}`;
       return;
     }
 
-    // Social platform — open social import tab and auto-trigger
     openAddModal();
     switchSyncTab('social');
     setTimeout(() => {
       const inp = document.getElementById('socialUrlInput');
-      if (inp) { inp.value = url; }
-      // Show a notification banner that we received a share
+      if (inp) inp.value = url;
       showSocialShareBanner(platform, subject, url);
-      // Auto-import after a brief delay so the modal is visible
-      setTimeout(() => importFromSocial(), 600);
+      setTimeout(() => importFromSocial(), 700);
     }, 400);
   };
+
+  function scrollToPasteSection() {
+    const el = document.getElementById('socialDescInput');
+    if (el) { el.scrollIntoView({ behavior: 'smooth' }); setTimeout(() => el.focus(), 400); }
+  }
 
   function detectSocialPlatform(url) {
     if (!url) return null;
@@ -9796,31 +9801,37 @@ ${text}`;
     if (status) status.style.display = 'block';
     if (result) result.style.display = 'none';
 
-    const msgs = ['Fetching video page...', 'Reading description...', 'Extracting recipe...', 'Almost done...'];
+    const msgs = ['Fetching content...', 'Reading description...', 'Extracting recipe...', 'Almost done...'];
     let mi = 0;
     if (statusText) statusText.textContent = msgs[0];
     const interval = setInterval(() => { mi = Math.min(mi+1, msgs.length-1); if (statusText) statusText.textContent = msgs[mi]; }, 3000);
 
     try {
+      // Pass the subject too — for TikTok/Instagram the caption is in the share payload subject
+      const sharedSubject = window._socialShareSubject || '';
       const res = await fetch('/api/scrape-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, subject: '' })
+        body: JSON.stringify({ url, subject: sharedSubject })
       });
       const data = await res.json();
       clearInterval(interval);
       if (status) status.style.display = 'none';
 
       if ((data.status === 'Success' || data.status === 'partial') && data.recipe) {
-        // Validate/fix category
         const validatedCat = await validateRecipeCategory(data.recipe.title || 'Recipe', data.recipe.category || '');
         data.recipe.category = validatedCat;
-
         const saveRes = await addRecipe(currentUser, data.recipe);
         if (saveRes.status === 'Success') {
-          if (result) { result.style.display = 'block'; result.className = 'ai-result success'; result.innerHTML = '✅ ' + saveRes.message + (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe — you may want to edit and add missing details.</small>' : ''); }
+          if (result) {
+            result.style.display = 'block';
+            result.className = 'ai-result success';
+            result.innerHTML = '✅ ' + saveRes.message +
+              (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe imported — tap Edit to fill in any missing steps.</small>' : '');
+          }
           if (btn) { btn.textContent = 'Import Another'; btn.disabled = false; }
           if (input) input.value = '';
+          window._socialShareSubject = '';
           document.getElementById('socialShareBanner')?.remove();
           init();
         } else {
@@ -9828,23 +9839,29 @@ ${text}`;
           if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
         }
       } else {
+        clearInterval(interval);
+        if (status) status.style.display = 'none';
         if (result) {
           result.style.display = 'block';
           result.className = 'ai-result error';
-          // If the platform blocked us, show paste fallback
-          const isPlatformBlock = data.message && (data.message.includes('blocked') || data.message.includes('fetch'));
-          result.innerHTML = '❌ ' + (data.message || 'Could not extract a recipe.') +
-            (isPlatformBlock ? '<br><br><small style="color:var(--text-faint);">💡 Try copying the video description and using the <strong>Paste Description</strong> option below.</small>' : '');
+          // If the platform needs paste, show a helpful inline CTA
+          if (data.needsPaste) {
+            result.innerHTML = '⚠️ ' + (data.message || 'Could not fetch content from this platform.') +
+              '<br><br><button onclick="scrollToPasteSection()" style="margin-top:8px;padding:8px 16px;background:var(--gold);border:none;border-radius:12px;color:var(--bg);font-weight:700;font-size:0.82em;cursor:pointer;font-family:inherit;">📋 Paste Description Instead →</button>';
+          } else {
+            result.innerHTML = '❌ ' + (data.message || 'Could not extract a recipe from this content.');
+          }
         }
         if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
       }
     } catch(err) {
       clearInterval(interval);
       if (status) status.style.display = 'none';
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + err.message; }
+      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Network error: ' + err.message; }
       if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
     }
   }
+
 
   async function importFromSocialDescription() {
     const descInput = document.getElementById('socialDescInput');

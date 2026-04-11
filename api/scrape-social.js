@@ -1,7 +1,9 @@
 // api/scrape-social.js
-// Vercel serverless function — extracts recipes from social media video descriptions
-// Handles TikTok, Instagram Reels, YouTube Shorts, Pinterest, Twitter/X
-// Called when user shares a social media URL into Roll Cookbook via the Share Into App feature
+// Handles recipe extraction from social media URLs and share payloads
+// Strategy per platform:
+//   TikTok/Instagram: caption comes in via data.subject from the share payload (no scraping needed)
+//   YouTube: parse ytInitialData from HTML to get video description
+//   All: Gemini extracts recipe from whatever text we have
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,54 +12,81 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ status: 'Error', message: 'Method not allowed' });
 
-  const { url, subject } = req.body;
-  if (!url) return res.status(400).json({ status: 'Error', message: 'URL is required' });
+  const { url, subject, pastedText } = req.body;
+  if (!url && !pastedText) return res.status(400).json({ status: 'Error', message: 'URL or text is required' });
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) return res.status(500).json({ status: 'Error', message: 'Gemini API key not configured' });
 
-  const domain = getDomain(url);
-  const platform = detectPlatform(url);
+  const platform = detectPlatform(url || '');
 
   try {
-    // Attempt to fetch the page with social-media-friendly headers
-    let pageText = '';
-    let videoTitle = subject || '';
+    let recipeText = '';
+    let videoTitle = cleanTitle(subject || '');
     let authorName = '';
     let thumbnailUrl = '';
 
-    try {
-      const headers = getSocialHeaders(platform);
-      const pageRes = await fetch(url, { headers, signal: AbortSignal.timeout(12000) });
-
-      if (pageRes.ok) {
-        const html = await pageRes.text();
-
-        // Extract metadata
-        videoTitle = videoTitle || extractMetaTitle(html) || '';
-        authorName = extractAuthorName(html, platform);
-        thumbnailUrl = extractThumbnail(html);
-
-        // Try Open Graph / JSON-LD description first
-        const ogDesc = extractOgDescription(html);
-        const jsonLdDesc = extractJsonLdDescription(html);
-
-        pageText = [ogDesc, jsonLdDesc, extractBodyText(html)].filter(Boolean).join('\n\n').slice(0, 10000);
-      }
-    } catch(fetchErr) {
-      // Fetch failed (TikTok often blocks) — use subject/title only as fallback
-      pageText = subject || '';
+    // ── Mode 1: Pasted text (most reliable, works for all platforms) ──
+    if (pastedText && pastedText.trim().length > 10) {
+      recipeText = pastedText.trim();
     }
 
-    if (!pageText && !videoTitle) {
+    // ── Mode 2: Subject/caption from share payload ──
+    // When a user shares from TikTok/Instagram app, the system passes the
+    // video caption as `subject`. This often contains the full recipe.
+    else if (subject && subject.length > 50 && looksLikeRecipe(subject)) {
+      recipeText = subject;
+      videoTitle = extractTitleFromCaption(subject) || videoTitle;
+    }
+
+    // ── Mode 3: Try to fetch the page (works best for YouTube, Pinterest) ──
+    else if (url) {
+      try {
+        const html = await fetchPage(url, platform);
+        if (html) {
+          thumbnailUrl = extractThumbnail(html);
+          authorName = extractAuthor(html, platform);
+
+          if (platform === 'YouTube') {
+            // YouTube: extract from ytInitialData JSON embedded in page
+            const ytDesc = extractYouTubeDescription(html);
+            const ytTitle = extractYouTubeTitle(html);
+            if (ytTitle) videoTitle = ytTitle;
+            if (ytDesc) recipeText = ytDesc;
+            else recipeText = extractOgDescription(html) || extractBodyText(html);
+          } else if (platform === 'Pinterest') {
+            recipeText = extractOgDescription(html) || extractBodyText(html);
+          } else {
+            // TikTok/Instagram — their pages rarely have the caption in HTML
+            // Try OG description first, then body text
+            recipeText = extractOgDescription(html) || '';
+            if (!recipeText || recipeText.length < 30) {
+              recipeText = extractBodyText(html);
+            }
+          }
+        }
+      } catch(fetchErr) {
+        // Platform blocked the fetch — fall through to subject-only mode
+      }
+
+      // Last resort: use whatever we got from subject even if it's short
+      if (!recipeText && subject) {
+        recipeText = subject;
+      }
+    }
+
+    // Still nothing useful
+    if (!recipeText || recipeText.trim().length < 15) {
       return res.json({
         status: 'Error',
-        message: `${platform} blocked the page fetch. Try pasting the video description manually using the text import option.`
+        needsPaste: true,
+        platform,
+        message: `${platform} doesn't include recipe text in the share link. Please copy the video description and use the "Paste Description" option below.`
       });
     }
 
-    // Build a social-media-aware Gemini prompt
-    const prompt = buildSocialPrompt(pageText, videoTitle, authorName, platform);
+    // ── Gemini extraction ──
+    const prompt = buildPrompt(recipeText, videoTitle, authorName, platform);
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -72,49 +101,34 @@ export default async function handler(req, res) {
     );
 
     const geminiData = await geminiRes.json();
-    if (!geminiData.candidates?.[0]) {
-      return res.json({ status: 'Error', message: 'AI could not extract a recipe from this content.' });
+    if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return res.json({ status: 'Error', message: 'AI could not process this content. Try the Paste Description option.' });
     }
 
-    let recipeText = geminiData.candidates[0].content.parts[0].text.trim()
+    let rawText = geminiData.candidates[0].content.parts[0].text.trim()
       .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
 
     let recipe;
-    try { recipe = JSON.parse(recipeText); }
+    try { recipe = JSON.parse(rawText); }
     catch(e) {
-      return res.json({ status: 'Error', message: 'Could not parse recipe data. The video description may not contain a full recipe.' });
+      return res.json({ status: 'Error', needsPaste: true, message: 'Could not extract a recipe from this content. Try pasting the description manually.' });
     }
 
-    // Validate we got something useful
-    if (!recipe.title && !videoTitle) {
-      return res.json({ status: 'Error', message: 'No recipe found in this content. The video description may not include ingredients or instructions.' });
-    }
-
-    // Fill in missing fields from metadata
-    if (!recipe.title || recipe.title === 'Unknown') recipe.title = cleanTitle(videoTitle);
+    // Fill blanks from metadata
+    if (!recipe.title || recipe.title === 'Unknown') recipe.title = videoTitle || 'Imported Recipe';
     if (!recipe.image && thumbnailUrl) recipe.image_url = thumbnailUrl;
-    if (!recipe.source_url) recipe.source_url = url;
+    recipe.source_url = url || '';
 
-    // Add platform attribution to notes
-    const attribution = authorName
-      ? `Sourced from ${platform}${authorName ? ' (@' + authorName + ')' : ''}`
-      : `Sourced from ${platform}`;
-    if (recipe.notes) {
-      recipe.notes = recipe.notes + '\n\n— ' + attribution;
-    } else {
-      recipe.notes = '— ' + attribution;
-    }
+    const attribution = `Sourced from ${platform}${authorName ? ' (@' + authorName + ')' : ''}`;
+    recipe.notes = recipe.notes
+      ? recipe.notes + '\n\n— ' + attribution
+      : '— ' + attribution;
 
-    if (!recipe.ingredients || !recipe.instructions) {
-      return res.json({
-        status: 'partial',
-        message: 'Partial recipe found — you may need to fill in some details.',
-        recipe
-      });
-    }
+    const isPartial = !recipe.ingredients || !recipe.instructions ||
+      recipe.instructions.includes('See original video');
 
     return res.json({
-      status: 'Success',
+      status: isPartial ? 'partial' : 'Success',
       message: `"${recipe.title}" imported from ${platform}!`,
       recipe,
       platform,
@@ -122,97 +136,111 @@ export default async function handler(req, res) {
     });
 
   } catch(e) {
-    return res.json({
-      status: 'Error',
-      message: 'Failed to import from ' + platform + '. ' + (e.message || '')
-    });
+    return res.json({ status: 'Error', message: 'Import failed: ' + (e.message || 'Unknown error') });
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────
-
-function getDomain(url) {
-  try { return new URL(url).hostname.replace('www.', ''); } catch(e) { return ''; }
-}
-
+// ── Platform detection ────────────────────────────────────────
 function detectPlatform(url) {
   if (url.includes('tiktok.com'))     return 'TikTok';
   if (url.includes('instagram.com'))  return 'Instagram';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
   if (url.includes('pinterest.com'))  return 'Pinterest';
-  if (url.includes('twitter.com') || url.includes('x.com')) return 'X (Twitter)';
+  if (url.includes('twitter.com') || url.includes('x.com')) return 'X';
   if (url.includes('facebook.com'))   return 'Facebook';
-  if (url.includes('snapchat.com'))   return 'Snapchat';
   return 'Social Media';
 }
 
-function getSocialHeaders(platform) {
-  // Use different user agents for different platforms
-  const base = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Cache-Control': 'no-cache',
-  };
-
-  if (platform === 'TikTok') {
-    // TikTok responds better to mobile user agents
-    return { ...base, 'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36' };
-  }
-  if (platform === 'Instagram') {
-    return { ...base, 'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36' };
-  }
-  return { ...base, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36' };
+// ── Does the text look like it has recipe content? ────────────
+function looksLikeRecipe(text) {
+  const lower = text.toLowerCase();
+  const keywords = ['ingredient', 'tablespoon', 'teaspoon', 'cup', 'tbsp', 'tsp',
+    'gram', 'oz', 'pound', 'minutes', 'preheat', 'mix', 'stir', 'cook', 'bake',
+    'boil', 'fry', 'recipe', 'serves', 'makes', 'prep', 'step', 'instructions'];
+  const matches = keywords.filter(k => lower.includes(k));
+  return matches.length >= 2;
 }
 
-function extractMetaTitle(html) {
-  const m = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-             || html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i)
-             || html.match(/<meta[^>]*name="title"[^>]*content="([^"]+)"/i);
-  return m ? m[1].trim() : '';
+// ── Extract likely dish name from a social media caption ──────
+function extractTitleFromCaption(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  // First non-hashtag, non-empty line is often the title
+  for (const line of lines.slice(0, 3)) {
+    if (!line.startsWith('#') && line.length > 3 && line.length < 80) {
+      return cleanTitle(line);
+    }
+  }
+  return '';
 }
 
+// ── Fetch page with appropriate headers ──────────────────────
+async function fetchPage(url, platform) {
+  const ua = platform === 'YouTube'
+    ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36';
+
+  const r = await fetch(url, {
+    headers: {
+      'User-Agent': ua,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cache-Control': 'no-cache',
+    },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!r.ok) return null;
+  return r.text();
+}
+
+// ── YouTube-specific: extract description from ytInitialData ─
+function extractYouTubeDescription(html) {
+  try {
+    // YouTube embeds all video data in a JS object
+    const match = html.match(/var ytInitialData\s*=\s*(\{.+?\});\s*<\/script>/s)
+                || html.match(/ytInitialData\s*=\s*(\{.{500,}?\})\s*;/s);
+    if (!match) return '';
+    const data = JSON.parse(match[1]);
+    // Navigate to video description
+    const desc = findDeep(data, 'description');
+    if (desc && typeof desc === 'object' && desc.runs) {
+      return desc.runs.map(r => r.text || '').join('');
+    }
+    if (typeof desc === 'string') return desc;
+  } catch(e) {}
+  // Fallback: regex for description text
+  const m = html.match(/"description":\{"runs":\[\{"text":"([\s\S]{20,1000}?)"\}/);
+  return m ? m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : '';
+}
+
+function extractYouTubeTitle(html) {
+  const m = html.match(/"title":\{"runs":\[\{"text":"([^"]+)"\}/)
+           || html.match(/<title>([^<]+)<\/title>/);
+  return m ? cleanTitle(m[1]) : '';
+}
+
+// ── Generic extractors ────────────────────────────────────────
 function extractOgDescription(html) {
-  const m = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i)
-             || html.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i);
-  return m ? decodeHtmlEntities(m[1].trim()) : '';
-}
-
-function extractJsonLdDescription(html) {
-  const matches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) || [];
-  for (const block of matches) {
-    try {
-      const json = JSON.parse(block.replace(/<script[^>]*>|<\/script>/gi, '').trim());
-      const objs = Array.isArray(json) ? json : [json, ...(json['@graph'] || [])];
-      for (const obj of objs) {
-        if (obj.description) return obj.description;
-        if (obj.articleBody) return obj.articleBody;
-      }
-    } catch(e) {}
-  }
-  return '';
-}
-
-function extractAuthorName(html, platform) {
-  // Try various author meta patterns
-  const patterns = [
-    /<meta[^>]*name="author"[^>]*content="([^"]+)"/i,
-    /<meta[^>]*property="article:author"[^>]*content="([^"]+)"/i,
-    /"author"\s*:\s*\{\s*"name"\s*:\s*"([^"]+)"/i,
-    /"creator"\s*:\s*"([^"]+)"/i,
-    /@([a-zA-Z0-9_.]+)/  // fallback: first @mention
-  ];
-  for (const p of patterns) {
-    const m = html.match(p);
-    if (m && m[1] && m[1].length < 50) return m[1].replace('@', '');
-  }
-  return '';
+  const m = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]{10,})"/i)
+           || html.match(/<meta[^>]*name="description"[^>]*content="([^"]{10,})"/i);
+  return m ? decodeEntities(m[1]) : '';
 }
 
 function extractThumbnail(html) {
-  const m = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
-             || html.match(/<meta[^>]*name="twitter:image"[^>]*content="([^"]+)"/i);
-  return m ? m[1].trim() : '';
+  const m = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i);
+  return m ? m[1] : '';
+}
+
+function extractAuthor(html, platform) {
+  const patterns = [
+    /<meta[^>]*name="author"[^>]*content="([^"]+)"/i,
+    /"author":\{"name":"([^"]+)"\}/i,
+    /"creator":"([^"]+)"/i,
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m && m[1] && m[1].length < 60) return m[1].replace(/^@/, '');
+  }
+  return '';
 }
 
 function extractBodyText(html) {
@@ -222,52 +250,51 @@ function extractBodyText(html) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 6000);
+    .slice(0, 8000);
 }
 
-function decodeHtmlEntities(str) {
-  return str
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n));
-}
-
-function cleanTitle(title) {
-  // Remove common social media title suffixes
-  return title
+function cleanTitle(t) {
+  return (t || '')
     .replace(/\s*[-|@]\s*TikTok.*$/i, '')
     .replace(/\s*[-|]\s*Instagram.*$/i, '')
     .replace(/\s*[-|]\s*YouTube.*$/i, '')
     .replace(/\s*\|\s*Pinterest.*$/i, '')
-    .replace(/@\w+\s*[-|•]\s*/g, '')
-    .trim();
+    .replace(/#\w+/g, '').trim();
 }
 
-function buildSocialPrompt(pageText, videoTitle, authorName, platform) {
-  const context = [
-    videoTitle ? `VIDEO TITLE: ${videoTitle}` : '',
-    authorName ? `CREATOR: @${authorName}` : '',
-    `PLATFORM: ${platform}`,
-    pageText ? `\nCONTENT:\n${pageText}` : ''
-  ].filter(Boolean).join('\n');
+function decodeEntities(str) {
+  return str
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+}
 
-  return `You are a recipe extraction assistant specializing in social media cooking content.
+function findDeep(obj, key, depth = 0) {
+  if (depth > 8 || !obj || typeof obj !== 'object') return undefined;
+  if (obj[key] !== undefined) return obj[key];
+  for (const v of Object.values(obj)) {
+    const found = findDeep(v, key, depth + 1);
+    if (found !== undefined) return found;
+  }
+}
 
-The following content is from a ${platform} cooking video. The description may contain a full recipe, partial recipe, or just ingredients/steps listed informally. Extract whatever recipe information is available.
+// ── Gemini prompt ─────────────────────────────────────────────
+function buildPrompt(text, title, author, platform) {
+  return `You are a recipe extraction assistant for a cooking app. The following content is from a ${platform} cooking video${author ? ' by @' + author : ''}.
 
-${context}
+${title ? 'VIDEO/POST TITLE: ' + title + '\n' : ''}CONTENT:
+${text.slice(0, 8000)}
 
-Return ONLY a valid JSON object with these exact keys (use empty string if not found):
-- "title": the dish name. Use the video title if available, clean up hashtags/emojis
+Extract the recipe. Social media recipes are often informal — quantities may be approximate, steps may be brief. Do your best with what's available.
+
+Return ONLY a JSON object with these keys:
+- "title": the dish name. Clean up hashtags and emojis from the title.
 - "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
-- "ingredients": all ingredients, one per line. Preserve section headers if present (e.g. "For the sauce:"). Include quantities. If informal (e.g. "a bit of salt") keep as-is.
-- "instructions": cooking steps, numbered, one per line. If steps are in the description or comments, extract them. If only ingredients are listed and no steps, write "See original video for instructions."
-- "notes": any tips, substitutions, storage info, hashtags converted to readable tags, or creator notes. Include the @creator handle if known.
+- "ingredients": all ingredients one per line with quantities. Preserve section headers like "For the sauce:" if present.
+- "instructions": numbered steps one per line. If no steps exist in the text, write "See original video for step-by-step instructions."
+- "notes": tips, substitutions, storage info, creator notes, or hashtags as readable keywords. Empty string if none.
 - "cookTime": e.g. "30 min" or empty string
-- "prepTime": e.g. "10 min" or empty string  
+- "prepTime": e.g. "10 min" or empty string
 - "servings": e.g. "4 servings" or empty string
 
-Important: Social media recipes are often informal. Do your best even with incomplete data. Never return null for title — use the video title or dish name from hashtags.
-
-Return ONLY raw JSON. No markdown, no backticks, no explanation.`;
+Return ONLY raw JSON. No markdown, no backticks, no preamble.`;
 }
