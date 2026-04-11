@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V39 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V40 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9478,16 +9478,18 @@ ${text}`;
     const selected = {};
 
     const overlay = document.createElement('div');
+    overlay.id = 'commonItemsOverlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:700;';
 
     const modal = document.createElement('div');
+    modal.id = 'commonItemsModal';
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:701;display:flex;flex-direction:column;background:var(--bg);';
 
     // Header
     const header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--glass-border);flex-shrink:0;';
     header.innerHTML = '<div style="font-size:1em;font-weight:800;">🧺 Common Items</div>' +
-      '<button onclick="this.closest(\'[style*=z-index:701]\').remove();document.querySelector(\'[style*=z-index:700]\').remove();" style="background:none;border:none;color:var(--text-faint);font-size:1.2em;cursor:pointer;padding:4px;">✕</button>';
+      '<button onclick="document.getElementById(\'commonItemsModal\').remove();document.getElementById(\'commonItemsOverlay\').remove();" style="background:none;border:none;color:var(--text-faint);font-size:1.2em;cursor:pointer;padding:4px;">✕</button>';
 
     // Search bar
     const searchWrap = document.createElement('div');
@@ -9602,33 +9604,44 @@ ${text}`;
       const entries = Object.entries(selected);
       if (entries.length === 0) { modal.remove(); overlay.remove(); return; }
 
+      // Determine which list is active — check full-page shared list first, then panel tab
+      const fullPageSharedId = shopPageActiveListId; // set when shopping page shared tab is open
+      const panelSharedId = (activeShopTab && activeShopTab !== 'personal') ? activeShopTab : null;
+      const activeSharedId = fullPageSharedId || panelSharedId;
+
       entries.forEach(([item, qty]) => {
         const text = qty > 1 ? qty + 'x ' + item : item;
-        if (activeShopTab && activeShopTab !== 'personal') {
-          // Shared list
-          addSharedListItem(activeShopTab, text, AISLE_LABELS[classifyIngredientAisle(item)] || '📦 Other', null, null, currentUser);
+        const aisle = AISLE_LABELS[classifyIngredientAisle(item)] || '📦 Other';
+        if (activeSharedId) {
+          addSharedListItem(activeSharedId, text, aisle, null, null, currentUser);
         } else {
           shopItems.unshift({
             text,
             checked: false,
-            group: AISLE_LABELS[classifyIngredientAisle(item)] || '📦 Other',
+            group: aisle,
             _core: item.toLowerCase(),
             _qty: qty > 1 ? qty : null
           });
         }
       });
 
-      if (!activeShopTab || activeShopTab === 'personal') {
+      if (!activeSharedId) {
         saveShop();
         renderShopList();
         const page = document.getElementById('shoppingPage');
         if (page && page.style.display !== 'none') renderShoppingPagePersonal();
+      } else {
+        // Refresh whichever shared list view is open
+        if (fullPageSharedId) {
+          renderShoppingPageShared(fullPageSharedId, '');
+        } else if (panelSharedId) {
+          switchShopListTab(panelSharedId);
+        }
       }
 
       modal.remove();
       overlay.remove();
 
-      // Toast
       const total = entries.length;
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';

@@ -79,7 +79,7 @@ PAGE TEXT:
 ${cleanText}`;
 
     // Try models in order — fall back on quota errors
-    const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'];
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite-preview-06-17'];
     let recipeText = '';
     let geminiOk = false;
     for (const model of MODELS) {
