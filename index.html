@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V34 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V35 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1034,7 +1034,7 @@
         <img id="detailHeroImg" style="display:none;" onload="this.style.display='block';document.getElementById('detailHeroPlaceholder').style.display='none';">
         <button class="detail-hero-back" onclick="closeDetailsAnimated()">← Back</button>
         <button class="detail-hero-weigh" onclick="toggleConverter()" id="converterBtn">⚖️</button>
-        <button id="sourceUrlBtn" onclick="openSourceUrl()" style="display:none;position:absolute;top:16px;right:56px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:none;border-radius:20px;padding:6px 11px;color:#fff;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;z-index:5;">🔗 Source</button>
+        <button 
         <div class="detail-hero-b-overlay">
           <div class="detail-hero-b-cat" id="detailCategoryB"></div>
           <div class="detail-hero-b-title" id="detailTitleB"></div>
@@ -6283,8 +6283,6 @@
     // Load friend ratings async
     if (r && r.id) { friendRatingsCache = null; loadFriendRatings(r.id); }
     // Show/hide source URL button
-    const srcBtn = document.getElementById('sourceUrlBtn');
-    if (srcBtn) { srcBtn.style.display = (r.sourceUrl && r.sourceUrl.trim()) ? 'block' : 'none'; }
     // Show/hide the source detail action button
     const srcDetailBtn = document.getElementById('sourceUrlDetailBtn');
     if (srcDetailBtn) {
