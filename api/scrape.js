@@ -78,25 +78,35 @@ Return ONLY raw JSON. No markdown, no backticks, no explanation.
 PAGE TEXT:
 ${cleanText}`;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-        })
-      }
-    );
-
-    const geminiData = await geminiRes.json();
-    if (!geminiData.candidates?.[0]) {
+    // Try models in order — fall back on quota errors
+    const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'];
+    let recipeText = '';
+    let geminiOk = false;
+    for (const model of MODELS) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+            })
+          }
+        );
+        const geminiData = await geminiRes.json();
+        if (geminiData.error?.code === 429) continue; // quota — try next model
+        if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) continue;
+        recipeText = geminiData.candidates[0].content.parts[0].text.trim()
+          .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+        geminiOk = true;
+        break;
+      } catch(e) { continue; }
+    }
+    if (!geminiOk || !recipeText) {
       return res.json({ status: 'Error', message: 'AI could not extract a recipe from this page.' });
     }
-
-    let recipeText = geminiData.candidates[0].content.parts[0].text.trim()
-      .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
 
     let recipe;
     try { recipe = JSON.parse(recipeText); }

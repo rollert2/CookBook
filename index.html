@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V38 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V39 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1434,6 +1434,7 @@
     <!-- Shared list content -->
     <div id="shopPageShared" style="display:none;flex-direction:column;padding-top:112px;width:100%;box-sizing:border-box;">
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
+        <button onclick="openCommonItemsPicker()" style="padding:10px 13px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
         <input type="text" id="shopPageSharedInput" placeholder="Add item..." style="flex:1;padding:10px 14px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.88em;font-family:inherit;" onkeydown="if(event.key==='Enter')addShopPageSharedItem()">
         <button onclick="addShopPageSharedItem()" style="padding:10px 18px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
       </div>
@@ -2987,7 +2988,7 @@
     // Sync to Supabase in background
     updateUserSettings(currentUser, { shopping_list: JSON.stringify(shopItems) }).catch(() => {});
   }
-  function addShopItem() { const input = document.getElementById('shopInput'); const text = input.value.trim(); if (!text) return; if (activeShopTab && activeShopTab !== 'personal') { input.value = ''; addSharedListItem(activeShopTab,text,'Other',null,null,currentUser).then(()=>switchShopListTab(activeShopTab)); return; } shopItems.unshift({text,checked:false,group:'Other'}); input.value = ''; saveShop(); renderShopList(); }
+  function addShopItem() { const input = document.getElementById('shopInput'); const text = input.value.trim(); if (!text) return; if (activeShopTab && activeShopTab !== 'personal') { input.value = ''; addSharedListItem(activeShopTab,text,AISLE_LABELS[classifyIngredientAisle(text)]||'📦 Other',null,null,currentUser).then(()=>switchShopListTab(activeShopTab)); return; } shopItems.unshift({text,checked:false,group:'Other'}); input.value = ''; saveShop(); renderShopList(); }
   function toggleShopItem(i) { shopItems[i].checked = !shopItems[i].checked; saveShop(); renderShopList(); }
   function deleteShopItem(i) { shopItems.splice(i,1); saveShop(); renderShopList(); }
   function clearCheckedItems() { shopItems = shopItems.filter(i => !i.checked); saveShop(); renderShopList(); }
@@ -7163,11 +7164,7 @@ ${text}`;
     const invBtn2 = page.querySelector('#sharedListPageInviteBtn');
     if (invBtn2) invBtn2.onclick = () => inviteToSharedList(listId);
     await refreshSharedListPage(listId, listName);
-    clearInterval(sharedListPolling);
-    sharedListPolling = setInterval(() => {
-      if (document.getElementById('sharedListPageItems')) refreshSharedListPage(listId, listName);
-      else clearInterval(sharedListPolling);
-    }, 8000);
+    // No auto-polling — refreshes on open only
   }
 
   async function refreshSharedListPage(listId, listName) {
@@ -7211,7 +7208,8 @@ ${text}`;
     const text = input?.value.trim();
     if (!text) return;
     input.value = '';
-    await addSharedListItem(listId, text, 'Other', null, null, currentUser);
+    const aisle = AISLE_LABELS[classifyIngredientAisle(text)] || '📦 Other';
+    await addSharedListItem(listId, text, aisle, null, null, currentUser);
     await refreshSharedListPage(listId, activeSharedListName);
   }
 
@@ -7255,12 +7253,7 @@ ${text}`;
       <div id="sharedListItemsContainer" style="padding:8px 16px 80px;"></div>`;
     document.body.appendChild(listModal);
     await refreshSharedList();
-    // Poll every 8 seconds for updates from other users
-    clearInterval(sharedListPolling);
-    sharedListPolling = setInterval(() => {
-      if (document.getElementById('sharedListDetailModal')) refreshSharedList();
-      else clearInterval(sharedListPolling);
-    }, 8000);
+    // No auto-polling — refreshes on open only
   }
 
   async function refreshSharedList() {
@@ -7301,7 +7294,8 @@ ${text}`;
     const text = input?.value.trim();
     if (!text || !activeSharedListId) return;
     input.value = '';
-    await addSharedListItem(activeSharedListId, text, 'Other', null, null, currentUser);
+    const aisle = AISLE_LABELS[classifyIngredientAisle(text)] || '📦 Other';
+    await addSharedListItem(activeSharedListId, text, aisle, null, null, currentUser);
     refreshSharedList();
   }
 
@@ -8156,13 +8150,7 @@ ${text}`;
       row.appendChild(del);
       container.appendChild(row);
     });
-    // Poll for updates
-    clearInterval(sharedListPolling);
-    sharedListPolling = setInterval(() => {
-      if (shopPageActiveListId === listId && document.getElementById('shoppingPage')?.style.display !== 'none') {
-        renderShoppingPageShared(listId, listName);
-      } else { clearInterval(sharedListPolling); }
-    }, 8000);
+    // No auto-polling — refreshes on open only
   }
 
   async function addShopPageSharedItem() {
@@ -8171,7 +8159,8 @@ ${text}`;
     const text = input?.value.trim();
     if (!text) return;
     input.value = '';
-    await addSharedListItem(shopPageActiveListId, text, 'Other', null, null, currentUser);
+    const aisle = AISLE_LABELS[classifyIngredientAisle(text)] || '📦 Other';
+    await addSharedListItem(shopPageActiveListId, text, aisle, null, null, currentUser);
     renderShoppingPageShared(shopPageActiveListId, '');
   }
 

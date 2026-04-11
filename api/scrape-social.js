@@ -88,25 +88,35 @@ export default async function handler(req, res) {
     // ── Gemini extraction ──
     const prompt = buildPrompt(recipeText, videoTitle, authorName, platform);
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
-        })
-      }
-    );
-
-    const geminiData = await geminiRes.json();
-    if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return res.json({ status: 'Error', message: 'AI could not process this content. Try the Paste Description option.' });
+    // Try models in order — fall back on quota errors
+    const MODELS = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash'];
+    let rawText = '';
+    let aiOk = false;
+    for (const model of MODELS) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+            })
+          }
+        );
+        const geminiData = await geminiRes.json();
+        if (geminiData.error?.code === 429) continue;
+        if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) continue;
+        rawText = geminiData.candidates[0].content.parts[0].text.trim()
+          .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+        aiOk = true;
+        break;
+      } catch(e) { continue; }
     }
-
-    let rawText = geminiData.candidates[0].content.parts[0].text.trim()
-      .replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+    if (!aiOk || !rawText) {
+      return res.json({ status: 'Error', needsPaste: true, message: 'AI could not process this content. Try the Paste Description option.' });
+    }
 
     let recipe;
     try { recipe = JSON.parse(rawText); }
