@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V33 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V34 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -925,6 +925,9 @@
   <div class="panel-overlay" id="shareOverlay" onclick="closeSharePanel()"></div>
   <div class="slide-panel" id="sharePanel">
     <div class="panel-handle"></div>
+    <div style="padding:12px 18px 8px;">
+      <button onclick="openAddToColFromDetail();closeSharePanel();" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">📁 Add to Collection</button>
+    </div>
     <div id="featuredShareSection">
       <div class="panel-section-title">🌍 Share to Community</div>
       <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">Share this recipe to the Community tab so other users can discover and add it.</p>
@@ -1056,9 +1059,9 @@
           <div class="detail-action-b-icon">📤</div>
           <div class="detail-action-b-label">Share</div>
         </div>
-        <div class="detail-action-b" onclick="openAddToColFromDetail()">
-          <div class="detail-action-b-icon">📁</div>
-          <div class="detail-action-b-label">Col</div>
+        <div class="detail-action-b" onclick="openSourceUrlFromDetail()" id="sourceUrlDetailBtn">
+          <div class="detail-action-b-icon">🌐</div>
+          <div class="detail-action-b-label">Source</div>
         </div>
         <div class="detail-action-b" onclick="enterEditMode()">
           <div class="detail-action-b-icon">✏️</div>
@@ -3344,6 +3347,8 @@
       if (res.status === 'Success' && res.recipe) {
         // Apply category override if from quick browse
         if (suggestedCat) res.recipe.category = suggestedCat;
+        // Always save the original source URL from discover
+        if (!res.recipe.sourceUrl && !res.recipe.source_url) res.recipe.source_url = url;
         // Validate category — AI sometimes returns unknown values
         const validatedCat2 = await validateRecipeCategory(res.recipe.title || 'Recipe', res.recipe.category || '');
         res.recipe.category = validatedCat2;
@@ -3444,6 +3449,8 @@
       clearInterval(interval); document.getElementById('aiStatus').style.display = 'none';
       const el = document.getElementById('aiResult'); el.style.display = 'block';
       if (res.status==='Success' && res.recipe) {
+        // Always save the source URL
+        if (!res.recipe.sourceUrl && !res.recipe.source_url) res.recipe.source_url = document.getElementById('urlInput').value.trim();
         // Validate category — AI sometimes returns unknown values
         const validatedCat = await validateRecipeCategory(res.recipe.title || 'Recipe', res.recipe.category || '');
         res.recipe.category = validatedCat;
@@ -6278,6 +6285,13 @@
     // Show/hide source URL button
     const srcBtn = document.getElementById('sourceUrlBtn');
     if (srcBtn) { srcBtn.style.display = (r.sourceUrl && r.sourceUrl.trim()) ? 'block' : 'none'; }
+    // Show/hide the source detail action button
+    const srcDetailBtn = document.getElementById('sourceUrlDetailBtn');
+    if (srcDetailBtn) {
+      const hasUrl = r.sourceUrl && r.sourceUrl.trim();
+      srcDetailBtn.style.opacity = hasUrl ? '1' : '0.35';
+      srcDetailBtn.style.pointerEvents = hasUrl ? '' : 'none';
+    }
 
     // Style B hero
     const heroImg = document.getElementById('detailHeroImg');
@@ -9632,6 +9646,21 @@ ${text}`;
     setTimeout(() => searchInput.focus(), 100);
   }
 
+
+
+  function openSourceUrlFromDetail() {
+    const r = allRecipes[activeRecipeIndex];
+    const url = r && (r.sourceUrl || r.source_url);
+    if (!url || !url.trim()) {
+      rcAlert('No source link saved for this recipe.', {icon:'🌐', title:'No source URL'});
+      return;
+    }
+    if (typeof median !== 'undefined' && median.openExternalUrl) {
+      median.openExternalUrl({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  }
 
 </script>
 </body>

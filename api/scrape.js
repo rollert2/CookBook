@@ -65,17 +65,18 @@ export default async function handler(req, res) {
 
     const prompt = `You are a recipe extraction assistant. Extract the recipe from the text below and return ONLY a valid JSON object with these exact keys:
 - "title": recipe name
-- "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Cocktail, General)
-- "ingredients": each ingredient on its own line
+- "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
+- "ingredients": ingredients as plain text. If the recipe has multiple ingredient sections (e.g. "For the Marinade", "For Cooking"), preserve each section header on its own line followed by the ingredients for that section. Each ingredient on its own line.
 - "instructions": numbered steps, each on its own line
-- "notes": any tips or notes (empty string if none)
+- "notes": extract ALL recipe notes, tips, variations, substitutions, and make-ahead instructions. Include numbered or labeled notes exactly as written (e.g. "Note 1:", "Note 2:"). If steps reference notes, include the full note content here. Empty string if none.
 - "cookTime": total time e.g. "35 min" (empty string if not found)
+- "prepTime": prep time e.g. "15 min" (empty string if not found)
 - "servings": serving size e.g. "4 servings" or "Makes 12 cookies" (empty string if not found)
 
 Return ONLY raw JSON. No markdown, no backticks, no explanation.
 
 PAGE TEXT:
-${cleanText}`;
+\${cleanText}\`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
