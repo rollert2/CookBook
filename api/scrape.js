@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 Return ONLY raw JSON. No markdown, no backticks, no explanation.
 
 PAGE TEXT:
-\${cleanText}\`;
+${cleanText}`;
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
