@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V36 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V37 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1266,6 +1266,14 @@
           </div>
           <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
         </div>
+        <div onclick="switchSyncTab('social')" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
+          <div style="font-size:2.2em;flex-shrink:0;">📱</div>
+          <div>
+            <div style="font-size:1em;font-weight:800;margin-bottom:3px;">Import from Social Media</div>
+            <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;">TikTok, Instagram, YouTube &amp; more — share a cooking video directly into your cookbook.</div>
+          </div>
+          <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
+        </div>
         <div onclick="switchSyncTab('url')" style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
           <div style="font-size:2.2em;flex-shrink:0;">🔗</div>
           <div>
@@ -1327,6 +1335,57 @@
         <textarea id="pasteInput" class="edit-field" style="height:200px;" placeholder="e.g. Chicken Pasta&#10;Ingredients: 200g pasta, 1 chicken breast...&#10;Instructions: Boil pasta..."></textarea>
         <div class="ai-result" id="pasteResult" style="margin-top:10px;display:none;"></div>
         <button class="btn btn-primary" style="margin-top:10px;" id="parsePasteBtn" onclick="parsePastedRecipe()">✨ Parse with AI</button>
+      </div>
+      <!-- SOCIAL IMPORT TAB -->
+      <div id="tabSocial" style="display:none;">
+        <div style="text-align:center;padding:16px 0 8px;">
+          <div style="font-size:2.5em;margin-bottom:8px;">📱</div>
+          <div style="font-size:1em;font-weight:800;margin-bottom:6px;">Import from Social Media</div>
+          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Share a TikTok, Instagram Reel, or YouTube Short directly into Roll Cookbook. The recipe gets extracted from the video description automatically.</div>
+        </div>
+
+        <!-- How to use -->
+        <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">
+          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">HOW TO USE</div>
+          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.8;">
+            1. Open TikTok, Instagram, or YouTube<br>
+            2. Find a cooking video with a recipe in the description<br>
+            3. Tap <strong>Share → Roll Cookbook</strong><br>
+            4. The recipe is imported automatically ✨
+          </div>
+        </div>
+
+        <!-- Supported platforms -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;">
+          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">🎵 TikTok</span>
+          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">📸 Instagram</span>
+          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">▶️ YouTube</span>
+          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">📌 Pinterest</span>
+          <span style="padding:5px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);font-size:0.78em;font-weight:600;">𝕏 X / Twitter</span>
+        </div>
+
+        <!-- Manual URL fallback -->
+        <div style="border-top:1px solid var(--glass-border);padding-top:16px;">
+          <div style="font-size:0.82em;font-weight:700;margin-bottom:8px;color:var(--text-dim);">Or paste a social media URL manually:</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input type="text" id="socialUrlInput" class="edit-field" placeholder="https://tiktok.com/..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')importFromSocial()">
+            <button onclick="importFromSocial()" id="socialImportBtn" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Import</button>
+          </div>
+          <div id="socialStatus" style="display:none;text-align:center;padding:12px 0;color:var(--text-faint);font-size:0.82em;">
+            <span id="socialStatusText">Fetching from social media...</span>
+          </div>
+          <div id="socialResult" class="ai-result" style="display:none;"></div>
+        </div>
+
+        <!-- Paste description fallback -->
+        <div style="border-top:1px solid var(--glass-border);padding-top:16px;margin-top:8px;">
+          <div style="font-size:0.82em;font-weight:700;margin-bottom:4px;color:var(--text-dim);">Can't share directly? Paste the video description:</div>
+          <div style="font-size:0.75em;color:var(--text-faint);margin-bottom:8px;line-height:1.4;">Copy the full description from the video and paste it here. Include ingredients and steps.</div>
+          <textarea id="socialDescInput" class="edit-field" rows="5" placeholder="Paste the video description here — ingredients, steps, everything...&#10;&#10;e.g. Chicken Adobo Recipe&#10;Ingredients:&#10;- 2 lbs chicken..."></textarea>
+          <input type="text" id="socialDescTitle" class="edit-field" placeholder="Dish name (optional — we'll try to detect it)" style="margin-top:6px;">
+          <button onclick="importFromSocialDescription()" id="socialDescBtn" style="width:100%;padding:12px;margin-top:8px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;">✨ Extract Recipe</button>
+          <div id="socialDescResult" class="ai-result" style="display:none;margin-top:8px;"></div>
+        </div>
       </div>
       <!-- Hidden legacy tabs (kept for JSON/bulk export access via direct calls) -->
       <div id="tabJson" style="display:none;">
@@ -6700,13 +6759,14 @@ ${text}`;
   // ═══ PASTE TAB ROUTING ════════════════════════════════════
   function switchSyncTab(tab) {
     document.getElementById('addModeSelect').style.display = 'none';
-    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
+    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste','tabSocial'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
     if (tab === 'manual')  { const el = document.getElementById('tabManual');  if (el) el.style.display = 'block'; }
     else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
     else if (tab === 'paste')  { const el = document.getElementById('tabPaste');  if (el) el.style.display = 'block'; }
+    else if (tab === 'social') { const el = document.getElementById('tabSocial'); if (el) el.style.display = 'block'; }
     else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
     else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
     else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
@@ -9658,6 +9718,205 @@ ${text}`;
       window.open(url, '_blank');
     }
   }
+
+
+  // ═══ SOCIAL MEDIA IMPORT ════════════════════════════════
+
+  // Called by Median's Share Into App plugin when user shares a URL from another app
+  window.median_share_to_app = function(data) {
+    const url = data.url || '';
+    const subject = data.subject || '';
+    if (!url) return;
+
+    const platform = detectSocialPlatform(url);
+    if (!platform) {
+      // Not a social platform — treat as regular URL import
+      openAddModal();
+      switchSyncTab('url');
+      setTimeout(() => {
+        const inp = document.getElementById('urlInput');
+        if (inp) { inp.value = url; importFromUrl(); }
+      }, 300);
+      return;
+    }
+
+    // Social platform — open social import tab and auto-trigger
+    openAddModal();
+    switchSyncTab('social');
+    setTimeout(() => {
+      const inp = document.getElementById('socialUrlInput');
+      if (inp) { inp.value = url; }
+      // Show a notification banner that we received a share
+      showSocialShareBanner(platform, subject, url);
+      // Auto-import after a brief delay so the modal is visible
+      setTimeout(() => importFromSocial(), 600);
+    }, 400);
+  };
+
+  function detectSocialPlatform(url) {
+    if (!url) return null;
+    if (url.includes('tiktok.com'))     return 'TikTok';
+    if (url.includes('instagram.com'))  return 'Instagram';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+    if (url.includes('pinterest.com'))  return 'Pinterest';
+    if (url.includes('twitter.com') || url.includes('x.com')) return 'X';
+    if (url.includes('facebook.com'))   return 'Facebook';
+    return null;
+  }
+
+  function showSocialShareBanner(platform, title, url) {
+    const existing = document.getElementById('socialShareBanner');
+    if (existing) existing.remove();
+    const banner = document.createElement('div');
+    banner.id = 'socialShareBanner';
+    banner.style.cssText = 'background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
+    const platformEmoji = { TikTok:'🎵', Instagram:'📸', YouTube:'▶️', Pinterest:'📌', X:'𝕏', Facebook:'📘' };
+    banner.innerHTML = '<span style="font-size:1.3em;">' + (platformEmoji[platform] || '📱') + '</span>' +
+      '<div style="flex:1;min-width:0;"><div style="font-size:0.82em;font-weight:700;color:var(--gold);">Shared from ' + platform + '</div>' +
+      (title ? '<div style="font-size:0.75em;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(title) + '</div>' : '') + '</div>' +
+      '<div style="font-size:0.72em;color:var(--gold);font-weight:700;">Importing...</div>';
+    const tabSocial = document.getElementById('tabSocial');
+    if (tabSocial) tabSocial.insertBefore(banner, tabSocial.firstChild);
+  }
+
+  async function importFromSocial() {
+    const input = document.getElementById('socialUrlInput');
+    const btn = document.getElementById('socialImportBtn');
+    const status = document.getElementById('socialStatus');
+    const statusText = document.getElementById('socialStatusText');
+    const result = document.getElementById('socialResult');
+    const url = input?.value.trim();
+
+    if (!url || !url.startsWith('http')) {
+      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Please enter a valid URL.'; }
+      return;
+    }
+
+    if (btn) { btn.textContent = 'Importing...'; btn.disabled = true; }
+    if (status) status.style.display = 'block';
+    if (result) result.style.display = 'none';
+
+    const msgs = ['Fetching video page...', 'Reading description...', 'Extracting recipe...', 'Almost done...'];
+    let mi = 0;
+    if (statusText) statusText.textContent = msgs[0];
+    const interval = setInterval(() => { mi = Math.min(mi+1, msgs.length-1); if (statusText) statusText.textContent = msgs[mi]; }, 3000);
+
+    try {
+      const res = await fetch('/api/scrape-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, subject: '' })
+      });
+      const data = await res.json();
+      clearInterval(interval);
+      if (status) status.style.display = 'none';
+
+      if ((data.status === 'Success' || data.status === 'partial') && data.recipe) {
+        // Validate/fix category
+        const validatedCat = await validateRecipeCategory(data.recipe.title || 'Recipe', data.recipe.category || '');
+        data.recipe.category = validatedCat;
+
+        const saveRes = await addRecipe(currentUser, data.recipe);
+        if (saveRes.status === 'Success') {
+          if (result) { result.style.display = 'block'; result.className = 'ai-result success'; result.innerHTML = '✅ ' + saveRes.message + (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe — you may want to edit and add missing details.</small>' : ''); }
+          if (btn) { btn.textContent = 'Import Another'; btn.disabled = false; }
+          if (input) input.value = '';
+          document.getElementById('socialShareBanner')?.remove();
+          init();
+        } else {
+          if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + saveRes.message; }
+          if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
+        }
+      } else {
+        if (result) {
+          result.style.display = 'block';
+          result.className = 'ai-result error';
+          // If the platform blocked us, show paste fallback
+          const isPlatformBlock = data.message && (data.message.includes('blocked') || data.message.includes('fetch'));
+          result.innerHTML = '❌ ' + (data.message || 'Could not extract a recipe.') +
+            (isPlatformBlock ? '<br><br><small style="color:var(--text-faint);">💡 Try copying the video description and using the <strong>Paste Description</strong> option below.</small>' : '');
+        }
+        if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
+      }
+    } catch(err) {
+      clearInterval(interval);
+      if (status) status.style.display = 'none';
+      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + err.message; }
+      if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
+    }
+  }
+
+  async function importFromSocialDescription() {
+    const descInput = document.getElementById('socialDescInput');
+    const titleInput = document.getElementById('socialDescTitle');
+    const btn = document.getElementById('socialDescBtn');
+    const result = document.getElementById('socialDescResult');
+
+    const description = descInput?.value.trim();
+    const title = titleInput?.value.trim() || '';
+
+    if (!description || description.length < 20) {
+      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Please paste the video description first.'; }
+      return;
+    }
+
+    if (btn) { btn.textContent = '✨ Extracting...'; btn.disabled = true; }
+    if (result) result.style.display = 'none';
+
+    try {
+      // Use the AI endpoint directly with the pasted text
+      const prompt = `You are a recipe extraction assistant. The following is a social media video description that contains a recipe. Extract it into a structured format.
+
+${title ? 'DISH NAME: ' + title + '\n' : ''}DESCRIPTION:
+${description}
+
+Return ONLY a valid JSON object with these exact keys:
+- "title": dish name (use the provided dish name if given, otherwise extract from text)
+- "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
+- "ingredients": all ingredients one per line, with quantities
+- "instructions": numbered steps one per line. If no steps are listed, write "See original video for step-by-step instructions."
+- "notes": any tips, creator notes, substitutions, or hashtag keywords
+- "cookTime": e.g. "30 min" or empty string
+- "prepTime": e.g. "10 min" or empty string
+- "servings": e.g. "4 servings" or empty string
+
+Return ONLY raw JSON. No markdown, no backticks.`;
+
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, maxTokens: 1500 })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'AI error');
+
+      let recipe;
+      try { recipe = JSON.parse((data.text || '').replace(/```json|```/g, '').trim()); }
+      catch(e) { throw new Error('Could not parse the extracted recipe. Try rewording the description.'); }
+
+      if (!recipe.title) recipe.title = title || 'Imported Recipe';
+
+      const validatedCat = await validateRecipeCategory(recipe.title, recipe.category || '');
+      recipe.category = validatedCat;
+
+      const saveRes = await addRecipe(currentUser, recipe);
+      if (result) {
+        result.style.display = 'block';
+        result.className = saveRes.status === 'Success' ? 'ai-result success' : 'ai-result error';
+        result.innerHTML = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
+      }
+      if (saveRes.status === 'Success') {
+        if (descInput) descInput.value = '';
+        if (titleInput) titleInput.value = '';
+        init();
+      }
+    } catch(err) {
+      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + err.message; }
+    }
+
+    if (btn) { btn.textContent = '✨ Extract Recipe'; btn.disabled = false; }
+  }
+
 
 </script>
 </body>
