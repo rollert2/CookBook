@@ -2195,7 +2195,7 @@
     window.addEventListener('offline', () => { const b=document.getElementById('broadcastBanner'); if(b){b.style.display='block';b.textContent='📶 You\'re offline — showing cached recipes. Some features unavailable.';} });
     // Show security banner immediately for unsecured accounts (before init completes)
     checkAccountSecurity();
-    init().then(() => { checkAddRecipeParam(); checkImportUrlParam(); startNotifPolling(); checkDeletionBanner(); });
+    init().then(() => { checkAddRecipeParam(); checkImportUrlParam(); checkSharedContent(); startNotifPolling(); checkDeletionBanner(); });
   }
 
   function adjustHeaderPadding() {
@@ -4073,6 +4073,222 @@
     }
   }
 
+  // ═══ SHARE TO COOKBOOK (from TikTok, Instagram, etc.) ═══
+  async function checkSharedContent() {
+    if (!currentUser) return;
+
+    // Check for shared content via URL params (web share)
+    const params = new URLSearchParams(window.location.search);
+    const sharedUrl = params.get('shared_url');
+    const sharedText = params.get('shared_text');
+    const sharedTitle = params.get('shared_title');
+
+    // Check for shared content via Median.co Share Into App plugin
+    // Median passes shared content through the app's initial state
+    let url = sharedUrl;
+    let text = sharedText;
+    let title = sharedTitle;
+
+    // Try to get shared content from Median bridge
+    try {
+      if (typeof median !== 'undefined' && median.getSharedContent) {
+        const shared = await median.getSharedContent();
+        if (shared) {
+          url = shared.url || url;
+          text = shared.text || text;
+          title = shared.title || title;
+        }
+      }
+    } catch(e) {}
+
+    // Also check sessionStorage (set by native share handler)
+    const sessionShared = sessionStorage.getItem('rc_shared_content');
+    if (sessionShared) {
+      try {
+        const parsed = JSON.parse(sessionShared);
+        url = parsed.url || url;
+        text = parsed.text || text;
+        title = parsed.title || title;
+      } catch(e) {}
+      sessionStorage.removeItem('rc_shared_content');
+    }
+
+    // If nothing shared, bail out
+    if (!url && !text) return;
+
+    // Strip params from URL
+    window.history.replaceState({}, '', window.location.pathname);
+
+    // Switch to Discover tab
+    switchTab('discover');
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+    toast.textContent = '📥 Processing shared content...';
+    document.body.appendChild(toast);
+
+    console.log('Shared content received:', { url, text, title });
+
+    let recipe = null;
+
+    // Strategy 1: If we have a URL, try to scrape it (works for blogs, recipe sites)
+    if (url) {
+      try {
+        const scrapeRes = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const scrapeData = await scrapeRes.json();
+        if (scrapeData.status === 'Success' && scrapeData.recipe) {
+          recipe = scrapeData.recipe;
+          if (!recipe.source_url) recipe.source_url = url;
+        }
+      } catch(e) {
+        console.log('Scrape failed, trying AI extraction from shared text:', e);
+      }
+    }
+
+    // Strategy 2: If scrape failed or no URL, use AI to extract recipe from shared text
+    if (!recipe && (text || title)) {
+      const aiPrompt = `Extract recipe details from this shared content. If it's a social media post about a recipe, try to find ingredients and instructions in the text, title, or description. If you can't find real ingredients/steps, make reasonable estimates based on what the content describes.
+
+Return ONLY valid JSON with these keys:
+{ "title": "Recipe Name", "category": "Dinner|Lunch|Breakfast|Dessert|Snack|Sides|General", "ingredients": "one ingredient per line\\nsecond ingredient", "instructions": "1. Step one\\n2. Step two", "notes": "Any extra notes", "cookTime": "30 min", "prepTime": "10 min", "servings": "4 servings" }
+
+Shared Title: ${title || 'None'}
+Shared URL: ${url || 'None'}
+Shared Text/Description: ${text || 'None'}`;
+
+      try {
+        const aiRes = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: aiPrompt, maxTokens: 1500 })
+        });
+        const aiData = await aiRes.json();
+        if (aiData.text) {
+          const jsonMatch = aiData.text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.title && (parsed.ingredients || parsed.instructions)) {
+              recipe = {
+                title: parsed.title,
+                category: parsed.category || 'General',
+                ingredients: parsed.ingredients || '',
+                instructions: parsed.instructions || '',
+                notes: parsed.notes || '',
+                cookTime: parsed.cookTime || '',
+                prepTime: parsed.prepTime || '',
+                servings: parsed.servings || '',
+                source_url: url || ''
+              };
+            }
+          }
+        }
+      } catch(e) {
+        console.error('AI extraction from shared text failed:', e);
+      }
+    }
+
+    if (toast.parentNode) toast.remove();
+
+    const resultToast = document.createElement('div');
+
+    if (recipe && recipe.title) {
+      // Show a preview modal for the user to confirm/edit before saving
+      showSharedRecipePreview(recipe);
+    } else {
+      resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      resultToast.textContent = '❌ Could not extract a recipe from that content. Try sharing a recipe link or a post with ingredients.';
+      document.body.appendChild(resultToast);
+      setTimeout(() => resultToast.remove(), 5000);
+    }
+  }
+
+  function showSharedRecipePreview(recipe) {
+    const modal = document.createElement('div');
+    modal.id = 'sharedRecipePreviewModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('sharedRecipePreviewModal').remove();switchTab('recipes');" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">📥 Shared Recipe</span>
+      </div>
+      <div style="padding:16px;">
+        <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;text-align:center;">
+          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">PREVIEW — EDIT BEFORE SAVING</div>
+        </div>
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Title</label>
+        <input type="text" id="sharedTitle" class="edit-field" value="${escapeHtml(recipe.title)}" style="width:100%;margin-bottom:12px;">
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Category</label>
+        <select id="sharedCategory" class="settings-select" style="width:100%;margin-bottom:12px;">
+          ${['Breakfast','Lunch','Dinner','Dessert','Snack','Sides','General'].map(c =>
+            '<option value="'+c+'"'+(recipe.category===c?' selected':'')+'>'+c+'</option>'
+          ).join('')}
+        </select>
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Cook Time</label>
+        <input type="text" id="sharedCookTime" class="edit-field" value="${escapeHtml(recipe.cookTime||'')}" style="width:100%;margin-bottom:12px;">
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Prep Time</label>
+        <input type="text" id="sharedPrepTime" class="edit-field" value="${escapeHtml(recipe.prepTime||'')}" style="width:100%;margin-bottom:12px;">
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Servings</label>
+        <input type="text" id="sharedServings" class="edit-field" value="${escapeHtml(recipe.servings||'')}" style="width:100%;margin-bottom:12px;">
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Ingredients</label>
+        <textarea id="sharedIngredients" class="edit-field" rows="6" style="width:100%;margin-bottom:12px;">${escapeHtml(recipe.ingredients||'')}</textarea>
+
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Instructions</label>
+        <textarea id="sharedInstructions" class="edit-field" rows="6" style="width:100%;margin-bottom:12px;">${escapeHtml(recipe.instructions||'')}</textarea>
+
+        ${recipe.notes ? `
+        <label style="font-size:0.75em;font-weight:700;color:var(--text-dim);display:block;margin-bottom:4px;">Notes</label>
+        <textarea id="sharedNotes" class="edit-field" rows="3" style="width:100%;margin-bottom:12px;">${escapeHtml(recipe.notes||'')}</textarea>
+        ` : ''}
+
+        ${recipe.source_url ? `
+        <div style="font-size:0.75em;color:var(--gold);margin-bottom:12px;">🔗 Source: ${escapeHtml(recipe.source_url)}</div>
+        ` : ''}
+
+        <button onclick="saveSharedRecipe()" style="width:100%;padding:14px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;margin-bottom:8px;">💾 Save to Cookbook</button>
+        <button onclick="document.getElementById('sharedRecipePreviewModal').remove();switchTab('recipes');" style="width:100%;padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  async function saveSharedRecipe() {
+    const recipe = {
+      title: document.getElementById('sharedTitle').value.trim(),
+      category: document.getElementById('sharedCategory').value,
+      ingredients: document.getElementById('sharedIngredients').value.trim(),
+      instructions: document.getElementById('sharedInstructions').value.trim(),
+      notes: document.getElementById('sharedNotes') ? document.getElementById('sharedNotes').value.trim() : '',
+      cookTime: document.getElementById('sharedCookTime').value.trim(),
+      prepTime: document.getElementById('sharedPrepTime').value.trim(),
+      servings: document.getElementById('sharedServings').value.trim(),
+      source_url: window._sharedRecipeSource || ''
+    };
+
+    if (!recipe.title || !recipe.ingredients || !recipe.instructions) {
+      alert('Please fill in at least the title, ingredients, and instructions.');
+      return;
+    }
+
+    const res = await addRecipe(currentUser, recipe);
+    document.getElementById('sharedRecipePreviewModal').remove();
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+    toast.textContent = res.status === 'Success' ? '✅ ' + res.message : '❌ ' + res.message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+    if (res.status === 'Success') loadRecipes();
+  }
+
   // ═══ NEW ONBOARDING ═══
   const ONBOARDING_STEPS = [
     {
@@ -4550,14 +4766,23 @@
 
     try {
       const allRecipes = await sbFetch('GET', 'recipes', null,
-        `select=id,title,user_id,category,created_at&title=ilike.*${encodeURIComponent(q)}*&order=created_at.desc&limit=50`);
+        `select=id,title,user_id,category,created_at&title=ilike.*${encodeURIComponent(q)}*&order=created_at.desc&limit=200`);
       if (!allRecipes || allRecipes.length === 0) {
         resultsEl.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:12px 0;text-align:center;">No recipes found</div>';
         countEl.textContent = '';
         return;
       }
-      countEl.textContent = allRecipes.length + ' recipe' + (allRecipes.length !== 1 ? 's' : '') + ' found';
-      resultsEl.innerHTML = allRecipes.map(r =>
+      // Deduplicate by title (case-insensitive) — keep the most recent version
+      const seen = new Map();
+      allRecipes.forEach(r => {
+        const key = r.title.toLowerCase().trim();
+        if (!seen.has(key) || new Date(r.created_at) > new Date(seen.get(key).created_at)) {
+          seen.set(key, r);
+        }
+      });
+      const unique = [...seen.values()].slice(0, 50);
+      countEl.textContent = unique.length + ' unique recipe' + (unique.length !== 1 ? 's' : '') + ' found';
+      resultsEl.innerHTML = unique.map(r =>
         '<div style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;font-size:0.85em;">' +
         '<div style="font-weight:700;">' + escapeHtml(r.title) + '</div>' +
         '<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">by user ID: ' + r.user_id.slice(0,8) + '... · ' + r.category + '</div>' +
