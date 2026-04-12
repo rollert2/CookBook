@@ -10452,10 +10452,12 @@ ${r.ingredients}`;
       const el = document.getElementById('nutritionContent');
       if (!el) return;
 
-      const stat = (label, val, unit, color) =>
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">' +
-        '<span style="font-size:0.88em;color:var(--text-dim);">' + label + '</span>' +
-        '<span style="font-weight:700;font-size:0.95em;color:' + (color || 'var(--text)') + ';">' + (val || 0) + '<span style="font-size:0.7em;font-weight:400;color:var(--text-faint);margin-left:2px;">' + unit + '</span></span></div>';
+      const stat = (label, val, unit, color) => {
+        const numVal = typeof val === 'number' ? val : parseFloat(val) || 0;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">' +
+          '<span style="font-size:0.88em;color:var(--text-dim);">' + label + '</span>' +
+          '<span style="font-weight:700;font-size:0.95em;color:' + (color || 'var(--text)') + ';">' + numVal + '<span style="font-size:0.7em;font-weight:400;color:var(--text-faint);margin-left:2px;">' + unit + '</span></span></div>';
+      };
 
       el.innerHTML =
         '<div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:12px;text-align:center;margin-bottom:14px;">' +
@@ -10470,17 +10472,20 @@ ${r.ingredients}`;
         '<button onclick="saveNutritionToLog()" style="width:100%;padding:12px;margin-top:10px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">💾 Save to Nutrition Log</button>' +
         '<button onclick="document.getElementById(\'nutritionPanel\').remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:8px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
 
+      // Store nutrition data for saving — ensure all values are proper numbers
       window._lastNutritionData = {
         recipe_id: r.id,
         recipe_title: r.title,
-        calories: nutrition.calories,
-        protein_g: nutrition.protein_g,
-        carbs_g: nutrition.carbs_g,
-        fat_g: nutrition.fat_g,
-        fiber_g: nutrition.fiber_g,
-        sodium_mg: nutrition.sodium_mg,
+        calories: Number(nutrition.calories) || 0,
+        protein_g: Number(nutrition.protein_g) || 0,
+        carbs_g: Number(nutrition.carbs_g) || 0,
+        fat_g: Number(nutrition.fat_g) || 0,
+        fiber_g: Number(nutrition.fiber_g) || 0,
+        sodium_mg: Number(nutrition.sodium_mg) || 0,
         servings: r.servings || 1
       };
+
+      console.log('Nutrition data saved to window._lastNutritionData:', window._lastNutritionData);
     } catch(err) {
       console.error('Nutrition estimate error:', err);
       const el = document.getElementById('nutritionContent');
@@ -10530,13 +10535,27 @@ ${r.ingredients}`;
 
   async function saveNutritionToLog() {
     const data = window._lastNutritionData;
-    if (!data) return;
-    const res = await logNutritionEntry(currentUser, data).catch(() => ({status:'Error'}));
+    if (!data || !data.calories) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '❌ No nutrition data available to save. Try getting the estimate again.';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+      return;
+    }
+    const res = await logNutritionEntry(currentUser, data).catch((e) => {
+      console.error('logNutritionEntry error:', e);
+      return { status: 'Error', message: e.message || 'unknown error' };
+    });
     if (res.status === 'Success') {
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      toast.textContent = '✅ Saved to nutrition log!';
+      toast.textContent = '✅ Saved ' + data.recipe_title + ' to nutrition log!';
       document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    } else {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '❌ Failed to save: ' + (res.message || 'unknown error');
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 4000);
     }
   }
 

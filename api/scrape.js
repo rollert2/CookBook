@@ -149,10 +149,37 @@ function sanitizeRecipe(recipe) {
     if (typeof val === 'string') return val.trim();
     return String(val || '');
   };
+  const cleanString = (val) => {
+    if (typeof val === 'string') return val.trim();
+    return String(val || '');
+  };
+  const cleanTime = (val) => {
+    if (!val) return '';
+    const s = String(val).trim();
+    // Normalize common formats
+    if (/^\d+$/.test(s)) return s + ' min';
+    if (/^\d+\s*min/i.test(s)) return s;
+    if (/^\d+\s*hr/i.test(s)) return s;
+    if (/^\d+\s*hour/i.test(s)) return s;
+    if (/PT/i.test(s)) {
+      const match = s.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+      if (match) {
+        const hours = parseInt(match[1] || 0);
+        const mins = parseInt(match[2] || 0);
+        return hours > 0 ? `${hours} hr ${mins > 0 ? mins + ' min' : ''}`.trim() : `${mins} min`;
+      }
+    }
+    return s;
+  };
   recipe.ingredients  = flatten(recipe.ingredients);
   recipe.instructions = flatten(recipe.instructions);
   recipe.notes        = flatten(recipe.notes);
   recipe.title        = flatten(recipe.title);
+  recipe.cookTime     = cleanTime(recipe.cookTime || recipe.cook_time || '');
+  recipe.prepTime     = cleanTime(recipe.prepTime || recipe.prep_time || '');
+  recipe.servings     = cleanString(recipe.servings || '');
+  recipe.category     = cleanString(recipe.category || 'General');
+  recipe.source_url   = cleanString(recipe.source_url || '');
   return recipe;
 }
 
