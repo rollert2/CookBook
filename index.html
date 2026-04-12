@@ -310,6 +310,7 @@
     .glass-card:active { transform:scale(0.97); border-color:rgba(201,168,76,0.4); }
     @keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
     @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+    @keyframes fadeInScale { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
     #onboardingOverlay.active { display:flex !important; animation:fadeIn 0.2s ease; }
     @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
     .fav-badge { position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:0.8em; z-index:2; }
@@ -1754,6 +1755,52 @@
     </div>
 
     <div class="admin-section">
+      <div class="admin-section-title">🔍 Global Recipe Search</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Search across all users' recipes.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="globalRecipeSearchInput" class="edit-field" placeholder="Search all recipes..." oninput="globalSearchRecipes()" style="flex:1;margin:0;">
+      </div>
+      <div id="globalSearchResults" style="max-height:300px;overflow-y:auto;"></div>
+      <div id="globalSearchCount" style="font-size:0.78em;color:var(--text-faint);margin-top:6px;"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">🚩 Feature Toggles</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Quickly enable or disable app-wide features during testing or maintenance.</p>
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-label">AI Recipe Import</div>
+          <div class="admin-row-sub">Disables URL scraping for all users</div>
+        </div>
+        <button class="settings-toggle on" id="toggleFeatureAI" onclick="toggleFeatureFlag('ai_import','toggleFeatureAI')"></button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-label">Community Tab</div>
+          <div class="admin-row-sub">Hide community features globally</div>
+        </div>
+        <button class="settings-toggle on" id="toggleFeatureCommunity" onclick="toggleFeatureFlag('community_tab','toggleFeatureCommunity')"></button>
+      </div>
+      <div class="admin-row">
+        <div class="admin-row-info">
+          <div class="admin-row-label">Meal Planner</div>
+          <div class="admin-row-sub">Disable planner tab for all users</div>
+        </div>
+        <button class="settings-toggle on" id="toggleFeaturePlanner" onclick="toggleFeatureFlag('meal_planner','toggleFeaturePlanner')"></button>
+      </div>
+      <div id="featureToggleStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">🗑️ Database Cleanup</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Remove stale or test data. These actions cannot be undone.</p>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOrphanedRecipes()">🗑️ Remove orphaned recipes (no user)</button>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupEmptyUsers()">👤 Remove empty accounts (0 recipes)</button>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOldNotifications()">🔔 Clear old notifications (seen)</button>
+      <div id="cleanupStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
+    </div>
+
+    <div class="admin-section">
       <div class="admin-section-title">📊 Quick Stats</div>
       <button class="btn btn-secondary" onclick="loadAdminStats()">Load Stats</button>
       <div id="adminStats" style="margin-top:12px;"></div>
@@ -2129,8 +2176,11 @@
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
     // Default light for new users who have never set a theme
-    if (!localStorage.getItem('rc_theme')) {
+    const userThemeKey = 'rc_theme_user_' + currentUser;
+    if (!localStorage.getItem(userThemeKey)) {
+      // First time for this user — default to light and save the preference
       localStorage.setItem('rc_theme', 'light');
+      localStorage.setItem(userThemeKey, 'light');
     }
     loadTheme();
     initPullToRefresh();
@@ -4488,7 +4538,109 @@
     } else { statusEl.textContent = '❌ Save failed'; statusEl.style.color = 'var(--red)'; }
   }
 
-  // ── ADMIN STATS ──
+  // ═══ GLOBAL RECIPE SEARCH ═══
+  async function globalSearchRecipes() {
+    const q = document.getElementById('globalRecipeSearchInput').value.toLowerCase().trim();
+    const resultsEl = document.getElementById('globalSearchResults');
+    const countEl = document.getElementById('globalSearchCount');
+    if (!q) { resultsEl.innerHTML = ''; countEl.textContent = ''; return; }
+
+    try {
+      const allRecipes = await sbFetch('GET', 'recipes', null,
+        `select=id,title,user_id,category,created_at&ilike.title=%25${encodeURIComponent(q)}%25&order=created_at.desc&limit=50`);
+      if (!allRecipes || allRecipes.length === 0) {
+        resultsEl.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:12px 0;text-align:center;">No recipes found</div>';
+        countEl.textContent = '';
+        return;
+      }
+      countEl.textContent = allRecipes.length + ' recipe' + (allRecipes.length !== 1 ? 's' : '') + ' found';
+      resultsEl.innerHTML = allRecipes.map(r =>
+        '<div style="padding:10px 12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:6px;font-size:0.85em;">' +
+        '<div style="font-weight:700;">' + escapeHtml(r.title) + '</div>' +
+        '<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">by user ID: ' + r.user_id.slice(0,8) + '... · ' + r.category + '</div>' +
+        '</div>'
+      ).join('');
+    } catch(e) {
+      resultsEl.innerHTML = '<div style="font-size:0.82em;color:var(--red);">Search failed: ' + e.message + '</div>';
+    }
+  }
+
+  // ═══ FEATURE TOGGLES ═══
+  async function toggleFeatureFlag(key, toggleId) {
+    const el = document.getElementById(toggleId);
+    const on = !el.classList.contains('on');
+    el.classList.toggle('on', on);
+    const statusEl = document.getElementById('featureToggleStatus');
+    statusEl.textContent = 'Saving...'; statusEl.style.color = 'var(--gold)';
+    try {
+      await updateAdminSettings({ ['feature_' + key]: on });
+      statusEl.textContent = '✅ Updated'; statusEl.style.color = 'var(--green)';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+    } catch(e) {
+      statusEl.textContent = '❌ Failed'; statusEl.style.color = 'var(--red)';
+      setTimeout(() => { statusEl.textContent = ''; }, 2000);
+    }
+  }
+
+  // ═══ DATABASE CLEANUP ═══
+  async function adminCleanupOrphanedRecipes() {
+    const statusEl = document.getElementById('cleanupStatus');
+    if (!await rcConfirm('Remove all recipes with no valid user_id?', {icon:'🗑️',title:'Cleanup orphans',confirmText:'Remove',danger:true})) return;
+    statusEl.textContent = 'Running...'; statusEl.style.color = 'var(--gold)';
+    // Fetch all recipes, find those with user_id not matching any user
+    try {
+      const recipes = await sbFetch('GET', 'recipes', null, 'select=id,user_id');
+      const users = await sbFetch('GET', 'users', null, 'select=id');
+      const userIds = new Set((users||[]).map(u => u.id));
+      const orphans = (recipes||[]).filter(r => !userIds.has(r.user_id));
+      let removed = 0;
+      for (const o of orphans) {
+        await sbFetch('DELETE', `recipes?id=eq.${o.id}`, null).catch(() => {});
+        removed++;
+      }
+      statusEl.textContent = '✅ Removed ' + removed + ' orphaned recipes'; statusEl.style.color = 'var(--green)';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    } catch(e) {
+      statusEl.textContent = '❌ Cleanup failed: ' + e.message; statusEl.style.color = 'var(--red)';
+    }
+  }
+
+  async function adminCleanupEmptyUsers() {
+    const statusEl = document.getElementById('cleanupStatus');
+    if (!await rcConfirm('Remove all users with 0 recipes?', {icon:'👤',title:'Cleanup empty accounts',confirmText:'Remove',danger:true})) return;
+    statusEl.textContent = 'Running...'; statusEl.style.color = 'var(--gold)';
+    try {
+      const users = await sbFetch('GET', 'users', null, 'select=username');
+      const recipes = await sbFetch('GET', 'recipes', null, 'select=user_id');
+      const usersWithRecipes = new Set((recipes||[]).map(r => r.user_id));
+      let removed = 0;
+      for (const u of (users||[])) {
+        if (!usersWithRecipes.has(u.id)) {
+          await sbFetch('DELETE', `users?id=eq.${u.id}`, null).catch(() => {});
+          removed++;
+        }
+      }
+      statusEl.textContent = '✅ Removed ' + removed + ' empty accounts'; statusEl.style.color = 'var(--green)';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    } catch(e) {
+      statusEl.textContent = '❌ Cleanup failed: ' + e.message; statusEl.style.color = 'var(--red)';
+    }
+  }
+
+  async function adminCleanupOldNotifications() {
+    const statusEl = document.getElementById('cleanupStatus');
+    if (!await rcConfirm('Delete all seen notifications?', {icon:'🔔',title:'Clear old notifications',confirmText:'Clear',danger:true})) return;
+    statusEl.textContent = 'Running...'; statusEl.style.color = 'var(--gold)';
+    try {
+      await sbFetch('DELETE', 'notifications?seen=eq.true', null);
+      statusEl.textContent = '✅ Cleared seen notifications'; statusEl.style.color = 'var(--green)';
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    } catch(e) {
+      statusEl.textContent = '❌ Cleanup failed: ' + e.message; statusEl.style.color = 'var(--red)';
+    }
+  }
+
+  // ═══ QUICK STATS ═══
   async function loadAdminStats() {
     const el = document.getElementById('adminStats');
     el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;">Loading...</div>';
@@ -5043,12 +5195,12 @@
 
     const overlay = document.createElement('div');
     overlay.id = 'plannerPickerOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:500;';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:500;display:flex;align-items:center;justify-content:center;';
     overlay.onclick = () => { document.getElementById('plannerPickerSheet')?.remove(); overlay.remove(); };
 
     const sheet = document.createElement('div');
     sheet.id = 'plannerPickerSheet';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:501;padding:16px 16px 50px;max-height:80vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+    sheet.style.cssText = 'position:relative;background:var(--surface);border-radius:20px;z-index:501;padding:16px;width:92%;max-width:440px;max-height:80vh;overflow-y:auto;animation:fadeInScale 0.2s ease;';
 
     const leftovers = getLeftovers().filter(l => !l.eaten);
     const leftoverHtml = leftovers.length > 0
@@ -5061,7 +5213,6 @@
     const genericSection = buildGenericMealsSection(genericMeals, dateStr, mealType);
 
     sheet.innerHTML =
-      '<div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 14px;"></div>' +
       '<div style="font-size:0.88em;font-weight:800;margin-bottom:12px;">' + (MEAL_EMOJIS[mealType]||'🍽️') + ' Pick a recipe for ' + mealType + '</div>' +
       '<input type="text" placeholder="Search all recipes..." class="edit-field" style="margin-bottom:12px;" oninput="filterPickerList(this.value)">' +
       '<div id="plannerPickerList">' + leftoverHtml + genericSection + buildPickerList(matching, others, dateStr, mealType) + '</div>';
@@ -10606,15 +10757,15 @@ ${r.ingredients}`;
     let html = `
       <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px;text-align:center;margin-bottom:14px;">
         <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">AVERAGE PER SERVING</div>
-        <div style="font-size:2.2em;font-weight:900;color:var(--gold);">' + avg.calories + '</div>
-        <div style="font-size:0.72em;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;">Calories · ' + summary.count + ' entries</div>
+        <div style="font-size:2.2em;font-weight:900;color:var(--gold);">${avg.calories}</div>
+        <div style="font-size:0.72em;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;">Calories · ${summary.count} entries</div>
       </div>
       <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
-        ` + stat('Protein', avg.protein_g, 'g', '#4caf7d') +
-           stat('Carbohydrates', avg.carbs_g, 'g') +
-           stat('Fat', avg.fat_g, 'g') +
-           stat('Fiber', avg.fiber_g, 'g', '#4caf7d') +
-           stat('Sodium', avg.sodium_mg, 'mg') + `
+        ${stat('Protein', avg.protein_g, 'g', '#4caf7d')}
+        ${stat('Carbohydrates', avg.carbs_g, 'g')}
+        ${stat('Fat', avg.fat_g, 'g')}
+        ${stat('Fiber', avg.fiber_g, 'g', '#4caf7d')}
+        ${stat('Sodium', avg.sodium_mg, 'mg')}
       </div>
       <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
         <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">DAILY CALORIES</div>
