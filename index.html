@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V42 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V43 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1266,14 +1266,7 @@
           </div>
           <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
         </div>
-        <div onclick="switchSyncTab('social')" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
-          <div style="font-size:2.2em;flex-shrink:0;">📱</div>
-          <div>
-            <div style="font-size:1em;font-weight:800;margin-bottom:3px;">Import from Social Media</div>
-            <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;">TikTok, Instagram, YouTube &amp; more — share a cooking video directly into your cookbook.</div>
-          </div>
-          <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
-        </div>
+
         <div onclick="switchSyncTab('url')" style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
           <div style="font-size:2.2em;flex-shrink:0;">🔗</div>
           <div>
@@ -1336,51 +1329,7 @@
         <div class="ai-result" id="pasteResult" style="margin-top:10px;display:none;"></div>
         <button class="btn btn-primary" style="margin-top:10px;" id="parsePasteBtn" onclick="parsePastedRecipe()">✨ Parse with AI</button>
       </div>
-      <!-- SOCIAL IMPORT TAB -->
-      <div id="tabSocial" style="display:none;">
 
-        <!-- Paste description — PRIMARY path, shown first -->
-        <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px 14px 12px;margin-bottom:16px;">
-          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">✨ PASTE RECIPE DESCRIPTION</div>
-          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;margin-bottom:10px;">Copy the full video description from TikTok, Instagram, or YouTube and paste it below. AI will extract the recipe automatically.</div>
-
-          <!-- How to copy on TikTok -->
-          <div id="tiktokHelpToggle" onclick="document.getElementById('tiktokHelpBody').style.display=document.getElementById('tiktokHelpBody').style.display==='none'?'block':'none';this.querySelector('.help-arrow').textContent=document.getElementById('tiktokHelpBody').style.display==='none'?'▶':'▼';" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.78em;font-weight:700;color:var(--gold);margin-bottom:6px;">
-            <span class="help-arrow">▶</span> How to copy a TikTok description
-          </div>
-          <div id="tiktokHelpBody" style="display:none;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:0.78em;color:var(--text-dim);line-height:1.8;">
-            <strong style="color:var(--text);">On the TikTok app:</strong><br>
-            1. Open the video<br>
-            2. Tap the description area (below the video)<br>
-            3. Tap <strong>See more</strong> if it's collapsed<br>
-            4. Long-press any word → tap <strong>Select All</strong><br>
-            5. Tap <strong>Copy</strong><br>
-            6. Come back here and paste 👇<br><br>
-            <strong style="color:var(--text);">On YouTube:</strong><br>
-            1. Open the video<br>
-            2. Tap the title to expand the description<br>
-            3. Long-press the description text → <strong>Select All → Copy</strong>
-          </div>
-
-          <textarea id="socialDescInput" class="edit-field" rows="5" placeholder="Paste the video description here…&#10;&#10;Example:&#10;Chicken Adobo 🍗&#10;Ingredients:&#10;- 2 lbs chicken thighs&#10;- ½ cup soy sauce&#10;…"></textarea>
-          <input type="text" id="socialDescTitle" class="edit-field" placeholder="Dish name (optional — AI will detect it)" style="margin-top:6px;">
-          <button onclick="importFromSocialDescription()" id="socialDescBtn" style="width:100%;padding:13px;margin-top:8px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:800;font-size:0.95em;cursor:pointer;font-family:inherit;letter-spacing:-0.2px;">✨ Extract Recipe</button>
-          <div id="socialDescResult" class="ai-result" style="display:none;margin-top:8px;"></div>
-        </div>
-
-        <!-- URL import — secondary path -->
-        <div style="border-top:1px solid var(--glass-border);padding-top:14px;">
-          <div style="font-size:0.75em;font-weight:700;color:var(--text-faint);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Or try importing by URL</div>
-          <div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;line-height:1.5;">Works best for YouTube and Pinterest. TikTok and Instagram often block this.</div>
-          <div style="display:flex;gap:8px;margin-bottom:6px;">
-            <input type="text" id="socialUrlInput" class="edit-field" placeholder="https://tiktok.com/… or youtube.com/…" style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')importFromSocial()">
-            <button onclick="importFromSocial()" id="socialImportBtn" style="padding:10px 16px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Try</button>
-          </div>
-          <div id="socialStatus" style="display:none;text-align:center;padding:8px 0;color:var(--text-faint);font-size:0.82em;"><span id="socialStatusText">Fetching...</span></div>
-          <div id="socialResult" class="ai-result" style="display:none;margin-top:6px;"></div>
-        </div>
-
-      </div>
       <!-- Hidden legacy tabs (kept for JSON/bulk export access via direct calls) -->
       <div id="tabJson" style="display:none;">
         <textarea id="syncInput" class="edit-field" style="height:280px;font-family:monospace;font-size:0.82em;" placeholder='{"title":"...","category":"...","ingredients":"...","instructions":"...","notes":"","cookTime":""}'></textarea>
@@ -6764,14 +6713,13 @@ ${text}`;
   // ═══ PASTE TAB ROUTING ════════════════════════════════════
   function switchSyncTab(tab) {
     document.getElementById('addModeSelect').style.display = 'none';
-    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste','tabSocial'].forEach(id => {
+    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
     if (tab === 'manual')  { const el = document.getElementById('tabManual');  if (el) el.style.display = 'block'; }
     else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
     else if (tab === 'paste')  { const el = document.getElementById('tabPaste');  if (el) el.style.display = 'block'; }
-    else if (tab === 'social') { const el = document.getElementById('tabSocial'); if (el) el.style.display = 'block'; }
     else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
     else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
     else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
@@ -9726,237 +9674,143 @@ ${text}`;
   }
 
 
-  // ═══ SOCIAL MEDIA IMPORT ════════════════════════════════
 
-  // Called by Median's Share Into App plugin when user shares a URL from another app
-  window.median_share_to_app = function(data) {
-    const url = data.url || '';
-    const subject = data.subject || '';
-    if (!url) return;
+  // ═══ INVITE FROM FRIENDS LIST ══════════════════════════════
+  // ═══ PUBLIC PROFILE — VIEW RECIPES ════════════════════════
+  // Patch openPublicProfile to add recipe viewing
+  // Wire openShopPanel to also load shared list tabs
 
-    // Store the subject (caption) globally so importFromSocial can use it
-    // This is crucial for TikTok/Instagram where the caption is the only recipe source
-    window._socialShareSubject = subject;
-
-    const platform = detectSocialPlatform(url);
-    if (!platform) {
-      openAddModal();
-      switchSyncTab('url');
-      setTimeout(() => {
-        const inp = document.getElementById('urlInput');
-        if (inp) { inp.value = url; importFromUrl(); }
-      }, 300);
-      return;
-    }
-
-    // Guard against double-import if called twice rapidly
-    if (window._socialImportInProgress) return;
-    window._socialImportInProgress = true;
-    setTimeout(() => { window._socialImportInProgress = false; }, 10000);
-
-    openAddModal();
-    switchSyncTab('social');
-    setTimeout(() => {
-      const inp = document.getElementById('socialUrlInput');
-      if (inp) inp.value = url;
-      showSocialShareBanner(platform, subject, url);
-      setTimeout(() => importFromSocial(), 700);
-    }, 400);
-  };
-
-  function scrollToPasteSection() {
-    const el = document.getElementById('socialDescInput');
-    if (el) { el.scrollIntoView({ behavior: 'smooth' }); setTimeout(() => el.focus(), 400); }
-  }
-
-  function detectSocialPlatform(url) {
-    if (!url) return null;
-    if (url.includes('tiktok.com'))     return 'TikTok';
-    if (url.includes('instagram.com'))  return 'Instagram';
-    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
-    if (url.includes('pinterest.com'))  return 'Pinterest';
-    if (url.includes('twitter.com') || url.includes('x.com')) return 'X';
-    if (url.includes('facebook.com'))   return 'Facebook';
-    return null;
-  }
-
-  function showSocialShareBanner(platform, title, url) {
-    const existing = document.getElementById('socialShareBanner');
-    if (existing) existing.remove();
-    const banner = document.createElement('div');
-    banner.id = 'socialShareBanner';
-    banner.style.cssText = 'background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;';
-    const platformEmoji = { TikTok:'🎵', Instagram:'📸', YouTube:'▶️', Pinterest:'📌', X:'𝕏', Facebook:'📘' };
-    banner.innerHTML = '<span style="font-size:1.3em;">' + (platformEmoji[platform] || '📱') + '</span>' +
-      '<div style="flex:1;min-width:0;"><div style="font-size:0.82em;font-weight:700;color:var(--gold);">Shared from ' + platform + '</div>' +
-      (title ? '<div style="font-size:0.75em;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(title) + '</div>' : '') + '</div>' +
-      '<div style="font-size:0.72em;color:var(--gold);font-weight:700;">Importing...</div>';
-    const tabSocial = document.getElementById('tabSocial');
-    if (tabSocial) tabSocial.insertBefore(banner, tabSocial.firstChild);
-  }
-
-  async function importFromSocial() {
-    const input = document.getElementById('socialUrlInput');
-    const btn = document.getElementById('socialImportBtn');
-    const status = document.getElementById('socialStatus');
-    const statusText = document.getElementById('socialStatusText');
-    const result = document.getElementById('socialResult');
-    const url = input?.value.trim();
-
-    if (!url || !url.startsWith('http')) {
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Please enter a valid URL.'; }
-      return;
-    }
-
-    if (btn) { btn.textContent = 'Importing...'; btn.disabled = true; }
-    if (status) status.style.display = 'block';
-    if (result) result.style.display = 'none';
-
-    const msgs = ['Fetching content...', 'Reading description...', 'Extracting recipe...', 'Almost done...'];
-    let mi = 0;
-    if (statusText) statusText.textContent = msgs[0];
-    const interval = setInterval(() => { mi = Math.min(mi+1, msgs.length-1); if (statusText) statusText.textContent = msgs[mi]; }, 3000);
-
+  // ═══ FRIEND RECIPE VIEWING (public profile) ════════════════
+  // Patch openPublicProfile to properly load and show recipes
+  async function openPublicProfile(username) {
+    document.getElementById('publicProfileUsername').textContent = '@' + username;
+    document.getElementById('publicProfileBody').innerHTML = '<div style="text-align:center;padding:30px;"><div class="spinner" style="margin:0 auto;"></div></div>';
+    openModalAnimated('publicProfileModal');
     try {
-      // Pass the subject too — for TikTok/Instagram the caption is in the share payload subject
-      const sharedSubject = window._socialShareSubject || '';
-      const res = await fetch('/api/scrape-social', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, subject: sharedSubject })
+      const [profile, stats, friendsRes, colRes, theirRecipes, allPosts] = await Promise.all([
+        getUserProfile(username),
+        getProfileStats(username),
+        getFriends(currentUser),
+        getPublicCollections(username),
+        getFriendRecipes(username),
+        getCommunityPosts(null,'newest',20,0)
+      ]);
+      const following = friendsRes.following || [];
+      const isMe = username === currentUser;
+      const isFollowing = following.includes(username);
+      const av = profile?.avatar_url
+        ? '<img src="' + profile.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">'
+        : '<div style="font-size:2em;font-weight:700;color:var(--gold);">' + username.charAt(0).toUpperCase() + '</div>';
+      const cols = colRes.collections || [];
+      // colHtml built with proper DOM-safe approach (buttons wired via DOM after render)
+      const colHtml = cols.map(c => {
+        const cid = c.id; const cname = c.name; const cdesc = c.description || ''; const ccount = c.recipeIds.length;
+        return '<div data-col-id="' + cid + '" data-col-name="' + escapeHtml(cname) + '" data-col-owner="' + username + '" class="pubcol-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;cursor:pointer;">' +
+          '<div style="font-weight:700;font-size:0.88em;">📁 ' + escapeHtml(cname) + '</div>' +
+          (cdesc ? '<div style="font-size:0.75em;color:var(--text-faint);margin-top:2px;">' + escapeHtml(cdesc) + '</div>' : '') +
+          '<div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;">' + ccount + ' recipe' + (ccount !== 1 ? 's' : '') + '</div></div>';
+      }).join('');
+
+      // Build body
+      document.getElementById('publicProfileBody').innerHTML =
+        '<div style="text-align:center;padding:20px 16px 12px;">' +
+        '<div style="width:80px;height:80px;border-radius:50%;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;">' + av + '</div>' +
+        '<div style="font-size:1.1em;font-weight:800;margin-bottom:4px;">@' + escapeHtml(username) + '</div>' +
+        (profile?.bio ? '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '') +
+        '<div style="display:flex;justify-content:center;gap:24px;margin-bottom:14px;">' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.recipeCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Recipes</div></div>' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followerCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>' +
+        '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followingCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div></div>' +
+        '<div id="pubProfileBtns" style="display:flex;gap:8px;justify-content:center;"></div></div>' +
+        (cols.length ? '<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>' + colHtml + '</div>' : '') +
+        '<div id="pubProfileRecipes" style="padding:0 16px;margin-top:10px;"></div>' +
+        '<div style="padding:0 16px 20px;margin-top:10px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div><div id="pubProfilePosts">Loading...</div></div>';
+
+      // Wire collection item clicks
+      document.querySelectorAll('.pubcol-item').forEach(el => {
+        el.onclick = () => viewPublicCollection(el.dataset.colId, el.dataset.colName, el.dataset.colOwner);
       });
-      const data = await res.json();
-      clearInterval(interval);
-      if (status) status.style.display = 'none';
-
-      if ((data.status === 'Success' || data.status === 'partial') && data.recipe) {
-        // Sanitize — flatten any array fields Gemini may have returned
-        const r = data.recipe;
-        const flatField = v => Array.isArray(v) ? v.join('\n') : (v || '');
-        r.ingredients = flatField(r.ingredients);
-        r.instructions = flatField(r.instructions);
-        r.notes = flatField(r.notes);
-
-        const validatedCat = await validateRecipeCategory(r.title || 'Recipe', r.category || '');
-        r.category = validatedCat;
-        const saveRes = await addRecipe(currentUser, r);
-        if (saveRes.status === 'Success') {
-          if (result) {
-            result.style.display = 'block';
-            result.className = 'ai-result success';
-            result.innerHTML = '✅ ' + saveRes.message +
-              (data.status === 'partial' ? '<br><small style="color:var(--text-faint);">Partial recipe — tap Edit to add missing steps.</small>' : '');
-          }
-          if (btn) { btn.textContent = 'Import Another'; btn.disabled = false; }
-          if (input) input.value = '';
-          window._socialShareSubject = '';
-          document.getElementById('socialShareBanner')?.remove();
-          init();
+      // Wire follow/message buttons via DOM
+      const btnsEl = document.getElementById('pubProfileBtns');
+      if (btnsEl && !isMe) {
+        const fb = document.createElement('button');
+        fb.style.cssText = 'padding:8px 20px;border-radius:20px;font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;border:none;';
+        if (isFollowing) {
+          fb.textContent = 'Following ✓'; fb.style.background = 'var(--glass)'; fb.style.border = '1px solid var(--glass-border)'; fb.style.color = 'var(--text-dim)';
+          fb.onclick = () => unfollowUser(currentUser, username).then(() => openPublicProfile(username));
         } else {
-          if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + saveRes.message; }
-          if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
+          fb.textContent = '+ Follow'; fb.style.background = 'var(--gold)'; fb.style.color = 'var(--bg)';
+          fb.onclick = () => followUser(currentUser, username).then(() => { sendFollowNotification(currentUser, username); openPublicProfile(username); });
         }
-      } else {
-        clearInterval(interval);
-        if (status) status.style.display = 'none';
-        if (result) {
-          result.style.display = 'block';
-          result.className = 'ai-result error';
-          // If the platform needs paste, show a helpful inline CTA
-          if (data.needsPaste) {
-            result.innerHTML = '⚠️ ' + (data.message || 'Could not fetch content from this platform.') +
-              '<br><br><button onclick="scrollToPasteSection()" style="margin-top:8px;padding:8px 16px;background:var(--gold);border:none;border-radius:12px;color:var(--bg);font-weight:700;font-size:0.82em;cursor:pointer;font-family:inherit;">📋 Paste Description Instead →</button>';
-          } else {
-            result.innerHTML = '❌ ' + (data.message || 'Could not extract a recipe from this content.');
+        const mb = document.createElement('button');
+        mb.textContent = '💬 Message'; mb.style.cssText = 'padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;';
+        mb.onclick = () => { closeModalAnimated('publicProfileModal'); setTimeout(() => openMessaging(username), 300); };
+        btnsEl.append(fb, mb);
+      }
+
+      // Load recipes
+      const recipes = theirRecipes.recipes || [];
+      const recipesEl = document.getElementById('pubProfileRecipes');
+      if (recipesEl) {
+        if (recipes.length > 0) {
+          recipesEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Recipes</div>';
+          const grid = document.createElement('div');
+          grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+          recipes.slice(0, 6).forEach(r => {
+            const card = document.createElement('div');
+            card.style.cssText = 'background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;';
+            card.innerHTML = (r.image ? '<img src="' + r.image + '" style="width:100%;height:80px;object-fit:cover;display:block;">' : '<div style="width:100%;height:80px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5em;">🍽️</div>') +
+              '<div style="padding:6px 8px;"><div style="font-size:0.78em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div><div style="font-size:0.68em;color:var(--text-faint);">' + (r.category||'') + '</div></div>';
+            const recipeSnap = Object.assign({}, r);
+            card.onclick = () => {
+              document.getElementById('friendRecipeModalTitle').textContent = recipeSnap.title;
+              const body = document.getElementById('friendRecipeModalBody');
+              body.innerHTML = (recipeSnap.image ? '<img src="' + recipeSnap.image + '" style="width:100%;height:200px;object-fit:cover;display:block;">' : '') +
+                '<div style="padding:16px;">' +
+                '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:8px;">' + (recipeSnap.category||'') + (recipeSnap.cookTime?' · ⏱ '+recipeSnap.cookTime:'') + '</div>' +
+                '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Ingredients</div>' +
+                '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;">' + escapeHtml(recipeSnap.ingredients||'') + '</div>' +
+                '<div style="font-weight:700;margin-bottom:8px;font-size:0.95em;">Instructions</div>' +
+                '<div style="font-size:0.85em;line-height:1.7;white-space:pre-wrap;">' + escapeHtml(recipeSnap.instructions||'') + '</div></div>';
+              const addBtn = document.createElement('button');
+              addBtn.textContent = '+ Add to My Cookbook';
+              addBtn.style.cssText = 'width:calc(100% - 32px);margin:0 16px 16px;padding:12px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;cursor:pointer;font-family:inherit;display:block;';
+              addBtn.onclick = () => addRecipeFromColSheet(recipeSnap.id, recipeSnap.title);
+              body.appendChild(addBtn);
+              openModalAnimated('friendRecipeModal');
+            };
+            grid.appendChild(card);
+          });
+          recipesEl.appendChild(grid);
+          // View All button if more than 6 recipes
+          if (recipes.length > 6) {
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.textContent = 'View all ' + recipes.length + ' recipes →';
+            viewAllBtn.style.cssText = 'width:100%;margin-top:10px;padding:9px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.8em;font-weight:600;cursor:pointer;font-family:inherit;';
+            viewAllBtn.onclick = () => openFriendCookbook(username, recipes);
+            recipesEl.appendChild(viewAllBtn);
           }
+        } else {
+          recipesEl.innerHTML = '';
         }
-        if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
       }
-    } catch(err) {
-      clearInterval(interval);
-      if (status) status.style.display = 'none';
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Network error: ' + err.message; }
-      if (btn) { btn.textContent = 'Import'; btn.disabled = false; }
+
+      // Load posts
+      const userPosts = allPosts.filter(p => (p.users?.username||'') === username);
+      const postsEl = document.getElementById('pubProfilePosts');
+      if (postsEl) {
+        postsEl.innerHTML = userPosts.length === 0 ? '<span style="color:var(--text-faint);font-size:0.85em;">No community posts yet.</span>'
+          : userPosts.map(p =>
+              '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">' +
+              (p.image_url ? '<img src="' + p.image_url + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">' : '<div style="width:40px;height:40px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;">🍽️</div>') +
+              '<div style="flex:1;min-width:0;"><div style="font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(p.title) + '</div><div style="font-size:0.72em;color:var(--text-faint);">👍 ' + (p.upvotes||0) + '</div></div></div>'
+            ).join('');
+      }
+    } catch(e) {
+      document.getElementById('publicProfileBody').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-faint);">Could not load profile.</div>';
     }
   }
 
-
-  async function importFromSocialDescription() {
-    const descInput = document.getElementById('socialDescInput');
-    const titleInput = document.getElementById('socialDescTitle');
-    const btn = document.getElementById('socialDescBtn');
-    const result = document.getElementById('socialDescResult');
-
-    const description = descInput?.value.trim();
-    const title = titleInput?.value.trim() || '';
-
-    if (!description || description.length < 20) {
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ Please paste the video description first.'; }
-      return;
-    }
-
-    if (btn) { btn.textContent = '✨ Extracting...'; btn.disabled = true; }
-    if (result) result.style.display = 'none';
-
-    try {
-      // Use the AI endpoint directly with the pasted text
-      const prompt = `You are a recipe extraction assistant. The following is a social media video description that contains a recipe. Extract it into a structured format.
-
-${title ? 'DISH NAME: ' + title + '\n' : ''}DESCRIPTION:
-${description}
-
-Return ONLY a valid JSON object with these exact keys:
-- "title": dish name (use the provided dish name if given, otherwise extract from text)
-- "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
-- "ingredients": all ingredients one per line, with quantities
-- "instructions": numbered steps one per line. If no steps are listed, write "See original video for step-by-step instructions."
-- "notes": any tips, creator notes, substitutions, or hashtag keywords
-- "cookTime": e.g. "30 min" or empty string
-- "prepTime": e.g. "10 min" or empty string
-- "servings": e.g. "4 servings" or empty string
-
-Return ONLY raw JSON. No markdown, no backticks.`;
-
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 1500 })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'AI error');
-
-      let recipe;
-      try { recipe = JSON.parse((data.text || '').replace(/```json|```/g, '').trim()); }
-      catch(e) { throw new Error('Could not parse the extracted recipe. Try rewording the description.'); }
-
-      if (!recipe.title) recipe.title = title || 'Imported Recipe';
-
-      // Sanitize arrays
-      const flatField2 = v => Array.isArray(v) ? v.join('\n') : (v || '');
-      recipe.ingredients = flatField2(recipe.ingredients);
-      recipe.instructions = flatField2(recipe.instructions);
-      recipe.notes = flatField2(recipe.notes);
-
-      const validatedCat = await validateRecipeCategory(recipe.title, recipe.category || '');
-      recipe.category = validatedCat;
-
-      const saveRes = await addRecipe(currentUser, recipe);
-      if (result) {
-        result.style.display = 'block';
-        result.className = saveRes.status === 'Success' ? 'ai-result success' : 'ai-result error';
-        result.innerHTML = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
-      }
-      if (saveRes.status === 'Success') {
-        if (descInput) descInput.value = '';
-        if (titleInput) titleInput.value = '';
-        init();
-      }
-    } catch(err) {
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + err.message; }
-    }
-
-    if (btn) { btn.textContent = '✨ Extract Recipe'; btn.disabled = false; }
-  }
 
 
 </script>
