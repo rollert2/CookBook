@@ -4004,8 +4004,11 @@
         setTimeout(() => resultToast.remove(), 5000);
       }
     } else {
-      resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      resultToast.textContent = '❌ ' + (scrapeData.message || 'Could not extract recipe from that page. Try a different URL.');
+      resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;cursor:pointer;';
+      resultToast.textContent = '❌ ' + (scrapeData.message || 'Could not extract recipe from that page. Try a different URL.') + ' — Tap to see debug data';
+      resultToast.onclick = function() {
+        alert(JSON.stringify(scrapeData, null, 2));
+      };
       document.body.appendChild(resultToast);
       setTimeout(() => resultToast.remove(), 5000);
     }
