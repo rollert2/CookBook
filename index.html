@@ -1215,6 +1215,12 @@
         <span>Nutrition Dashboard</span>
       </button>
     </div>
+    <div style="padding:0 16px 4px;">
+      <button id="streakDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openStreakDashboard()">
+        <span>🔥</span>
+        <span>Cooking Streaks</span>
+      </button>
+    </div>
     <div id="profileHero" class="profile-hero"></div>
     <!-- Notifications -->
     <div class="profile-section" id="profileNotifSection" style="display:none;">
@@ -10392,15 +10398,12 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
     document.body.appendChild(ov);
     document.body.appendChild(sheet);
 
-    const prompt = `Estimate the nutrition for this recipe per serving. Give rough estimates only.
+    const prompt = `Estimate the nutrition for this recipe per serving. Return ONLY valid JSON with these keys: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, disclaimer. All values must be numbers. Example: {"calories":350,"protein_g":25,"carbs_g":30,"fat_g":15,"fiber_g":4,"sodium_mg":600,"disclaimer":"Rough estimate only"}
 
 Recipe: ${r.title}
 Servings: ${r.servings || 'unknown'}
 Ingredients:
-${r.ingredients}
-
-Return ONLY a JSON object with these keys (all numbers, per serving):
-{ "calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0, "fiber_g": 0, "sodium_mg": 0, "disclaimer": "one sentence about estimate accuracy" }`;
+${r.ingredients}`;
 
     try {
       const res = await fetch('/api/ai', {
@@ -10416,49 +10419,35 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
       const rawText = await res.text();
       let data;
       try { data = JSON.parse(rawText); }
-      catch(e) { throw new Error('Server returned invalid response'); }
+      catch(e) { throw new Error('Server returned invalid response: ' + rawText.slice(0, 100)); }
 
       if (data.error) throw new Error('AI error: ' + data.error);
-      if (!data.text) throw new Error('AI returned no data');
+      if (!data.text) throw new Error('AI returned empty response');
 
-      // Extract JSON from response — handle markdown code blocks, extra text, and malformed strings
-      let jsonStr = data.text
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/```\s*$/i, '')
-        .trim();
+      console.log('Nutrition AI raw response:', data.text.slice(0, 500));
 
-      // Try to find JSON object in the text
-      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-      if (jsonMatch) jsonStr = jsonMatch[0];
+      // Extract JSON — try multiple strategies
+      let jsonStr = data.text;
 
-      let nutrition;
-      try {
-        nutrition = JSON.parse(jsonStr);
-      } catch(parseErr) {
-        // Gemini sometimes returns broken JSON with unterminated strings.
-        // Try to fix common issues:
-        // 1. Unescaped quotes inside strings
-        // 2. Trailing commas
-        // 3. Missing closing quotes
-        let fixed = jsonStr
-          .replace(/,\s*}/g, '}')   // trailing commas before }
-          .replace(/,\s*]/g, ']')   // trailing commas before ]
-          .replace(/"([^"]*?)\s*$/gm, '"$1"') // missing closing quote at end of line
-          .replace(/":\s*"([^"]*?)\s*\n/gm, '": "$1"\n'); // fix unterminated strings before newline
+      // Strategy 1: Try to find a JSON object in the text
+      let nutrition = tryParseJSON(jsonStr);
 
-        // Try parsing again
-        const fixedMatch = fixed.match(/\{[\s\S]*\}/);
-        if (fixedMatch) {
-          try { nutrition = JSON.parse(fixedMatch[0]); }
-          catch(e2) { throw new Error('AI returned broken JSON data'); }
-        } else {
-          throw new Error('Could not find nutrition data in response');
-        }
+      // Strategy 2: If failed, strip markdown and extra text, try again
+      if (!nutrition) {
+        jsonStr = jsonStr
+          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '')
+          .trim();
+        nutrition = tryParseJSON(jsonStr);
       }
 
-      // Validate required fields
-      if (!nutrition || !nutrition.calories) throw new Error('AI did not return valid nutrition data');
+      // Strategy 3: Manually extract key-value pairs
+      if (!nutrition) {
+        nutrition = extractNutritionManual(data.text);
+      }
+
+      if (!nutrition) {
+        throw new Error('Could not parse nutrition data from AI response');
+      }
 
       const el = document.getElementById('nutritionContent');
       if (!el) return;
@@ -10481,7 +10470,6 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
         '<button onclick="saveNutritionToLog()" style="width:100%;padding:12px;margin-top:10px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">💾 Save to Nutrition Log</button>' +
         '<button onclick="document.getElementById(\'nutritionPanel\').remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:8px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
 
-      // Store nutrition data for saving
       window._lastNutritionData = {
         recipe_id: r.id,
         recipe_title: r.title,
@@ -10498,6 +10486,44 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
       const el = document.getElementById('nutritionContent');
       if (el) el.innerHTML = '<span style="color:var(--red);">Could not estimate nutrition. ' + escapeHtml(err.message || 'Try again.') + '</span>';
     }
+  }
+
+  function tryParseJSON(text) {
+    if (!text) return null;
+    // Find the outermost JSON object
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      const obj = JSON.parse(match[0]);
+      if (obj.calories !== undefined) return obj;
+      return null;
+    } catch(e) { return null; }
+  }
+
+  function extractNutritionManual(text) {
+    // Fallback: manually extract key-value pairs from text
+    const extract = (key) => {
+      const patterns = [
+        new RegExp('["\']?' + key + '["\']?\\s*:\\s*([\\d.]+)', 'i'),
+        new RegExp(key + '\\s*=?\\s*([\\d.]+)', 'i')
+      ];
+      for (const p of patterns) {
+        const m = text.match(p);
+        if (m) return parseFloat(m[1]);
+      }
+      return null;
+    };
+    const calories = extract('calories');
+    if (!calories) return null;
+    return {
+      calories: Math.round(calories),
+      protein_g: extract('protein_g') || extract('protein') || 0,
+      carbs_g: extract('carbs_g') || extract('carbs') || extract('carbohydrates') || 0,
+      fat_g: extract('fat_g') || extract('fat') || 0,
+      fiber_g: extract('fiber_g') || extract('fiber') || 0,
+      sodium_mg: extract('sodium_mg') || extract('sodium') || 0,
+      disclaimer: 'Rough estimate from AI analysis'
+    };
   }
 
   // ═══ NUTRITION DASHBOARD ════════════════════════════════
@@ -10604,6 +10630,184 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
   function toggleNutritionRange() {
     const newDays = nutritionDays === 7 ? 30 : 7;
     loadNutritionDashboard(newDays);
+  }
+
+  // ═══ COOKING STREAKS DASHBOARD ════════════════════════
+
+  async function openStreakDashboard() {
+    closeProfileAnimated();
+    const modal = document.createElement('div');
+    modal.id = 'streakDashboardModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('streakDashboardModal').remove();setTimeout(()=>openProfile(),200);" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">🔥 Cooking Streaks</span>
+      </div>
+      <div id="streakDashboardBody" style="padding:16px;">
+        <div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">Loading...</div>
+      </div>`;
+    document.body.appendChild(modal);
+    loadStreakDashboard();
+  }
+
+  async function loadStreakDashboard() {
+    const body = document.getElementById('streakDashboardBody');
+    if (!body) return;
+
+    // Get current streak from settings
+    const settings = await getUserSettings(currentUser).catch(() => ({ settings: {} }));
+    const s = settings.settings || {};
+    const currentStreak = s.cook_streak || 0;
+    const lastCookDate = s.last_cooked_date || s.last_streak_date || null;
+
+    // Get all recipes to find cook dates
+    const recipes = await getRecipes(currentUser).catch(() => []);
+    const cookDates = recipes
+      .filter(r => r.lastCooked)
+      .map(r => r.lastCooked.slice(0, 10))
+      .sort()
+      .reverse();
+    const uniqueCookDates = [...new Set(cookDates)];
+
+    // Calculate longest streak from cook history
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let lastDate = null;
+    const allDates = [...new Set(uniqueCookDates)].sort();
+    for (const d of allDates) {
+      const current = new Date(d);
+      if (lastDate) {
+        const last = new Date(lastDate);
+        const diff = Math.round((current - last) / (1000 * 60 * 60 * 24));
+        if (diff === 1) {
+          tempStreak++;
+        } else {
+          tempStreak = 1;
+        }
+      } else {
+        tempStreak = 1;
+      }
+      longestStreak = Math.max(longestStreak, tempStreak);
+      lastDate = d;
+    }
+
+    // Milestones
+    const milestones = [3, 7, 14, 21, 30, 60, 90, 100, 180, 365];
+    const reachedMilestones = milestones.filter(m => currentStreak >= m);
+    const nextMilestone = milestones.find(m => currentStreak < m);
+
+    // Check if streak is active (cooked today)
+    const today = new Date().toISOString().slice(0, 10);
+    const cookedToday = uniqueCookDates.includes(today);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const cookedYesterday = uniqueCookDates.includes(yesterdayStr);
+
+    const milestone = (m) => {
+      const reached = currentStreak >= m;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">
+        <div style="width:36px;height:36px;border-radius:50%;background:${reached ? 'var(--gold)' : 'var(--glass)'};border:2px solid ${reached ? 'var(--gold)' : 'var(--glass-border)'};display:flex;align-items:center;justify-content:center;font-size:0.85em;font-weight:700;color:${reached ? 'var(--bg)' : 'var(--text-faint)'};">${m}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.88em;font-weight:600;color:${reached ? 'var(--gold)' : 'var(--text-dim)'};">${reached ? '✅' : '⬜'} ${m} day streak</div>
+          <div style="font-size:0.72em;color:var(--text-faint);">${reached ? 'Achieved!' : (currentStreak > 0 ? m - currentStreak + ' more days to go' : 'Start cooking to unlock')}</div>
+        </div>
+      </div>`;
+    };
+
+    // Build calendar for last 30 days
+    const calRows = [];
+    for (let i = 27; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const cooked = uniqueCookDates.includes(dateStr);
+      calRows.push({ date: dateStr, cooked, label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) });
+    }
+
+    const calendarGrid = calRows.map(d =>
+      `<div style="width:28px;height:28px;border-radius:4px;background:${d.cooked ? 'var(--gold)' : 'var(--glass)'};border:1px solid ${d.cooked ? 'var(--gold)' : 'var(--glass-border)'};" title="${d.label}${d.cooked ? ' - Cooked!' : ''}"></div>`
+    ).join('');
+
+    body.innerHTML = `
+      ${!lastCookDate ? `
+        <div style="text-align:center;padding:30px 20px;">
+          <div style="font-size:2.5em;margin-bottom:12px;">🍳</div>
+          <div style="font-size:1.1em;font-weight:700;color:var(--text-dim);margin-bottom:6px;">No streak yet</div>
+          <div style="font-size:0.82em;color:var(--text-faint);line-height:1.5;">Cook a recipe to start your streak! Each consecutive day you cook extends your streak.</div>
+        </div>
+      ` : `
+        <!-- Current streak big display -->
+        <div style="background:linear-gradient(135deg, var(--gold-dim), var(--surface));border:2px solid var(--gold);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:16px;">
+          <div style="font-size:3em;margin-bottom:4px;">🔥</div>
+          <div style="font-size:3.5em;font-weight:900;color:var(--gold);line-height:1;">${currentStreak}</div>
+          <div style="font-size:0.85em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-top:4px;">day${currentStreak !== 1 ? 's' : ''} streak</div>
+          ${cookedToday ? '<div style="font-size:0.78em;color:var(--green);margin-top:8px;">✅ You\'ve cooked today!</div>' : cookedYesterday ? '<div style="font-size:0.78em;color:var(--gold);margin-top:8px;">⚠️ Cook today to keep your streak alive!</div>' : '<div style="font-size:0.78em;color:var(--text-faint);margin-top:8px;">Last cooked: ' + (lastCookDate === today ? 'today' : lastCookDate === yesterdayStr ? 'yesterday' : lastCookDate) + '</div>'}
+        </div>
+      `}
+
+      <!-- Stats row -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+          <div style="font-size:1.8em;font-weight:900;color:var(--gold);">${currentStreak}</div>
+          <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);">Current Streak</div>
+        </div>
+        <div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+          <div style="font-size:1.8em;font-weight:900;color:var(--green);">${longestStreak}</div>
+          <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);">Longest Streak</div>
+        </div>
+        <div style="flex:1;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+          <div style="font-size:1.8em;font-weight:900;color:var(--text);">${uniqueCookDates.length}</div>
+          <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);">Days Cooked</div>
+        </div>
+      </div>
+
+      ${nextMilestone ? `
+        <!-- Next milestone progress -->
+        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">NEXT MILESTONE</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="font-size:1.5em;font-weight:900;color:var(--gold);">${nextMilestone}</div>
+            <div style="flex:1;">
+              <div style="font-size:0.82em;color:var(--text-dim);">${nextMilestone - currentStreak} more day${nextMilestone - currentStreak !== 1 ? 's' : ''} to go</div>
+              <div style="background:var(--bg);border-radius:10px;height:8px;margin-top:6px;overflow:hidden;">
+                <div style="background:var(--gold);height:100%;width:${Math.round(currentStreak / nextMilestone * 100)}%;border-radius:10px;transition:width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 30-day calendar -->
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">LAST 30 DAYS</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;justify-items:center;">
+          ${calendarGrid}
+        </div>
+        <div style="display:flex;gap:12px;margin-top:10px;font-size:0.7em;color:var(--text-faint);">
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:2px;background:var(--gold);"></div> Cooked</div>
+          <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:2px;background:var(--glass);border:1px solid var(--glass-border);"></div> Not cooked</div>
+        </div>
+      </div>
+
+      <!-- Milestones -->
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">MILESTONES</div>
+        ${milestones.slice(0, 6).map(m => milestone(m)).join('')}
+      </div>
+
+      <!-- Tips -->
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">TIPS TO GROW YOUR STREAK</div>
+        <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;">
+          <div style="padding:6px 0;border-bottom:0.5px solid var(--glass-border);">🍳 <strong>Cook a recipe</strong> — Tap "I Cooked This" on any recipe to log it</div>
+          <div style="padding:6px 0;border-bottom:0.5px solid var(--glass-border);">📅 <strong>Every day counts</strong> — Even a quick recipe keeps your streak alive</div>
+          <div style="padding:6px 0;border-bottom:0.5px solid var(--glass-border);">🔥 <strong>Don't break the chain</strong> — Miss a day and your streak resets</div>
+          <div style="padding:6px 0;">🎯 <strong>Hit milestones</strong> — Earn bragging rights at 7, 30, 100+ days</div>
+        </div>
+      </div>
+    `;
   }
 
 </script>
