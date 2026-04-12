@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V45 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V46 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -4662,6 +4662,18 @@
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
       if (userSettings.unit_preference) { _unitPref = userSettings.unit_preference; }
+      // Show streak in header immediately on app load
+      const _initStreak = userSettings.cook_streak || 0;
+      const _lastStreakDate = userSettings.last_streak_date || '';
+      const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const _today = new Date().toISOString().slice(0, 10);
+      // Only show streak if it's still active (cooked today or yesterday)
+      const _streakActive = _lastStreakDate === _today || _lastStreakDate === _yesterday;
+      const hsBadgeInit = document.getElementById('headerStreakBadge');
+      if (hsBadgeInit && _initStreak > 0 && _streakActive) {
+        hsBadgeInit.style.display = 'inline';
+        hsBadgeInit.textContent = '🔥' + _initStreak;
+      }
       if (currentUser === 'rollert2') checkExpiredDeletionsAdmin();
       checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
       setTimeout(adjustHeaderPadding, 100);
@@ -7828,6 +7840,20 @@ ${text}`;
     const following = friendsRes.following || [];
     const mutuals = friendsRes.mutuals || [];
 
+    // Fetch streaks for all friends in parallel
+    const streakMap = {};
+    const todayStr = new Date().toISOString().slice(0,10);
+    const yesterdayStr = new Date(Date.now()-86400000).toISOString().slice(0,10);
+    await Promise.all(following.map(async u => {
+      try {
+        const r = await getUserSettings(u);
+        const s = r.settings && r.settings.cook_streak;
+        const d = r.settings && r.settings.last_streak_date;
+        // Only show streak if active (cooked today or yesterday)
+        if (s && s > 0 && (d === todayStr || d === yesterdayStr)) streakMap[u] = s;
+      } catch(e) {}
+    }));
+
     if (followingEl) {
       if (following.length === 0) {
         followingEl.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;padding:8px 0;">Not following anyone yet.</div>';
@@ -7835,12 +7861,14 @@ ${text}`;
         followingEl.innerHTML = '';
         following.forEach(u => {
           const isMutual = mutuals.includes(u);
+          const streak = streakMap[u];
+          const streakHtml = streak ? ' <span style="font-size:0.7em;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:1px 6px;font-weight:700;">🔥' + streak + '</span>' : '';
           const row = document.createElement('div');
           row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);cursor:pointer;';
           row.dataset.username = u;
           row.innerHTML =
             '<div style="width:36px;height:36px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;">' + u.charAt(0).toUpperCase() + '</div>' +
-            '<div style="flex:1;"><div style="font-size:0.88em;font-weight:600;">' + escapeHtml(u) + '</div>' +
+            '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;display:flex;align-items:center;gap:4px;">' + escapeHtml(u) + streakHtml + '</div>' +
             (isMutual ? '<div style="font-size:0.7em;color:var(--gold);">⭐ Friends</div>' : '<div style="font-size:0.7em;color:var(--text-faint);">Following</div>') + '</div>' +
             '<div style="color:var(--text-faint);font-size:0.8em;">›</div>';
           row.onclick = () => openPublicProfile(u);
@@ -10232,9 +10260,11 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 300 })
+        body: JSON.stringify({ prompt, maxTokens: 500 })
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data;
+      try { data = JSON.parse(rawText); } catch(e) { throw new Error('Server error: ' + rawText.slice(0,100)); }
       if (data.error) throw new Error(data.error);
 
       const nutrition = JSON.parse((data.text || '').replace(/```json|```/g,'').trim());
