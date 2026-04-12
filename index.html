@@ -1209,12 +1209,6 @@
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
-    <div id="youtubeToggleWrap" style="display:none;padding:10px 16px 4px;">
-      <button id="youtubeToggleBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--red);color:var(--bg);border:none;font-weight:700;" onclick="toggleYouTubeChannel()">
-        <span id="youtubeToggleIcon">📺</span>
-        <span id="youtubeToggleLabel">Open YouTube Channel</span>
-      </button>
-    </div>
     <div style="padding:0 16px 4px;">
       <button id="nutritionDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openNutritionDashboard()">
         <span>📊</span>
@@ -3102,18 +3096,10 @@
   }
 
   // ═══ PROFILE ═══
-  function toggleYouTubeChannel() {
-    window.open('https://www.youtube.com/@rollreacts', '_blank');
-  }
-
   function openProfile() {
     // Show admin button for rollert2
     const adminBtn = document.getElementById('adminPanelBtnWrap');
     if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
-
-    // Show YouTube toggle for rollert2
-    const ytWrap = document.getElementById('youtubeToggleWrap');
-    if (ytWrap) ytWrap.style.display = currentUser === 'rollert2' ? 'block' : 'none';
 
     Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser), getUserSettings(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount, settingsRes]) => {
       const streak = (settingsRes.settings && settingsRes.settings.cook_streak) || 0;
@@ -3981,20 +3967,27 @@
       }
 
       const data = await res.json();
-      console.log('Import URL result:', data);
+      console.log('Import URL scrape result:', JSON.stringify(data));
 
       if (toast.parentNode) toast.remove();
 
       const resultToast = document.createElement('div');
 
       if (data.status === 'Success' && data.recipe) {
-        // Save the recipe
-        const saveRes = await addRecipe(currentUser, data.recipe);
-        resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
-        resultToast.textContent = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
-        document.body.appendChild(resultToast);
-        setTimeout(() => resultToast.remove(), 4000);
-        if (saveRes.status === 'Success') loadRecipes();
+        try {
+          const saveRes = await addRecipe(currentUser, data.recipe);
+          resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+          resultToast.textContent = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
+          document.body.appendChild(resultToast);
+          setTimeout(() => resultToast.remove(), 4000);
+          if (saveRes.status === 'Success') loadRecipes();
+        } catch(saveErr) {
+          console.error('addRecipe threw:', saveErr);
+          resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+          resultToast.textContent = '❌ Recipe data received but failed to save: ' + (saveErr.message || 'unknown error');
+          document.body.appendChild(resultToast);
+          setTimeout(() => resultToast.remove(), 5000);
+        }
       } else {
         resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
         resultToast.textContent = '❌ ' + (data.message || 'Could not extract recipe from that page. Try a different URL.');
@@ -4006,7 +3999,7 @@
       if (toast.parentNode) toast.remove();
       const errToast = document.createElement('div');
       errToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      errToast.textContent = '❌ Could not import recipe. The API may be unreachable — try manually from the Discover tab.';
+      errToast.textContent = '❌ Could not import recipe. ' + (e.message || 'The API may be unreachable.');
       document.body.appendChild(errToast);
       setTimeout(() => errToast.remove(), 5000);
     }
@@ -10419,7 +10412,7 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
       if (data.error) throw new Error('AI error: ' + data.error);
       if (!data.text) throw new Error('AI returned no data');
 
-      // Extract JSON from response — handle markdown code blocks and extra text
+      // Extract JSON from response — handle markdown code blocks, extra text, and malformed strings
       let jsonStr = data.text
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
@@ -10430,10 +10423,33 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
       const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
       if (jsonMatch) jsonStr = jsonMatch[0];
 
-      const nutrition = JSON.parse(jsonStr);
+      let nutrition;
+      try {
+        nutrition = JSON.parse(jsonStr);
+      } catch(parseErr) {
+        // Gemini sometimes returns broken JSON with unterminated strings.
+        // Try to fix common issues:
+        // 1. Unescaped quotes inside strings
+        // 2. Trailing commas
+        // 3. Missing closing quotes
+        let fixed = jsonStr
+          .replace(/,\s*}/g, '}')   // trailing commas before }
+          .replace(/,\s*]/g, ']')   // trailing commas before ]
+          .replace(/"([^"]*?)\s*$/gm, '"$1"') // missing closing quote at end of line
+          .replace(/":\s*"([^"]*?)\s*\n/gm, '": "$1"\n'); // fix unterminated strings before newline
+
+        // Try parsing again
+        const fixedMatch = fixed.match(/\{[\s\S]*\}/);
+        if (fixedMatch) {
+          try { nutrition = JSON.parse(fixedMatch[0]); }
+          catch(e2) { throw new Error('AI returned broken JSON data'); }
+        } else {
+          throw new Error('Could not find nutrition data in response');
+        }
+      }
 
       // Validate required fields
-      if (!nutrition.calories) throw new Error('AI did not return valid nutrition data');
+      if (!nutrition || !nutrition.calories) throw new Error('AI did not return valid nutrition data');
 
       const el = document.getElementById('nutritionContent');
       if (!el) return;
