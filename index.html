@@ -3955,6 +3955,7 @@
     toast.textContent = '📖 Importing recipe from URL...';
     document.body.appendChild(toast);
 
+    let scrapeData = null;
     try {
       const res = await fetch('/api/scrape', {
         method: 'POST',
@@ -3962,46 +3963,51 @@
         body: JSON.stringify({ url: importUrl })
       });
 
-      if (!res.ok) {
-        throw new Error('API returned HTTP ' + res.status);
+      // Even non-200 responses might have useful data
+      const rawText = await res.text();
+      try {
+        scrapeData = JSON.parse(rawText);
+      } catch(e) {
+        scrapeData = { status: 'Error', message: 'API returned invalid response (HTTP ' + res.status + ')' };
+      }
+    } catch(e) {
+      scrapeData = { status: 'Error', message: 'Network error: ' + (e.message || 'could not reach the server') };
+    }
+
+    console.log('Import URL scrape result:', JSON.stringify(scrapeData));
+
+    if (toast.parentNode) toast.remove();
+
+    const resultToast = document.createElement('div');
+
+    if (scrapeData.status === 'Success' && scrapeData.recipe) {
+      // Ensure source URL is set from the bookmarklet URL
+      if (!scrapeData.recipe.source_url && !scrapeData.recipe.sourceUrl) {
+        scrapeData.recipe.source_url = importUrl;
       }
 
-      const data = await res.json();
-      console.log('Import URL scrape result:', JSON.stringify(data));
-
-      if (toast.parentNode) toast.remove();
-
-      const resultToast = document.createElement('div');
-
-      if (data.status === 'Success' && data.recipe) {
-        try {
-          const saveRes = await addRecipe(currentUser, data.recipe);
-          resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
-          resultToast.textContent = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
-          document.body.appendChild(resultToast);
-          setTimeout(() => resultToast.remove(), 4000);
-          if (saveRes.status === 'Success') loadRecipes();
-        } catch(saveErr) {
-          console.error('addRecipe threw:', saveErr);
-          resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-          resultToast.textContent = '❌ Recipe data received but failed to save: ' + (saveErr.message || 'unknown error');
-          document.body.appendChild(resultToast);
-          setTimeout(() => resultToast.remove(), 5000);
-        }
-      } else {
+      try {
+        const saveRes = await addRecipe(currentUser, scrapeData.recipe);
+        resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+        resultToast.textContent = saveRes.status === 'Success' ? '✅ ' + saveRes.message : '❌ ' + saveRes.message;
+        document.body.appendChild(resultToast);
+        setTimeout(() => resultToast.remove(), 4000);
+        if (saveRes.status === 'Success') loadRecipes();
+      } catch(saveErr) {
+        console.error('addRecipe threw:', saveErr);
+        // The recipe might still have been saved even if the response failed
+        // Try loading recipes anyway
+        try { await loadRecipes(); } catch(e) {}
         resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-        resultToast.textContent = '❌ ' + (data.message || 'Could not extract recipe from that page. Try a different URL.');
+        resultToast.textContent = '❌ Recipe may have been saved but the response failed: ' + (saveErr.message || 'unknown error');
         document.body.appendChild(resultToast);
         setTimeout(() => resultToast.remove(), 5000);
       }
-    } catch(e) {
-      console.error('Import URL error:', e);
-      if (toast.parentNode) toast.remove();
-      const errToast = document.createElement('div');
-      errToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      errToast.textContent = '❌ Could not import recipe. ' + (e.message || 'The API may be unreachable.');
-      document.body.appendChild(errToast);
-      setTimeout(() => errToast.remove(), 5000);
+    } else {
+      resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      resultToast.textContent = '❌ ' + (scrapeData.message || 'Could not extract recipe from that page. Try a different URL.');
+      document.body.appendChild(resultToast);
+      setTimeout(() => resultToast.remove(), 5000);
     }
   }
 
