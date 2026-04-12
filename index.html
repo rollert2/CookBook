@@ -1793,10 +1793,10 @@
 
     <div class="admin-section">
       <div class="admin-section-title">🗑️ Database Cleanup</div>
-      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Remove stale or test data. These actions cannot be undone.</p>
-      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOrphanedRecipes()">🗑️ Remove orphaned recipes (no user)</button>
-      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupEmptyUsers()">👤 Remove empty accounts (0 recipes)</button>
-      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOldNotifications()">🔔 Clear old notifications (seen)</button>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Remove stale data. These actions cannot be undone.</p>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOrphanedRecipes()">🗑️ Remove orphaned recipes (no valid user)</button>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOldNotifications()">🔔 Clear old seen notifications</button>
+      <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminClearCache()">🧹 Clear cached recipe data</button>
       <div id="cleanupStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
     </div>
 
@@ -2178,9 +2178,12 @@
     // Default light for new users who have never set a theme
     const userThemeKey = 'rc_theme_user_' + currentUser;
     if (!localStorage.getItem(userThemeKey)) {
-      // First time for this user — default to light and save the preference
+      // First time for this user — force light mode regardless of previous session
+      document.body.classList.add('light-mode');
       localStorage.setItem('rc_theme', 'light');
       localStorage.setItem(userThemeKey, 'light');
+      // Also save to Supabase so loadTheme doesn't override it
+      try { updateUserSettings(currentUser, { theme: 'light' }); } catch(e) {}
     }
     loadTheme();
     initPullToRefresh();
@@ -4547,7 +4550,7 @@
 
     try {
       const allRecipes = await sbFetch('GET', 'recipes', null,
-        `select=id,title,user_id,category,created_at&ilike.title=%25${encodeURIComponent(q)}%25&order=created_at.desc&limit=50`);
+        `select=id,title,user_id,category,created_at&title=ilike.*${encodeURIComponent(q)}*&order=created_at.desc&limit=50`);
       if (!allRecipes || allRecipes.length === 0) {
         resultsEl.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:12px 0;text-align:center;">No recipes found</div>';
         countEl.textContent = '';
@@ -4605,28 +4608,6 @@
     }
   }
 
-  async function adminCleanupEmptyUsers() {
-    const statusEl = document.getElementById('cleanupStatus');
-    if (!await rcConfirm('Remove all users with 0 recipes?', {icon:'👤',title:'Cleanup empty accounts',confirmText:'Remove',danger:true})) return;
-    statusEl.textContent = 'Running...'; statusEl.style.color = 'var(--gold)';
-    try {
-      const users = await sbFetch('GET', 'users', null, 'select=username');
-      const recipes = await sbFetch('GET', 'recipes', null, 'select=user_id');
-      const usersWithRecipes = new Set((recipes||[]).map(r => r.user_id));
-      let removed = 0;
-      for (const u of (users||[])) {
-        if (!usersWithRecipes.has(u.id)) {
-          await sbFetch('DELETE', `users?id=eq.${u.id}`, null).catch(() => {});
-          removed++;
-        }
-      }
-      statusEl.textContent = '✅ Removed ' + removed + ' empty accounts'; statusEl.style.color = 'var(--green)';
-      setTimeout(() => { statusEl.textContent = ''; }, 4000);
-    } catch(e) {
-      statusEl.textContent = '❌ Cleanup failed: ' + e.message; statusEl.style.color = 'var(--red)';
-    }
-  }
-
   async function adminCleanupOldNotifications() {
     const statusEl = document.getElementById('cleanupStatus');
     if (!await rcConfirm('Delete all seen notifications?', {icon:'🔔',title:'Clear old notifications',confirmText:'Clear',danger:true})) return;
@@ -4638,6 +4619,22 @@
     } catch(e) {
       statusEl.textContent = '❌ Cleanup failed: ' + e.message; statusEl.style.color = 'var(--red)';
     }
+  }
+
+  async function adminClearCache() {
+    const statusEl = document.getElementById('cleanupStatus');
+    if (!await rcConfirm('Clear cached recipe data from localStorage?', {icon:'🧹',title:'Clear cache',confirmText:'Clear',danger:true})) return;
+    let cleared = 0;
+    const prefix = 'shopItems_' + currentUser;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key.startsWith(prefix) || key.startsWith('recipeCache') || key === 'offlineCache_' + currentUser) {
+        localStorage.removeItem(key);
+        cleared++;
+      }
+    }
+    statusEl.textContent = '✅ Cleared ' + cleared + ' cached items — reload to refresh'; statusEl.style.color = 'var(--green)';
+    setTimeout(() => { statusEl.textContent = ''; }, 3000);
   }
 
   // ═══ QUICK STATS ═══
