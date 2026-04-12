@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V44b -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V45 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -745,6 +745,7 @@
         <div class="user-badge" id="userBadge" onclick="openProfile()">
           <div class="user-badge-avatar" id="userBadgeAvatar"></div>
           <span id="userBadgeName"></span>
+          <span id="headerStreakBadge" style="display:none;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:1px 7px;font-size:0.65em;font-weight:700;margin-left:4px;">🔥0</span>
           <span id="notifBadge" onclick="event.stopPropagation();openProfile().then?.(()=>{});setTimeout(()=>{const s=document.getElementById('profileNotifSection');if(s&&s.style.display!=='none')s.scrollIntoView({behavior:'smooth',block:'start'});},450);" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;margin-left:2px;flex-shrink:0;"></span>
         </div>
         <button class="icon-btn" id="inboxBtn" onclick="openInbox()">🔔<span class="notif-badge" id="inboxBadge" style="display:none;"></span></button>
@@ -2439,15 +2440,15 @@
       const globalIdx = allRecipes.indexOf(r);
       const colName = getRecipeCollection(r.id);
       const favHtml = r.favourite ? '<div class="fav-badge">⭐</div>' : '';
-      const cookBadge = r.cookCount && r.cookCount > 0 ? '<div style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;border-radius:10px;padding:2px 7px;font-size:0.62em;font-weight:700;backdrop-filter:blur(4px);">🍳 ' + r.cookCount + 'x</div>' : '';
+      const cookBadge = r.cookCount && r.cookCount > 0 ? '<div style="position:absolute;top:6px;right:6px;z-index:3;background:rgba(0,0,0,0.65);color:#fff;border-radius:10px;padding:2px 8px;font-size:0.62em;font-weight:700;backdrop-filter:blur(4px);">🍳 ' + r.cookCount + 'x</div>' : '';
       const imgContent = hasImg
-        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>' + cookBadge
+        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>'
         : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>';
       const timeHtml = r.cookTime && r.cookTime.length < 30 ? '<span class="card-time">⏱ ' + r.cookTime + '</span>' : '';
       const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
       const colHtml = colName ? '<span class="card-collection">📁 ' + colName + '</span>' : '';
       const metaHtml = hasImg ? '' : '<div style="font-size:0.6em;color:var(--gold);text-transform:uppercase;font-weight:700;letter-spacing:0.8px;margin-bottom:2px;">' + r.category + '</div>';
-      return '<div class="glass-card" data-idx="' + globalIdx + '" onclick="handleCardClick(' + globalIdx + ')" ontouchstart="startLongPress(event,' + globalIdx + ')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()" oncontextmenu="showContextMenu(event,' + globalIdx + ');return false;" style="animation-delay:' + (i*0.025) + 's">' + favHtml + '<div class="card-img-wrap">' + imgContent + '</div><div class="card-info">' + metaHtml + '<div class="card-title">' + r.title + '</div><div class="card-footer">' + timeHtml + ratingHtml + colHtml + '</div></div></div>';
+      return '<div class="glass-card" data-idx="' + globalIdx + '" onclick="handleCardClick(' + globalIdx + ')" ontouchstart="startLongPress(event,' + globalIdx + ')" ontouchend="cancelLongPress()" ontouchmove="cancelLongPress()" oncontextmenu="showContextMenu(event,' + globalIdx + ');return false;" style="animation-delay:' + (i*0.025) + 's;position:relative;">' + favHtml + cookBadge + '<div class="card-img-wrap">' + imgContent + '</div><div class="card-info">' + metaHtml + '<div class="card-title">' + r.title + '</div><div class="card-footer">' + timeHtml + ratingHtml + colHtml + '</div></div></div>';
     });
     // Add "empty slot" add card if fewer than 6 recipes and no search/filter active
     if (allRecipes.length < 6 && activeCategories.has('All') && !showFavsOnly && !q) {
@@ -3127,12 +3128,16 @@
       const msgBadgeEl = document.getElementById('msgBellBadge');
       if (msgBadgeEl) { msgBadgeEl.style.display = unreadCount > 0 ? 'flex' : 'none'; msgBadgeEl.textContent = unreadCount; }
       // Bio already loaded in getUserProfile call above
-      // Show streak
+      // Show streak in profile + header
       const streakStat = document.getElementById('streakStat');
       const streakNum = document.getElementById('streakNum');
-      if (streakStat && streak > 0) {
-        streakStat.style.display = 'block';
-        streakNum.textContent = '🔥' + streak;
+      const headerStreak = document.getElementById('headerStreakBadge');
+      if (streak > 0) {
+        if (streakStat) streakStat.style.display = 'block';
+        if (streakNum) streakNum.textContent = '🔥' + streak;
+        if (headerStreak) { headerStreak.style.display = 'inline'; headerStreak.textContent = '🔥' + streak; }
+      } else {
+        if (headerStreak) headerStreak.style.display = 'none';
       }
       renderFriendsList(following);
       renderProfileNotifications();
@@ -3154,13 +3159,23 @@
   }
 
   let activeFriendOptionsUser = null;
-  function renderFriendsList(following) {
+  async function renderFriendsList(following) {
     const list = document.getElementById('friendsList');
     if (following.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Not following anyone yet.<br>Add a friend by username above.</div>'; return; }
+    // Fetch streaks for all friends in parallel
+    const streakMap = {};
+    await Promise.all(following.map(async u => {
+      try {
+        const res = await getUserSettings(u);
+        const s = res.settings && res.settings.cook_streak;
+        if (s && s > 0) streakMap[u] = s;
+      } catch(e) {}
+    }));
     list.innerHTML = following.map(u => {
+      const friendStreak = streakMap[u] ? ' <span style="font-size:0.72em;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:1px 6px;font-weight:700;">🔥' + streakMap[u] + '</span>' : '';
       return '<div class="friend-item" id="friend-item-' + u + '">' +
         '<div class="friend-avatar" id="friend-av-' + u + '" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;overflow:hidden;">' + u.charAt(0).toUpperCase() + '</div>' +
-        '<div class="friend-name" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;">' + u + '</div>' +
+        '<div class="friend-name" onclick="toggleFriendOptions(\'' + u + '\')" style="cursor:pointer;display:flex;align-items:center;gap:4px;">' + u + friendStreak + '</div>' +
         '<div id="friend-opts-' + u + '"></div>' +
       '</div>';
     }).join('');
@@ -10159,6 +10174,9 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
       });
 
       // Show streak toast if milestone
+      // Update header badge immediately
+      const hsBadge = document.getElementById('headerStreakBadge');
+      if (hsBadge) { hsBadge.style.display = 'inline'; hsBadge.textContent = '🔥' + newStreak; }
       if (newStreak > 1) {
         const milestones = [3, 7, 14, 30, 60, 100];
         const isMilestone = milestones.includes(newStreak);
