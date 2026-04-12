@@ -63,23 +63,15 @@ export default async function handler(req, res) {
       .trim()
       .slice(0, 8000);
 
-    const prompt = `You are a recipe extraction and cleanup assistant. Extract and CLEAN the recipe from the text below.
-
-Return ONLY a valid JSON object with these exact keys:
+    const prompt = `You are a recipe extraction assistant. Extract the recipe from the text below and return ONLY a valid JSON object with these exact keys:
 - "title": recipe name
 - "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
-- "ingredients": Clean, well-formatted ingredients as plain text — one per line. Rules:
-  * Use standard measurements (e.g. "2 cups", "1 tbsp", "½ tsp")
-  * Convert fractions to unicode: ½ ¼ ¾ ⅓ ⅔ ⅛
-  * Fix typos and abbreviations (tblsp→tbsp, oz.→oz, cloves garlic→garlic cloves)
-  * Remove unnecessary punctuation or weird formatting
-  * Preserve section headers if present (e.g. "For the Marinade:") on their own line
-  * Each ingredient on its own line — no bullet points, no numbers
-- "instructions": Clean numbered steps, each on its own line. Start each with a number and period (e.g. "1. Preheat oven..."). Fix any garbled or run-on text.
-- "notes": All recipe notes, tips, variations, substitutions, make-ahead instructions. Include numbered notes (Note 1:, Note 2:). Empty string if none.
+- "ingredients": ingredients as plain text. If the recipe has multiple ingredient sections (e.g. "For the Marinade", "For Cooking"), preserve each section header on its own line followed by the ingredients for that section. Each ingredient on its own line.
+- "instructions": numbered steps, each on its own line
+- "notes": extract ALL recipe notes, tips, variations, substitutions, and make-ahead instructions. Include numbered or labeled notes exactly as written (e.g. "Note 1:", "Note 2:"). If steps reference notes, include the full note content here. Empty string if none.
 - "cookTime": total time e.g. "35 min" (empty string if not found)
 - "prepTime": prep time e.g. "15 min" (empty string if not found)
-- "servings": e.g. "4 servings" or "Makes 12 cookies" (empty string if not found)
+- "servings": serving size e.g. "4 servings" or "Makes 12 cookies" (empty string if not found)
 
 Return ONLY raw JSON. No markdown, no backticks, no explanation.
 

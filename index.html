@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V44 -->
+<!DOCTYPE html><!-- 2026-04-09 BUILD-PRELAUNCH-V43 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1062,10 +1062,6 @@
           <div class="detail-action-b-icon">🌐</div>
           <div class="detail-action-b-label">Source</div>
         </div>
-        <div class="detail-action-b" onclick="showNutritionEstimate()">
-          <div class="detail-action-b-icon">🥗</div>
-          <div class="detail-action-b-label">Nutrition</div>
-        </div>
         <div class="detail-action-b" onclick="enterEditMode()">
           <div class="detail-action-b-icon">✏️</div>
           <div class="detail-action-b-label">Edit</div>
@@ -1105,10 +1101,6 @@
           <button class="scale-btn" data-scale="1" onclick="changeScale(1)">1×</button>
           <button class="scale-btn" data-scale="2" onclick="changeScale(2)">2×</button>
           <button class="scale-btn" data-scale="3" onclick="changeScale(3)">3×</button>
-          <div style="margin-left:auto;display:flex;border:1px solid var(--glass-border);border-radius:20px;overflow:hidden;flex-shrink:0;">
-            <button id="unitBtnImperial" onclick="setUnitPref('imperial')" style="padding:5px 11px;border:none;background:var(--gold);color:var(--bg);font-size:0.72em;font-weight:700;cursor:pointer;font-family:inherit;">US</button>
-            <button id="unitBtnMetric" onclick="setUnitPref('metric')" style="padding:5px 11px;border:none;background:transparent;color:var(--text-faint);font-size:0.72em;font-weight:700;cursor:pointer;font-family:inherit;">Metric</button>
-          </div>
         </div>
       </div>
       <!-- Converter -->
@@ -1266,14 +1258,6 @@
     <div class="modal-body">
       <!-- Two big mode selector cards -->
       <div id="addModeSelect" style="display:flex;flex-direction:column;gap:12px;padding:8px 0 20px;">
-        <div onclick="switchSyncTab('scan')" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
-          <div style="font-size:2.2em;flex-shrink:0;">📷</div>
-          <div>
-            <div style="font-size:1em;font-weight:800;margin-bottom:3px;">Scan a Recipe</div>
-            <div style="font-size:0.82em;color:var(--text-dim);line-height:1.4;">Take a photo of a recipe in a cookbook, magazine, or handwritten card.</div>
-          </div>
-          <div style="margin-left:auto;color:var(--text-faint);font-size:1.2em;">›</div>
-        </div>
         <div onclick="switchSyncTab('manual')" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:20px 18px;cursor:pointer;display:flex;align-items:center;gap:16px;">
           <div style="font-size:2.2em;flex-shrink:0;">✏️</div>
           <div>
@@ -1344,41 +1328,6 @@
         <textarea id="pasteInput" class="edit-field" style="height:200px;" placeholder="e.g. Chicken Pasta&#10;Ingredients: 200g pasta, 1 chicken breast...&#10;Instructions: Boil pasta..."></textarea>
         <div class="ai-result" id="pasteResult" style="margin-top:10px;display:none;"></div>
         <button class="btn btn-primary" style="margin-top:10px;" id="parsePasteBtn" onclick="parsePastedRecipe()">✨ Parse with AI</button>
-      </div>
-      <!-- SCAN TAB -->
-      <div id="tabScan" style="display:none;">
-        <div style="text-align:center;padding:16px 0 12px;">
-          <div style="font-size:2.5em;margin-bottom:8px;">📷</div>
-          <div style="font-size:1em;font-weight:800;margin-bottom:6px;">Scan a Recipe</div>
-          <div style="font-size:0.82em;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Point your camera at a recipe in a cookbook, magazine, or handwritten card. AI will extract all the details.</div>
-        </div>
-
-        <!-- Camera capture -->
-        <div style="text-align:center;margin-bottom:16px;">
-          <div id="scanPreviewWrap" style="display:none;margin-bottom:12px;position:relative;">
-            <img id="scanPreviewImg" style="width:100%;max-height:300px;object-fit:contain;border-radius:var(--radius-sm);border:1px solid var(--glass-border);">
-            <button onclick="clearScanPhoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:0.9em;cursor:pointer;">✕</button>
-          </div>
-          <input type="file" id="scanFileInput" accept="image/*" capture="environment" style="display:none;" onchange="handleScanPhoto(this)">
-          <button onclick="document.getElementById('scanFileInput').click()" id="scanCameraBtn" style="width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:1em;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:8px;">📷 Take Photo</button>
-          <button onclick="document.getElementById('scanFileInput').removeAttribute('capture');document.getElementById('scanFileInput').click();document.getElementById('scanFileInput').setAttribute('capture','environment')" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">🖼️ Choose from Gallery</button>
-        </div>
-
-        <div id="scanStatus" style="display:none;text-align:center;padding:16px;color:var(--text-faint);font-size:0.85em;">
-          <div style="font-size:1.5em;margin-bottom:8px;">🔍</div>
-          <span id="scanStatusText">Reading recipe...</span>
-        </div>
-        <div id="scanResult" class="ai-result" style="display:none;"></div>
-
-        <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
-          <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">TIPS FOR BEST RESULTS</div>
-          <div style="font-size:0.78em;color:var(--text-dim);line-height:1.7;">
-            • Good lighting makes a big difference<br>
-            • Hold steady — blurry photos fail<br>
-            • Fit the full recipe in frame<br>
-            • Works great on cookbook pages, recipe cards, and screenshots
-          </div>
-        </div>
       </div>
 
       <!-- Hidden legacy tabs (kept for JSON/bulk export access via direct calls) -->
@@ -2438,11 +2387,10 @@
       const hasImg = r.image && r.image.trim();
       const globalIdx = allRecipes.indexOf(r);
       const imgContent = hasImg
-        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>' + cookBadge
+        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>'
         : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>';
       const colName = getRecipeCollection(r.id);
       const favHtml = r.favourite ? '<div class="fav-badge">⭐</div>' : '';
-      const cookBadge = r.cookCount && r.cookCount > 0 ? '<div style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;border-radius:10px;padding:2px 7px;font-size:0.62em;font-weight:700;backdrop-filter:blur(4px);">🍳 ' + r.cookCount + 'x</div>' : '';
       const timeHtml = r.cookTime && r.cookTime.length < 30 ? '<span class="card-time">⏱ ' + r.cookTime + '</span>' : '';
       const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
       const colHtml = colName ? '<span class="card-collection">📁 ' + colName + '</span>' : '';
@@ -3094,8 +3042,7 @@
     const adminBtn = document.getElementById('adminPanelBtnWrap');
     if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
 
-    Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser), getUserSettings(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount, settingsRes]) => {
-      const streak = (settingsRes.settings && settingsRes.settings.cook_streak) || 0;
+    Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount]) => {
       if (stats.status !== 'Success') return;
       const following = friendsRes.following || [];
       // Build hero with avatar
@@ -3113,7 +3060,6 @@
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.recipeCount + '</div><div class="profile-stat-label">Recipes</div></div>' +
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');showFavsOnly=true;renderRecipes();},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div>' +
           '<div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div>' +
-          '<div class="profile-stat" id="streakStat" style="display:none;"><div class="profile-stat-num" id="streakNum" style="color:var(--gold);">🔥0</div><div class="profile-stat-label">Streak</div></div>' +
           '</div>';
       });
       // Update settings avatar preview
@@ -3127,13 +3073,6 @@
       const msgBadgeEl = document.getElementById('msgBellBadge');
       if (msgBadgeEl) { msgBadgeEl.style.display = unreadCount > 0 ? 'flex' : 'none'; msgBadgeEl.textContent = unreadCount; }
       // Bio already loaded in getUserProfile call above
-      // Show streak
-      const streakStat = document.getElementById('streakStat');
-      const streakNum = document.getElementById('streakNum');
-      if (streakStat && streak > 0) {
-        streakStat.style.display = 'block';
-        streakNum.textContent = '🔥' + streak;
-      }
       renderFriendsList(following);
       renderProfileNotifications();
       document.getElementById('friendRecipesSection').style.display = 'none';
@@ -4646,7 +4585,6 @@
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
-      if (userSettings.unit_preference) { _unitPref = userSettings.unit_preference; }
       if (currentUser === 'rollert2') checkExpiredDeletionsAdmin();
       checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
       setTimeout(adjustHeaderPadding, 100);
@@ -6408,20 +6346,9 @@
 
     // Ingredients
     const ings = parseIngredients(r.ingredients);
-    document.getElementById('ingredientsList').innerHTML = ings.map((ing, _ii) => {
-      const isHeader = ing.endsWith(':') || (ing.length < 40 && !ing.match(/^[\d½¼¾⅓⅔⅛]/));
-      if (isHeader && !ing.match(/^[\d½¼¾⅓⅔⅛]/)) {
-        return '<div class="ingredient-line" style="font-weight:700;color:var(--gold);font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;padding-bottom:2px;border-bottom:none;">' + decodeHtml(ing) + '</div>';
-      }
-      const scaled = decodeHtml(convertIngredientUnits(scaleIngredientLine(ing, currentScale), _unitPref));
-      // Use data-ing attribute to avoid quoting issues in onclick
-      const div = document.createElement('div');
-      div.className = 'ingredient-line';
-      div.style.cursor = 'pointer';
-      div.dataset.ing = ing;
-      div.innerHTML = '<div class="ingredient-line-dot"></div><span>' + scaled + '</span><span style="margin-left:auto;font-size:0.7em;color:var(--text-faint);flex-shrink:0;padding-left:6px;">sub?</span>';
-      div.onclick = function() { showSubstitution(this, this.dataset.ing); };
-      return div.outerHTML;    }).join('');
+    document.getElementById('ingredientsList').innerHTML = ings.map(ing =>
+      '<div class="ingredient-line"><div class="ingredient-line-dot"></div>' + decodeHtml(scaleIngredientLine(ing, currentScale)) + '</div>'
+    ).join('');
 
     // Init servings slider
     const slider = document.getElementById('servingsSlider');
@@ -6786,14 +6713,13 @@ ${text}`;
   // ═══ PASTE TAB ROUTING ════════════════════════════════════
   function switchSyncTab(tab) {
     document.getElementById('addModeSelect').style.display = 'none';
-    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste','tabScan'].forEach(id => {
+    ['tabManual','tabUrl','tabJson','tabBulk','tabExport','tabPaste'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
     if (tab === 'manual')  { const el = document.getElementById('tabManual');  if (el) el.style.display = 'block'; }
     else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
     else if (tab === 'paste')  { const el = document.getElementById('tabPaste');  if (el) el.style.display = 'block'; }
-    else if (tab === 'scan')   { const el = document.getElementById('tabScan');   if (el) el.style.display = 'block'; }
     else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
     else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
     else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
@@ -6852,7 +6778,6 @@ ${text}`;
     if (res.status === 'Success') {
       r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
       document.getElementById('cookCompletionLastCooked').textContent = 'Marked as cooked ✅';
-      updateCookStreak();
     }
   }
   async function saveJournalFromCompletion() {
@@ -6885,7 +6810,6 @@ ${text}`;
     const res = await markRecipeCooked(r.id, currentUser);
     if (res.status === 'Success') {
       r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
-      updateCookStreak();
       if (btn) {
         btn.querySelector('.detail-action-b-icon').textContent = '✅';
         btn.querySelector('.detail-action-b-icon').style.filter = 'none';
@@ -9888,362 +9812,6 @@ ${text}`;
   }
 
 
-
-
-  // ═══ RECIPE PHOTO SCAN ══════════════════════════════════
-
-  let _scanPhotoData = null;
-
-  function handleScanPhoto(input) {
-    if (!input.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      _scanPhotoData = e.target.result;
-      const preview = document.getElementById('scanPreviewWrap');
-      const img = document.getElementById('scanPreviewImg');
-      if (preview) preview.style.display = 'block';
-      if (img) img.src = e.target.result;
-      // Auto-trigger scan
-      scanRecipeFromPhoto();
-    };
-    reader.readAsDataURL(input.files[0]);
-  }
-
-  function clearScanPhoto() {
-    _scanPhotoData = null;
-    const preview = document.getElementById('scanPreviewWrap');
-    if (preview) preview.style.display = 'none';
-    const input = document.getElementById('scanFileInput');
-    if (input) input.value = '';
-    const result = document.getElementById('scanResult');
-    if (result) result.style.display = 'none';
-  }
-
-  async function scanRecipeFromPhoto() {
-    if (!_scanPhotoData) return;
-    const status = document.getElementById('scanStatus');
-    const statusText = document.getElementById('scanStatusText');
-    const result = document.getElementById('scanResult');
-
-    if (status) status.style.display = 'block';
-    if (result) result.style.display = 'none';
-
-    const msgs = ['Reading recipe text...', 'Identifying ingredients...', 'Formatting recipe...', 'Almost done...'];
-    let mi = 0;
-    if (statusText) statusText.textContent = msgs[0];
-    const interval = setInterval(() => { mi = Math.min(mi+1, msgs.length-1); if (statusText) statusText.textContent = msgs[mi]; }, 2500);
-
-    try {
-      // Strip data URL prefix
-      const base64 = _scanPhotoData.split(',')[1];
-      const mimeType = _scanPhotoData.split(';')[0].split(':')[1];
-
-      const prompt = `You are a recipe extraction assistant. This is a photo of a recipe from a cookbook, magazine, recipe card, or handwritten note.
-
-Extract the complete recipe and return ONLY a valid JSON object with these keys:
-- "title": recipe name
-- "category": one of (Breakfast, Lunch, Dinner, Dessert, Snack, Drink, Sides, General)
-- "ingredients": all ingredients, ONE per line, with quantities. Clean up any OCR errors. Use standard measurements (tbsp, tsp, cup, oz, g). Convert fractions to unicode (½ ¼ ¾ ⅓). Preserve section headers on their own line if present.
-- "instructions": numbered steps, one per line. Clean up any OCR errors or garbled text.
-- "notes": any tips, variations, or notes. Empty string if none.
-- "cookTime": e.g. "45 min" or empty string
-- "prepTime": e.g. "15 min" or empty string
-- "servings": e.g. "4 servings" or empty string
-
-Return ONLY raw JSON. No markdown, no backticks.`;
-
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          image: { base64, mimeType }
-        })
-      });
-      const data = await res.json();
-      clearInterval(interval);
-      if (status) status.style.display = 'none';
-
-      if (!res.ok || data.error) throw new Error(data.error || 'AI error');
-
-      let recipe;
-      try { recipe = JSON.parse((data.text || '').replace(/```json|```/g, '').trim()); }
-      catch(e) { throw new Error('Could not read the recipe from this photo. Try better lighting or a clearer angle.'); }
-
-      if (!recipe.title || !recipe.ingredients) {
-        throw new Error('Could not find a complete recipe in this photo. Make sure the full recipe is visible.');
-      }
-
-      // Flatten arrays
-      const flat = v => Array.isArray(v) ? v.join('\n') : (v || '');
-      recipe.ingredients = flat(recipe.ingredients);
-      recipe.instructions = flat(recipe.instructions);
-      recipe.notes = flat(recipe.notes);
-
-      const validatedCat = await validateRecipeCategory(recipe.title, recipe.category || '');
-      recipe.category = validatedCat;
-
-      const saveRes = await addRecipe(currentUser, recipe);
-      if (result) {
-        result.style.display = 'block';
-        result.className = saveRes.status === 'Success' ? 'ai-result success' : 'ai-result error';
-        result.innerHTML = saveRes.status === 'Success'
-          ? '✅ ' + saveRes.message + ' — tap Edit to review and add a photo.'
-          : '❌ ' + saveRes.message;
-      }
-      if (saveRes.status === 'Success') { clearScanPhoto(); init(); }
-    } catch(err) {
-      clearInterval(interval);
-      if (status) status.style.display = 'none';
-      if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = '❌ ' + err.message; }
-    }
-  }
-
-  // ═══ INGREDIENT SUBSTITUTION ════════════════════════════
-
-  let _subPopup = null;
-
-  function showSubstitution(el, ingredient) {
-    // Close existing popup
-    if (_subPopup) { _subPopup.remove(); _subPopup = null; }
-
-    const popup = document.createElement('div');
-    popup.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:70vh;overflow-y:auto;';
-    _subPopup = popup;
-
-    const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
-    ov.onclick = () => { popup.remove(); ov.remove(); _subPopup = null; };
-
-    popup.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">SUBSTITUTES FOR</div>' +
-      '<div style="font-size:0.95em;font-weight:800;margin-bottom:14px;">' + escapeHtml(ingredient) + '</div>' +
-      '<div id="subContent" style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">Finding substitutes...</div>';
-
-    document.body.appendChild(ov);
-    document.body.appendChild(popup);
-
-    // Call AI
-    const prompt = `A cook needs a substitute for: "${ingredient}"
-
-Provide 3-4 practical substitutes. For each, give:
-1. The substitute name and amount adjustment if needed
-2. One sentence on when it works best or any taste difference
-
-Keep it concise and practical. Format as plain text with each substitute on a new paragraph. No bullet symbols, no markdown.`;
-
-    fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, maxTokens: 400 })
-    }).then(r => r.json()).then(data => {
-      const el = document.getElementById('subContent');
-      if (!el) return;
-      if (data.error) { el.innerHTML = '<span style="color:var(--red);">Could not load substitutes.</span>'; return; }
-      el.innerHTML = (data.text || '').trim().split('\n\n').filter(Boolean).map(p =>
-        '<div style="padding:10px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;line-height:1.6;color:var(--text);">' + escapeHtml(p.trim()) + '</div>'
-      ).join('') + '<button onclick="this.parentNode.parentNode.parentNode.remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
-    }).catch(() => {
-      const el = document.getElementById('subContent');
-      if (el) el.innerHTML = '<span style="color:var(--red);">Network error. Try again.</span>';
-    });
-  }
-
-  // ═══ UNIT PREFERENCE (Metric / Imperial) ════════════════
-
-  let _unitPref = 'imperial'; // default
-
-  function setUnitPref(pref) {
-    _unitPref = pref;
-    // Update button styles
-    const imp = document.getElementById('unitBtnImperial');
-    const met = document.getElementById('unitBtnMetric');
-    if (imp) { imp.style.background = pref === 'imperial' ? 'var(--gold)' : 'transparent'; imp.style.color = pref === 'imperial' ? 'var(--bg)' : 'var(--text-faint)'; }
-    if (met) { met.style.background = pref === 'metric' ? 'var(--gold)' : 'transparent'; met.style.color = pref === 'metric' ? 'var(--bg)' : 'var(--text-faint)'; }
-    // Save preference
-    updateUserSettings(currentUser, { unit_preference: pref }).catch(() => {});
-    // Re-render ingredients with new unit
-    renderDetailContent();
-  }
-
-  function loadUnitPref() {
-    const saved = userSettings.unit_preference || 'imperial';
-    _unitPref = saved;
-    // Sync buttons if detail modal is open
-    const imp = document.getElementById('unitBtnImperial');
-    const met = document.getElementById('unitBtnMetric');
-    if (imp) { imp.style.background = saved === 'imperial' ? 'var(--gold)' : 'transparent'; imp.style.color = saved === 'imperial' ? 'var(--bg)' : 'var(--text-faint)'; }
-    if (met) { met.style.background = saved === 'metric' ? 'var(--gold)' : 'transparent'; met.style.color = saved === 'metric' ? 'var(--bg)' : 'var(--text-faint)'; }
-  }
-
-  // Convert a single ingredient line between metric and imperial
-  function convertIngredientUnits(line, toPref) {
-    if (toPref === 'imperial') {
-      // Metric → Imperial
-      return line
-        .replace(/(\d+(?:\.\d+)?)\s*g\b/g, (_, n) => {
-          const oz = (parseFloat(n) / 28.3495).toFixed(1);
-          return oz + ' oz';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*kg\b/g, (_, n) => {
-          const lb = (parseFloat(n) / 0.453592).toFixed(1);
-          return lb + ' lb';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*ml\b/g, (_, n) => {
-          const fl = (parseFloat(n) / 29.5735).toFixed(1);
-          return fl + ' fl oz';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*l\b/gi, (_, n) => {
-          const cups = (parseFloat(n) * 4.22675).toFixed(1);
-          return cups + ' cups';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*°?C\b/g, (_, n) => {
-          const f = Math.round(parseFloat(n) * 9/5 + 32);
-          return f + '°F';
-        });
-    } else {
-      // Imperial → Metric
-      return line
-        .replace(/(\d+(?:\.\d+)?)\s*oz\b/g, (_, n) => {
-          const g = Math.round(parseFloat(n) * 28.3495);
-          return g + 'g';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*lb\b/g, (_, n) => {
-          const kg = (parseFloat(n) * 0.453592).toFixed(2);
-          return kg + 'kg';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*cup[s]?\b/gi, (_, n) => {
-          const ml = Math.round(parseFloat(n) * 236.588);
-          return ml + 'ml';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*tbsp\b/gi, (_, n) => {
-          const ml = Math.round(parseFloat(n) * 14.7868);
-          return ml + 'ml';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*tsp\b/gi, (_, n) => {
-          const ml = (parseFloat(n) * 4.92892).toFixed(1);
-          return ml + 'ml';
-        })
-        .replace(/(\d+(?:\.\d+)?)\s*°?F\b/g, (_, n) => {
-          const c = Math.round((parseFloat(n) - 32) * 5/9);
-          return c + '°C';
-        });
-    }
-  }
-
-  // ═══ STREAK TRACKING ════════════════════════════════════
-
-  async function updateCookStreak() {
-    try {
-      const res = await getUserSettings(currentUser);
-      const settings = res.settings || {};
-      const today = new Date().toISOString().slice(0, 10);
-      const lastDate = settings.last_streak_date || '';
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
-      let newStreak = settings.cook_streak || 0;
-
-      if (lastDate === today) {
-        // Already cooked today — no change
-        return newStreak;
-      } else if (lastDate === yesterday) {
-        // Consecutive day — extend streak
-        newStreak++;
-      } else {
-        // Streak broken or first time
-        newStreak = 1;
-      }
-
-      await updateUserSettings(currentUser, {
-        cook_streak: newStreak,
-        last_streak_date: today
-      });
-
-      // Show streak toast if milestone
-      if (newStreak > 1) {
-        const milestones = [3, 7, 14, 30, 60, 100];
-        const isMilestone = milestones.includes(newStreak);
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);color:var(--text);padding:12px 20px;border-radius:20px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
-        toast.innerHTML = isMilestone
-          ? '🔥 ' + newStreak + ' day streak! Amazing!'
-          : '🔥 ' + newStreak + ' day cooking streak!';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      }
-
-      return newStreak;
-    } catch(e) { return 0; }
-  }
-
-  // ═══ NUTRITION ESTIMATES ════════════════════════════════
-
-  async function showNutritionEstimate() {
-    const r = allRecipes[activeRecipeIndex];
-    if (!r) return;
-
-    const existing = document.getElementById('nutritionPanel');
-    if (existing) { existing.remove(); return; }
-
-    const sheet = document.createElement('div');
-    sheet.id = 'nutritionPanel';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:75vh;overflow-y:auto;';
-    const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
-    ov.onclick = () => { sheet.remove(); ov.remove(); };
-
-    sheet.innerHTML =
-      '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">NUTRITION ESTIMATE</div>' +
-      '<div style="font-size:0.95em;font-weight:800;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
-      '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:14px;">Per serving' + (r.servings ? ' · ' + r.servings : '') + ' · AI estimate, not medical advice</div>' +
-      '<div id="nutritionContent" style="color:var(--text-faint);font-size:0.85em;">Calculating...</div>';
-
-    document.body.appendChild(ov);
-    document.body.appendChild(sheet);
-
-    const prompt = `Estimate the nutrition for this recipe per serving. Give rough estimates only.
-
-Recipe: ${r.title}
-Servings: ${r.servings || 'unknown'}
-Ingredients:
-${r.ingredients}
-
-Return ONLY a JSON object with these keys (all numbers, per serving):
-{ "calories": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0, "fiber_g": 0, "sodium_mg": 0, "disclaimer": "one sentence about estimate accuracy" }`;
-
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, maxTokens: 300 })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      const nutrition = JSON.parse((data.text || '').replace(/```json|```/g,'').trim());
-      const el = document.getElementById('nutritionContent');
-      if (!el) return;
-
-      const stat = (label, val, unit, color) =>
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">' +
-        '<span style="font-size:0.88em;color:var(--text-dim);">' + label + '</span>' +
-        '<span style="font-weight:700;font-size:0.95em;color:' + (color || 'var(--text)') + ';">' + val + '<span style="font-size:0.7em;font-weight:400;color:var(--text-faint);margin-left:2px;">' + unit + '</span></span></div>';
-
-      el.innerHTML =
-        '<div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:12px;text-align:center;margin-bottom:14px;">' +
-        '<div style="font-size:2em;font-weight:900;color:var(--gold);">' + nutrition.calories + '</div>' +
-        '<div style="font-size:0.72em;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;">Calories</div></div>' +
-        stat('Protein', nutrition.protein_g, 'g', '#4caf7d') +
-        stat('Carbohydrates', nutrition.carbs_g, 'g') +
-        stat('Fat', nutrition.fat_g, 'g') +
-        stat('Fiber', nutrition.fiber_g, 'g', '#4caf7d') +
-        stat('Sodium', nutrition.sodium_mg, 'mg') +
-        '<div style="font-size:0.72em;color:var(--text-faint);margin-top:12px;line-height:1.5;font-style:italic;">' + escapeHtml(nutrition.disclaimer || 'These are rough estimates.') + '</div>' +
-        '<button onclick="document.getElementById(\'nutritionPanel\').remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
-    } catch(err) {
-      const el = document.getElementById('nutritionContent');
-      if (el) el.innerHTML = '<span style="color:var(--red);">Could not estimate nutrition. Try again.</span>';
-    }
-  }
 
 </script>
 </body>
