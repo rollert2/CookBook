@@ -652,6 +652,74 @@
   }
 })();
 </script>
+<script>
+// ═══ SHARE DEBUG LOGGER — logs everything Median might inject ═══
+(function logShareData() {
+  var logs = [];
+  function log(label, value) {
+    logs.push({ label: label, value: typeof value === 'object' ? JSON.stringify(value).slice(0, 500) : String(value) });
+  }
+
+  // Log URL
+  log('URL', window.location.href);
+  log('search', window.location.search);
+
+  // Check all possible Median injection points
+  try {
+    log('median defined', typeof median !== 'undefined');
+    if (typeof median !== 'undefined') {
+      var mKeys = Object.keys(median);
+      log('median keys', mKeys.join(', '));
+      // Try calling every Median method to find share data
+      for (var i = 0; i < mKeys.length; i++) {
+        var key = mKeys[i];
+        if (typeof median[key] === 'function' && key.toLowerCase().indexOf('get') === 0) {
+          try {
+            var result = median[key]();
+            log('median.' + key + '()', result);
+          } catch(e) {
+            log('median.' + key + '() error', e.message);
+          }
+        }
+      }
+    }
+  } catch(e) { log('median check error', e.message); }
+
+  // Check window properties
+  var shareKeys = ['sharedContent', 'sharedData', 'intent', 'shareData', 'sharedText', 'sharedUrl', 'sharedTitle', 'appShareData', 'windowShareData'];
+  for (var j = 0; j < shareKeys.length; j++) {
+    if (window[shareKeys[j]] !== undefined) log('window.' + shareKeys[j], window[shareKeys[j]]);
+  }
+
+  // Check body attributes after DOM ready
+  if (document.body) {
+    for (var k = 0; k < document.body.attributes.length; k++) {
+      var attr = document.body.attributes[k];
+      log('body.' + attr.name, attr.value);
+    }
+  }
+
+  // Log all window properties that look Median/share related
+  var allKeys = Object.keys(window).filter(function(k) {
+    return k.toLowerCase().indexOf('median') > -1 ||
+           k.toLowerCase().indexOf('share') > -1 ||
+           k.toLowerCase().indexOf('intent') > -1 ||
+           k.toLowerCase().indexOf('content') > -1;
+  });
+  if (allKeys.length > 0) {
+    log('window share-like keys', allKeys.join(', '));
+    for (var m = 0; m < allKeys.length; m++) {
+      var val = window[allKeys[m]];
+      try { log('window.' + allKeys[m], typeof val === 'object' ? JSON.stringify(val).slice(0, 200) : val); }
+      catch(e) { log('window.' + allKeys[m], '[complex object]'); }
+    }
+  }
+
+  // Store for later use
+  window._shareDebugLogs = logs;
+  console.log('=== SHARE DEBUG LOG ===', JSON.stringify(logs, null, 2));
+})();
+</script>
 </head>
 <body>
 
@@ -1220,6 +1288,12 @@
       <button id="streakDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openStreakDashboard()">
         <span>🔥</span>
         <span>Cooking Streaks</span>
+      </button>
+    </div>
+    <div style="padding:0 16px 4px;">
+      <button class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="showShareDebugLogs()">
+        <span>🔍</span>
+        <span>Share Debug Info</span>
       </button>
     </div>
     <div id="profileHero" class="profile-hero"></div>
@@ -11069,6 +11143,52 @@ ${r.ingredients}`;
   function toggleNutritionRange() {
     const newDays = nutritionDays === 7 ? 30 : 7;
     loadNutritionDashboard(newDays);
+  }
+
+  // ═══ SHARE DEBUG VIEWER ═══
+  function showShareDebugLogs() {
+    closeProfileAnimated();
+    const modal = document.createElement('div');
+    modal.id = 'shareDebugModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('shareDebugModal').remove();setTimeout(()=>openProfile(),200);" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">🔍 Share Debug</span>
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(window._shareDebugLogs||[],null,2));this.textContent='Copied!';" style="padding:6px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.75em;font-weight:700;cursor:pointer;">📋 Copy</button>
+      </div>
+      <div style="padding:16px;">
+        <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;">
+          After sharing from TikTok/another app, this shows everything the app detected. If you see nothing below, Median isn't injecting data in any known way.
+        </div>
+        <div id="shareDebugBody" style="font-family:monospace;font-size:0.72em;color:var(--text-faint);background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:12px;max-height:70vh;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const body = document.getElementById('shareDebugBody');
+    if (!body) return;
+
+    const logs = window._shareDebugLogs || [];
+    const medianObj = {};
+    try {
+      if (typeof median !== 'undefined') {
+        const keys = Object.keys(median);
+        for (const k of keys) {
+          try { medianObj[k] = typeof median[k] === 'function' ? '[function]' : median[k]; }
+          catch(e) { medianObj[k] = '[error: ' + e.message + ']'; }
+        }
+      }
+    } catch(e) {}
+
+    const data = {
+      url: window.location.href,
+      search: window.location.search,
+      median_object: medianObj,
+      window_share_keys: Object.keys(window).filter(k => k.toLowerCase().includes('share') || k.toLowerCase().includes('intent') || k.toLowerCase().includes('content')),
+      early_logs: logs,
+    };
+
+    body.textContent = JSON.stringify(data, null, 2);
   }
 
   // ═══ COOKING STREAKS DASHBOARD ════════════════════════
