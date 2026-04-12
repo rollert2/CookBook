@@ -132,6 +132,14 @@ ${cleanText}`;
       return res.json({ status: 'Error', message: 'AI extracted incomplete data. Try a different URL.' });
     }
 
+    // Debug logging for key fields
+    console.log('Scrape result fields:', {
+      cookTime: recipe.cookTime,
+      prepTime: recipe.prepTime,
+      servings: recipe.servings,
+      category: recipe.category
+    });
+
     // Always attach source URL so we can link back to original
     recipe.source_url = url;
 
@@ -204,24 +212,39 @@ function parseJsonLdRecipe(schema) {
     if (!ingredients || !instructions) return null;
 
     // Parse cook time from ISO 8601 duration e.g. PT1H30M
-    let cookTime = '';
-    const totalTime = schema.totalTime || schema.cookTime;
-    if (totalTime) {
-      const match = totalTime.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    const parseDuration = (dur) => {
+      if (!dur) return '';
+      const match = String(dur).match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
       if (match) {
         const hours = parseInt(match[1] || 0);
         const mins = parseInt(match[2] || 0);
-        cookTime = hours > 0 ? `${hours} hr ${mins > 0 ? mins + ' min' : ''}`.trim() : `${mins} min`;
+        return hours > 0 ? `${hours} hr ${mins > 0 ? mins + ' min' : ''}`.trim() : `${mins} min`;
       }
-    }
+      return '';
+    };
+
+    const cookTime = parseDuration(schema.cookTime);
+    const prepTime = parseDuration(schema.prepTime);
+    const totalTime = parseDuration(schema.totalTime);
+
+    // Servings from recipeYield
+    const servings = schema.recipeYield
+      ? (typeof schema.recipeYield === 'number' ? schema.recipeYield + ' servings' : String(schema.recipeYield))
+      : '';
+
+    // Category from recipeCategory
+    const categoryRaw = schema.recipeCategory;
+    const category = Array.isArray(categoryRaw) ? categoryRaw[0] : (categoryRaw || 'General');
 
     return sanitizeRecipe({
       title,
-      category: 'General',
+      category,
       ingredients,
       instructions,
       notes: schema.description || '',
-      cookTime,
+      cookTime: cookTime || totalTime || '',
+      prepTime,
+      servings,
       image: typeof schema.image === 'string' ? schema.image
            : Array.isArray(schema.image) ? schema.image[0]
            : schema.image?.url || ''
