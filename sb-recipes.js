@@ -450,3 +450,74 @@ async function removeFromFeatured(featuredId, username) {
   await sbFetch('DELETE', `featured?id=eq.${featuredId}`, null);
   return { status: 'Success' };
 }
+
+// ── NUTRITION LOGGING ────────────────────────────────────────
+
+async function logNutritionEntry(username, entryData) {
+  // entryData = { recipe_id, recipe_title, log_date, calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, servings }
+  await sbFetch('POST', 'nutrition_logs', {
+    username,
+    recipe_id: entryData.recipe_id || null,
+    recipe_title: entryData.recipe_title || null,
+    log_date: entryData.log_date || new Date().toISOString().slice(0, 10),
+    calories: entryData.calories || 0,
+    protein_g: entryData.protein_g || 0,
+    carbs_g: entryData.carbs_g || 0,
+    fat_g: entryData.fat_g || 0,
+    fiber_g: entryData.fiber_g || 0,
+    sodium_mg: entryData.sodium_mg || 0,
+    servings: entryData.servings || 1
+  });
+  return { status: 'Success' };
+}
+
+async function getNutritionHistory(username, daysBack) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - (daysBack || 7));
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const data = await sbFetch('GET', 'nutrition_logs', null,
+    `username=eq.${username}&log_date=gte.${cutoffStr}&select=*&order=log_date.desc`);
+  return data || [];
+}
+
+async function getNutritionSummary(username, daysBack) {
+  const entries = await getNutritionHistory(username, daysBack);
+  if (!entries || entries.length === 0) return { status: 'Success', count: 0, averages: null, dailyData: [] };
+
+  const valid = entries.filter(e => e.calories && !isNaN(Number(e.calories)));
+  if (valid.length === 0) return { status: 'Success', count: 0, averages: null, dailyData: [] };
+
+  const avg = (key) => {
+    const sum = valid.reduce((s, e) => s + Number(e[key] || 0), 0);
+    return Math.round(sum / valid.length * 10) / 10;
+  };
+
+  // Group by date for daily chart
+  const dailyMap = {};
+  valid.forEach(e => {
+    const d = e.log_date;
+    if (!dailyMap[d]) dailyMap[d] = { date: d, calories: 0, count: 0, protein: 0, carbs: 0, fat: 0 };
+    dailyMap[d].calories += Number(e.calories || 0);
+    dailyMap[d].protein += Number(e.protein_g || 0);
+    dailyMap[d].carbs += Number(e.carbs_g || 0);
+    dailyMap[d].fat += Number(e.fat_g || 0);
+    dailyMap[d].count += 1;
+  });
+
+  const dailyData = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    status: 'Success',
+    count: valid.length,
+    averages: {
+      calories: avg('calories'),
+      protein_g: avg('protein_g'),
+      carbs_g: avg('carbs_g'),
+      fat_g: avg('fat_g'),
+      fiber_g: avg('fiber_g'),
+      sodium_mg: avg('sodium_mg')
+    },
+    dailyData,
+    totalCalories: Math.round(valid.reduce((s, e) => s + Number(e.calories || 0), 0))
+  };
+}

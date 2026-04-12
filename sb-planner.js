@@ -80,6 +80,46 @@ async function updateTemplateAutoApply(templateId, autoApply) {
   return { status: 'Success' };
 }
 
+// ── SHARED TEMPLATES MARKETPLACE ─────────────────────────────
+
+async function publishTemplateToMarketplace(templateId) {
+  const data = await sbFetch('GET', 'meal_plan_templates', null, `id=eq.${templateId}&select=*`);
+  if (!data || !data[0]) return { status: 'Error', message: 'Template not found' };
+  const t = data[0];
+  const entries = typeof t.entries === 'string' ? JSON.parse(t.entries) : t.entries;
+  await sbFetch('POST', 'shared_templates', {
+    owner_username: t.user_id,
+    name: t.name,
+    entries: JSON.stringify(entries),
+    is_public: true,
+    downloads_count: 0
+  });
+  return { status: 'Success' };
+}
+
+async function getPublicTemplates() {
+  const data = await sbFetch('GET', 'shared_templates', null,
+    'is_public=eq.true&select=*&order=downloads_count.desc,created_at.desc');
+  return data || [];
+}
+
+async function downloadPublicTemplate(templateId) {
+  const data = await sbFetch('GET', 'shared_templates', null, `id=eq.${templateId}&select=*`);
+  if (!data || !data[0]) return { status: 'Error', message: 'Template not found' };
+  const t = data[0];
+  const entries = typeof t.entries === 'string' ? JSON.parse(t.entries) : t.entries;
+  // Save to user's personal templates
+  await saveMealPlanTemplate(currentUser, t.name, entries, false);
+  // Increment download count
+  await sbFetch('PATCH', `shared_templates?id=eq.${templateId}`, { downloads_count: (t.downloads_count || 0) + 1 });
+  return { status: 'Success', name: t.name };
+}
+
+async function deleteSharedTemplate(templateId) {
+  await sbFetch('DELETE', `shared_templates?id=eq.${templateId}`, null);
+  return { status: 'Success' };
+}
+
 // ── MEAL PREP ──────────────────────────────────────────────────
 
 async function getMealPrepItems(username) {

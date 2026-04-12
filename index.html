@@ -1215,6 +1215,12 @@
         <span id="youtubeToggleLabel">Open YouTube Channel</span>
       </button>
     </div>
+    <div style="padding:0 16px 4px;">
+      <button id="nutritionDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openNutritionDashboard()">
+        <span>📊</span>
+        <span>Nutrition Dashboard</span>
+      </button>
+    </div>
     <div id="profileHero" class="profile-hero"></div>
     <!-- Notifications -->
     <div class="profile-section" id="profileNotifSection" style="display:none;">
@@ -2136,7 +2142,7 @@
     window.addEventListener('offline', () => { const b=document.getElementById('broadcastBanner'); if(b){b.style.display='block';b.textContent='📶 You\'re offline — showing cached recipes. Some features unavailable.';} });
     // Show security banner immediately for unsecured accounts (before init completes)
     checkAccountSecurity();
-    init().then(() => { checkAddRecipeParam(); startNotifPolling(); checkDeletionBanner(); });
+    init().then(() => { checkAddRecipeParam(); checkImportUrlParam(); startNotifPolling(); checkDeletionBanner(); });
   }
 
   function adjustHeaderPadding() {
@@ -3948,6 +3954,40 @@
     });
   }
 
+  async function checkImportUrlParam() {
+    const params = new URLSearchParams(window.location.search);
+    const importUrl = params.get('import_url');
+    if (!importUrl || !currentUser) return;
+    // Strip param from URL
+    window.history.replaceState({}, '', window.location.pathname);
+
+    // Switch to Discover tab and trigger AI import
+    switchTab('discover');
+
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+    toast.textContent = '📖 Importing recipe from URL...';
+    document.body.appendChild(toast);
+
+    try {
+      const res = await scrapeRecipeWithAI(importUrl, currentUser);
+      if (toast.parentNode) toast.remove();
+      const resultToast = document.createElement('div');
+      resultToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.6);';
+      resultToast.textContent = res.status === 'Success' ? '✅ ' + (res.message || 'Recipe imported!') : '❌ ' + (res.message || 'Import failed. Try manual import from Discover tab.');
+      document.body.appendChild(resultToast);
+      setTimeout(() => resultToast.remove(), 4000);
+      if (res.status === 'Success') { loadRecipes(); }
+    } catch(e) {
+      if (toast.parentNode) toast.remove();
+      const errToast = document.createElement('div');
+      errToast.style.cssText = 'position:fixed;top:80px;left:16px;right:16px;background:var(--surface);border:1px solid var(--red);color:var(--red);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      errToast.textContent = '❌ Could not import recipe. Try manually from the Discover tab.';
+      document.body.appendChild(errToast);
+      setTimeout(() => errToast.remove(), 4000);
+    }
+  }
+
   // ═══ NEW ONBOARDING ═══
   const ONBOARDING_STEPS = [
     {
@@ -5192,12 +5232,22 @@
     const doAdd = async (targetListId) => {
       sheet.remove(); ov.remove();
       if (targetListId === 'personal') {
-        // Use addIngredientsToShop so combining/dedup logic applies
-        addIngredientsToShop(allIngs.map(i => i.text), null);
+        // Use auto-populate logic with dedup
+        const weekStart = getWeekStart(plannerWeekOffset);
+        const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+        const startStr = weekStart.toISOString().slice(0,10);
+        const endStr = weekEnd.toISOString().slice(0,10);
+        const res = await autoPopulateShopFromPlanner(currentUser, startStr, endStr);
         const t = document.createElement('div');
-        t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-        t.textContent = '✅ ' + allIngs.length + ' ingredients added to My List!';
-        document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+        if (res.status === 'Success') {
+          t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+          t.textContent = '✅ Added ' + res.added + ' new ingredients' + (res.total > res.added ? ' (' + (res.total - res.added) + ' duplicates skipped)' : '') + ' from ' + res.recipeTitles.length + ' recipe' + (res.recipeTitles.length !== 1 ? 's' : '') + '!';
+          renderShopList();
+        } else {
+          t.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1px solid var(--glass-border);color:var(--text-dim);padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+          t.textContent = res.message || 'Nothing to add.';
+        }
+        document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
       } else {
         // Add to shared list
         const listName = lists.find(l => l.id === targetListId)?.name || 'shared list';
@@ -7434,6 +7484,7 @@ ${text}`;
         <button onclick="document.getElementById('plannerTemplatesModal').remove();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
         <span style="font-weight:800;font-size:1em;flex:1;">📋 Templates</span>
         <button onclick="saveCurrentWeekAsTemplate()" style="padding:7px 14px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.78em;cursor:pointer;font-family:inherit;">Save Week</button>
+        <button onclick="document.getElementById('plannerTemplatesModal').remove();openTemplateMarketplace();" style="padding:7px 14px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:700;font-size:0.78em;cursor:pointer;font-family:inherit;">🌍 Marketplace</button>
       </div>
       <div style="padding:16px;">
         ${templates.length === 0
@@ -7445,6 +7496,7 @@ ${text}`;
                   <div style="font-weight:700;font-size:0.9em;">${escapeHtml(t.name)}</div>
                   <div style="display:flex;gap:6px;">
                     <button onclick="applyTemplate('${t.id}')" style="padding:6px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.75em;font-weight:700;cursor:pointer;font-family:inherit;">Apply</button>
+                    <button onclick="shareTemplateToMarketplace('${t.id}')" style="padding:6px 12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.75em;cursor:pointer;font-family:inherit;">📤 Share</button>
                     <button onclick="deletePlannerTemplate('${t.id}')" style="padding:6px 10px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">✕</button>
                   </div>
                 </div>
@@ -7509,6 +7561,60 @@ ${text}`;
     await deleteMealPlanTemplate(templateId);
     document.getElementById('plannerTemplatesModal')?.remove();
     openPlannerTemplates();
+  }
+
+  async function shareTemplateToMarketplace(templateId) {
+    if (!await rcConfirm('Share this template to the public marketplace?', {icon:'🌍',confirmText:'Share',danger:false})) return;
+    const res = await publishTemplateToMarketplace(templateId).catch(() => ({status:'Error'}));
+    if (res.status === 'Success') {
+      document.getElementById('plannerTemplatesModal')?.remove();
+      openPlannerTemplates();
+      showToast('Template shared to marketplace!');
+    }
+  }
+
+  async function openTemplateMarketplace() {
+    const templates = await getPublicTemplates().catch(() => []);
+    const modal = document.createElement('div');
+    modal.id = 'templateMarketplaceModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('templateMarketplaceModal').remove();openPlannerTemplates();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">🌍 Template Marketplace</span>
+      </div>
+      <div style="padding:16px;">
+        ${templates.length === 0
+          ? '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">No public templates yet.<br>Be the first to share one!</div>'
+          : templates.map(t => {
+              const entries = typeof t.entries === 'string' ? JSON.parse(t.entries||'[]') : (t.entries||[]);
+              const dl = t.downloads_count || 0;
+              return `<div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                  <div style="font-weight:700;font-size:0.9em;">${escapeHtml(t.name)}</div>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <span style="font-size:0.7em;color:var(--text-faint);">${dl} download${dl!==1?'s':''}</span>
+                    <span style="font-size:0.7em;color:var(--text-faint);">by ${escapeHtml(t.owner_username)}</span>
+                  </div>
+                </div>
+                <div style="font-size:0.72em;color:var(--text-faint);margin-bottom:10px;">${entries.length} meal${entries.length!==1?'s':''} planned</div>
+                <button onclick="downloadPublicTemplateAction('${t.id}')" style="width:100%;padding:10px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;">⬇ Download to my templates</button>
+              </div>`;
+            }).join('')}
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  async function downloadPublicTemplateAction(templateId) {
+    if (!await rcConfirm('Download this template to your personal templates?', {icon:'⬇',confirmText:'Download'})) return;
+    const res = await downloadPublicTemplate(templateId).catch(() => ({status:'Error'}));
+    if (res.status === 'Success') {
+      document.getElementById('templateMarketplaceModal')?.remove();
+      openPlannerTemplates();
+      showToast('Template downloaded: ' + res.name);
+    } else {
+      showToast('Failed to download template.');
+    }
   }
 
   // ═══ COOKTIME FILTER SHOW/HIDE ON TAB SWITCH ══════════════
@@ -10300,11 +10406,131 @@ Return ONLY a JSON object with these keys (all numbers, per serving):
         stat('Fiber', nutrition.fiber_g, 'g', '#4caf7d') +
         stat('Sodium', nutrition.sodium_mg, 'mg') +
         '<div style="font-size:0.72em;color:var(--text-faint);margin-top:12px;line-height:1.5;font-style:italic;">' + escapeHtml(nutrition.disclaimer || 'These are rough estimates.') + '</div>' +
-        '<button onclick="document.getElementById(\'nutritionPanel\').remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+        '<button onclick="saveNutritionToLog()" style="width:100%;padding:12px;margin-top:10px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.85em;cursor:pointer;font-family:inherit;">💾 Save to Nutrition Log</button>' +
+        '<button onclick="document.getElementById(\'nutritionPanel\').remove();document.querySelector(\'[style*=z-index:699]\')?.remove();" style="width:100%;padding:12px;margin-top:8px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+
+      // Store nutrition data for saving
+      window._lastNutritionData = {
+        recipe_id: r.id,
+        recipe_title: r.title,
+        calories: nutrition.calories,
+        protein_g: nutrition.protein_g,
+        carbs_g: nutrition.carbs_g,
+        fat_g: nutrition.fat_g,
+        fiber_g: nutrition.fiber_g,
+        sodium_mg: nutrition.sodium_mg,
+        servings: r.servings || 1
+      };
     } catch(err) {
       const el = document.getElementById('nutritionContent');
       if (el) el.innerHTML = '<span style="color:var(--red);">Could not estimate nutrition. Try again.</span>';
     }
+  }
+
+  // ═══ NUTRITION DASHBOARD ════════════════════════════════
+
+  async function saveNutritionToLog() {
+    const data = window._lastNutritionData;
+    if (!data) return;
+    const res = await logNutritionEntry(currentUser, data).catch(() => ({status:'Error'}));
+    if (res.status === 'Success') {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Saved to nutrition log!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    }
+  }
+
+  async function openNutritionDashboard() {
+    closeProfileAnimated();
+    const modal = document.createElement('div');
+    modal.id = 'nutritionDashboardModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
+        <button onclick="document.getElementById('nutritionDashboardModal').remove();setTimeout(()=>openProfile(),200);" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
+        <span style="font-weight:800;font-size:1em;flex:1;">📊 Nutrition Dashboard</span>
+        <button id="nutritionRangeToggle" onclick="toggleNutritionRange()" style="padding:7px 14px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:700;font-size:0.78em;cursor:pointer;font-family:inherit;">7 days</button>
+      </div>
+      <div id="nutritionDashboardBody" style="padding:16px;">
+        <div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.85em;">Loading...</div>
+      </div>`;
+    document.body.appendChild(modal);
+    loadNutritionDashboard(7);
+  }
+
+  let nutritionDays = 7;
+
+  async function loadNutritionDashboard(days) {
+    nutritionDays = days;
+    const body = document.getElementById('nutritionDashboardBody');
+    const rangeBtn = document.getElementById('nutritionRangeToggle');
+    if (rangeBtn) rangeBtn.textContent = days + ' days';
+
+    const summary = await getNutritionSummary(currentUser, days).catch(() => ({status:'Success',count:0,averages:null,dailyData:[]}));
+
+    if (summary.count === 0) {
+      body.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;">
+          <div style="font-size:2em;margin-bottom:10px;">🥗</div>
+          <div style="font-size:0.9em;color:var(--text-dim);font-weight:600;margin-bottom:6px;">No nutrition data yet</div>
+          <div style="font-size:0.8em;color:var(--text-faint);line-height:1.5;">Open a recipe and tap the 🥗 Nutrition button to estimate and log nutrition data.</div>
+        </div>`;
+      return;
+    }
+
+    const avg = summary.averages;
+    const stat = (label, val, unit, color) =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--glass-border);">' +
+      '<span style="font-size:0.88em;color:var(--text-dim);">' + label + '</span>' +
+      '<span style="font-weight:700;font-size:0.95em;color:' + (color || 'var(--text)') + ';">' + val + '<span style="font-size:0.7em;font-weight:400;color:var(--text-faint);margin-left:2px;">' + unit + '</span></span></div>';
+
+    let html = `
+      <div style="background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:14px;text-align:center;margin-bottom:14px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">AVERAGE PER SERVING</div>
+        <div style="font-size:2.2em;font-weight:900;color:var(--gold);">' + avg.calories + '</div>
+        <div style="font-size:0.72em;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;">Calories · ' + summary.count + ' entries</div>
+      </div>
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+        ` + stat('Protein', avg.protein_g, 'g', '#4caf7d') +
+           stat('Carbohydrates', avg.carbs_g, 'g') +
+           stat('Fat', avg.fat_g, 'g') +
+           stat('Fiber', avg.fiber_g, 'g', '#4caf7d') +
+           stat('Sodium', avg.sodium_mg, 'mg') + `
+      </div>
+      <div style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;">DAILY CALORIES</div>
+        <div id="nutritionBarChart" style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:8px 0;"></div>
+        <div id="nutritionBarLabels" style="display:flex;gap:6px;"></div>
+      </div>`;
+
+    body.innerHTML = html;
+
+    // Render bar chart
+    const chartEl = document.getElementById('nutritionBarChart');
+    const labelsEl = document.getElementById('nutritionBarLabels');
+    if (chartEl && summary.dailyData.length > 0) {
+      const maxCal = Math.max(...summary.dailyData.map(d => d.calories));
+      const barColor = 'var(--gold)';
+      summary.dailyData.forEach(d => {
+        const height = maxCal > 0 ? Math.max((d.calories / maxCal) * 100, 8) : 8;
+        const bar = document.createElement('div');
+        bar.style.cssText = 'flex:1;background:' + barColor + ';border-radius:4px 4px 0 0;height:' + height + '%;min-width:20px;position:relative;';
+        bar.title = d.date + ': ' + Math.round(d.calories) + ' cal (' + d.count + ' entries)';
+        chartEl.appendChild(bar);
+
+        const label = document.createElement('div');
+        label.style.cssText = 'flex:1;text-align:center;font-size:0.6em;color:var(--text-faint);min-width:20px;';
+        const dateParts = d.date.split('-');
+        label.textContent = dateParts[1] + '/' + dateParts[2];
+        labelsEl.appendChild(label);
+      });
+    }
+  }
+
+  function toggleNutritionRange() {
+    const newDays = nutritionDays === 7 ? 30 : 7;
+    loadNutritionDashboard(newDays);
   }
 
 </script>

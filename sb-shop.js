@@ -98,3 +98,47 @@ async function getSharedListRecipes(listId) {
     return true;
   });
 }
+
+// ── AUTO-POPULATE FROM MEAL PLAN ──────────────────────────────
+
+async function autoPopulateShopFromPlanner(username, weekStart, weekEnd) {
+  // Get planner entries for the week
+  const entries = await getPlannerRange(username, weekStart, weekEnd);
+  if (!entries || entries.length === 0) return { status: 'Error', message: 'No meals planned for this week.', added: 0 };
+
+  // Collect all ingredients from entries with recipes
+  const allIngredients = [];
+  const recipeTitles = [];
+  entries.forEach(e => {
+    if (e.recipes && e.recipes.ingredients) {
+      const ings = e.recipes.ingredients
+        .split(/\n/)
+        .map(line => line.replace(/\*+/g, '').trim())
+        .filter(Boolean);
+      allIngredients.push(...ings.map(ing => ({ text: ing, group: e.recipes.category || 'Other', recipeId: e.recipes.id, recipeTitle: e.recipes.title, autoPopulated: true })));
+      recipeTitles.push(e.recipes.title);
+    }
+  });
+
+  if (allIngredients.length === 0) return { status: 'Error', message: 'No ingredients found in planned meals.', added: 0 };
+
+  // Get current shop items to avoid duplicates
+  const currentItems = JSON.parse(localStorage.getItem('shopItems_' + username) || '[]');
+  const currentTexts = new Set(currentItems.map(i => i.text.toLowerCase().trim()));
+
+  // Filter out items already in the list
+  const newItems = allIngredients.filter(ing => !currentTexts.has(ing.text.toLowerCase().trim()));
+
+  // Add new items to the front of the list
+  const updatedShop = [...newItems.map(i => ({ text: i.text, checked: false, group: i.group, recipe_id: i.recipeId, recipe_title: i.recipeTitle, auto_populated: i.autoPopulated })), ...currentItems];
+
+  // Save to localStorage
+  localStorage.setItem('shopItems_' + username, JSON.stringify(updatedShop));
+
+  // Sync to Supabase in background
+  try {
+    await updateUserSettings(username, { shopping_list: JSON.stringify(updatedShop) });
+  } catch(e) {}
+
+  return { status: 'Success', added: newItems.length, total: allIngredients.length, recipeTitles: [...new Set(recipeTitles)] };
+}
