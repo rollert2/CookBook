@@ -806,6 +806,15 @@
       <input type="text" id="discoverInput" placeholder="Search for a recipe..." onkeydown="if(event.key==='Enter') runDiscoverSearch()">
       <button class="discover-search-btn" onclick="runDiscoverSearch()">Search</button>
     </div>
+    <!-- What's In My Fridge? -->
+    <div style="margin:14px 0 6px;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">🧑‍🍳 What's In My Fridge?</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="fridgeInput" placeholder="e.g. chicken, rice, broccoli..." style="flex:1;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.9em;font-family:inherit;" onkeydown="if(event.key==='Enter') runFridgeSearch()">
+        <button class="discover-search-btn" onclick="runFridgeSearch()" style="white-space:nowrap;">🔍 Find Recipes</button>
+      </div>
+      <div id="fridgeResults" style="margin-top:10px;display:none;"></div>
+    </div>
     <!-- Quick category picks -->
     <div style="margin:10px 0 6px;">
       <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">Quick Browse</div>
@@ -1488,6 +1497,7 @@
       <button onclick="saveJournalFromCompletion()" style="padding:12px;border-radius:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📓 Save Journal Entry</button>
       <button onclick="shareCookCompletionCommunity()" style="padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🌍 Share to Community</button>
       <button onclick="addLeftoverFromCompletion()" style="padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🥡 Log as Leftovers</button>
+      <button onclick="suggestLeftoverRecipes()" style="padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">🔍 Find Leftover Recipes</button>
       <button onclick="closeCookCompletion()" style="padding:12px;border-radius:12px;background:transparent;border:1px solid var(--glass-border);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Done</button>
     </div>
   </div>
@@ -1617,6 +1627,13 @@
           <div class="settings-row-sub">Require approval before people can follow you</div>
         </div>
         <button class="settings-toggle" id="togglePrivateAccount" onclick="togglePrivateAccount()"></button>
+      </div>
+      <div class="settings-row" style="cursor:pointer;" onclick="openFamilyInheritanceSheet()">
+        <div class="settings-row-info">
+          <div class="settings-row-label">👨‍👩‍👧‍👦 Family Recipe Inheritance</div>
+          <div class="settings-row-sub" id="inheritanceStatusText">No heir designated</div>
+        </div>
+        <div style="font-size:1.2em;color:var(--gold);">→</div>
       </div>
     </div>
     <div style="text-align:center;padding:8px 0 0;"><span id="settingsAppVersion" style="font-size:0.7em;color:var(--text-faint);"></span></div>
@@ -3430,6 +3447,65 @@
       .catch(err => { document.getElementById('discoverStatus').style.display = 'none'; document.getElementById('discoverResults').innerHTML = '<div class="discover-empty">❌ ' + err.message + '</div>'; });
   }
 
+  async function runFridgeSearch() {
+    const ingredients = document.getElementById('fridgeInput').value.trim();
+    if (!ingredients) return;
+    const resultsEl = document.getElementById('fridgeResults');
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);"><div class="spinner" style="margin:0 auto 10px;"></div>AI is finding recipes using your ingredients...</div>';
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fridge_recipes',
+          ingredients,
+          username: currentUser
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'Error') {
+        resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + data.message + '</div>';
+        return;
+      }
+      const recipes = data.recipes || [];
+      if (recipes.length === 0) {
+        resultsEl.innerHTML = '<div style="padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.88em;color:var(--text-dim);text-align:center;">No recipes found. Try different ingredients!</div>';
+        return;
+      }
+      resultsEl.innerHTML = '<div style="font-size:0.72em;color:var(--text-faint);margin-bottom:8px;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + ' you can make:</div>' +
+        recipes.map(r => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;" onclick="fridgeAddRecipe(' + JSON.stringify(r).replace(/"/g, '&quot;') + ')">' +
+          '<div style="font-weight:700;font-size:0.92em;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(r.match_reason || 'Uses your ingredients') + '</div>' +
+          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
+        '</div>').join('');
+    } catch(e) {
+      resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + e.message + '</div>';
+    }
+  }
+
+  async function fridgeAddRecipe(recipe) {
+    const res = await addRecipe(currentUser, {
+      title: recipe.title,
+      category: recipe.category || 'General',
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
+      notes: recipe.notes || '',
+      cookTime: recipe.cook_time || '',
+      prepTime: recipe.prep_time || '',
+      servings: recipe.servings || ''
+    });
+    if (res.status === 'Success') {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Added "' + recipe.title + '"!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+      init();
+    } else {
+      await rcAlert(res.message);
+    }
+  }
+
   function openPreview(idx) {
     const r = window._discoverResults[idx];
     previewUrl = r.url;
@@ -3664,6 +3740,10 @@
     history.pushState({ modal: 'cookMode' }, '');
     _requestWakeLock();
     initCookSwipe();
+    // Lock to landscape orientation for better cooking experience
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {}); // Ignore errors on unsupported devices
+    }
   }
 
   function closeCookMode() {
@@ -3698,6 +3778,10 @@
     clearInterval(cookTimerInterval); cookTimerInterval = null;
     renderGlobalTimerBar();
     _releaseWakeLock();
+    // Unlock screen orientation
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
   }
 
   function cookStepNav(dir) {
@@ -7344,6 +7428,103 @@ ${text}`;
     await updateUserProfile(currentUser, { is_private: newVal }).catch(() => {});
   }
 
+  // ═══ FAMILY RECIPE INHERITANCE ════════════════════════════════
+  async function openFamilyInheritanceSheet() {
+    // Load current heir status
+    const settings = await getUserSettings(currentUser).catch(() => ({ settings: {} }));
+    const heirUsername = settings.settings?.heir_username || '';
+    const heirEmail = settings.settings?.heir_email || '';
+    
+    const sheet = document.createElement('div');
+    sheet.id = 'inheritanceSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+
+    const currentHeirHtml = heirUsername ? 
+      '<div style="padding:12px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);margin-bottom:14px;">' +
+      '<div style="font-size:0.78em;color:var(--gold);font-weight:700;margin-bottom:4px;">👤 Current Heir</div>' +
+      '<div style="font-weight:700;font-size:0.92em;">' + escapeHtml(heirUsername) + '</div>' +
+      '<div style="font-size:0.78em;color:var(--text-dim);margin-top:2px;">' + escapeHtml(heirEmail) + '</div>' +
+      '</div>' : 
+      '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:14px;font-size:0.85em;color:var(--text-dim);">No heir designated. Your cookbook will remain private if something happens to your account.</div>';
+
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:6px;">👨‍👩‍👧‍👦 Family Recipe Inheritance</div>' +
+      '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;line-height:1.4;">If your account becomes inactive for 6+ months, your designated heir will receive access to your entire cookbook.</div>' +
+      currentHeirHtml +
+      '<label class="edit-label">Heir Username</label>' +
+      '<input id="heirUsernameInput" class="edit-field" placeholder="Enter their Roll username..." style="margin-bottom:10px;">' +
+      '<label class="edit-label">Heir Email (for notification)</label>' +
+      '<input id="heirEmailInput" class="edit-field" type="email" placeholder="heir@example.com" style="margin-bottom:14px;">' +
+      '<button onclick="saveFamilyInheritance()" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;margin-bottom:8px;">💾 Save Heir</button>' +
+      (heirUsername ? '<button onclick="removeFamilyInheritance()" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">🗑 Remove Heir</button>' : '') +
+      '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  async function saveFamilyInheritance() {
+    const heirUsername = document.getElementById('heirUsernameInput')?.value.trim();
+    const heirEmail = document.getElementById('heirEmailInput')?.value.trim();
+    
+    if (!heirUsername) {
+      await rcAlert('Heir username is required');
+      return;
+    }
+    if (!heirEmail) {
+      await rcAlert('Heir email is required for notification');
+      return;
+    }
+
+    const btn = document.querySelector('#inheritanceSheet button[onclick="saveFamilyInheritance()"]');
+    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
+
+    try {
+      await updateUserSettings(currentUser, { 
+        heir_username: heirUsername.toLowerCase(), 
+        heir_email: heirEmail 
+      });
+      
+      // Update status text in settings
+      const statusText = document.getElementById('inheritanceStatusText');
+      if (statusText) statusText.textContent = 'Heir: ' + heirUsername;
+
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Heir saved: ' + heirUsername;
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+
+      document.getElementById('inheritanceSheet')?.remove();
+      document.querySelectorAll('[style*="z-index:699"]').forEach(e => e.remove());
+    } catch(e) {
+      await rcAlert('Failed to save heir: ' + e.message);
+      if (btn) { btn.textContent = '💾 Save Heir'; btn.disabled = false; }
+    }
+  }
+
+  async function removeFamilyInheritance() {
+    if (!await rcConfirm('Remove the designated heir? They will no longer receive access to your cookbook.', {icon:'⚠️',confirmText:'Remove',danger:true})) return;
+
+    try {
+      await updateUserSettings(currentUser, { heir_username: null, heir_email: null });
+      
+      const statusText = document.getElementById('inheritanceStatusText');
+      if (statusText) statusText.textContent = 'No heir designated';
+
+      document.getElementById('inheritanceSheet')?.remove();
+      document.querySelectorAll('[style*="z-index:699"]').forEach(e => e.remove());
+
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Heir removed';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+    } catch(e) {
+      await rcAlert('Failed to remove heir: ' + e.message);
+    }
+  }
+
   // ═══ COLLECTIONS — description + cover ════════════════════
   function openCollectionEditor(colId, colName, colDesc, colPublic) {
     const sheet = document.createElement('div');
@@ -8087,6 +8268,89 @@ ${text}`;
     saveLeftovers(leftovers);
     const status = document.getElementById('cookJournalStatus');
     if (status) { status.textContent = '🥡 Logged as leftovers!'; setTimeout(() => { if(status.textContent.includes('leftover')) status.textContent=''; }, 2000); }
+  }
+
+  async function suggestLeftoverRecipes() {
+    const r = allRecipes[cookRecipeIndex];
+    if (!r || !r.ingredients) return;
+
+    // Parse ingredients and estimate what's left after cooking
+    const ingredients = r.ingredients.split('\n').filter(Boolean).slice(0, 10).join(', ').replace(/\*+/g, '').trim();
+    
+    // Show loading state
+    const status = document.getElementById('cookJournalStatus');
+    if (status) status.textContent = '🔍 Finding recipes using leftovers...';
+
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'leftover_recipes',
+          ingredients,
+          original_recipe: r.title,
+          username: currentUser
+        })
+      });
+      const data = await res.json();
+      if (data.status === 'Error') {
+        if (status) status.textContent = '❌ Failed to find leftovers';
+        return;
+      }
+
+      const recipes = data.recipes || [];
+      if (recipes.length === 0) {
+        if (status) status.textContent = 'No leftover recipes found';
+        return;
+      }
+
+      // Show a slide-up panel with leftover suggestions
+      const sheet = document.createElement('div');
+      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;max-height:70vh;overflow-y:auto;animation:slideUp 0.25s ease;';
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+      overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+
+      sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:4px;">🥡 Leftover Recipes</div>' +
+        '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:14px;">Recipes you can make with what\'s left from "' + escapeHtml(r.title) + '"</div>' +
+        recipes.map(lr => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;" onclick="leftoverAddRecipe(' + JSON.stringify(lr).replace(/"/g, '&quot;') + ')">' +
+          '<div style="font-weight:700;font-size:0.92em;margin-bottom:4px;">' + escapeHtml(lr.title) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(lr.match_reason || 'Uses leftover ingredients') + '</div>' +
+          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
+        '</div>').join('') +
+        '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelectorAll(\'[style*=\'z-index:699\']\').forEach(e=>e.remove());" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;margin-top:8px;">Close</button>';
+
+      document.body.appendChild(overlay);
+      document.body.appendChild(sheet);
+      if (status) status.textContent = '✅ Found ' + recipes.length + ' leftover recipe' + (recipes.length > 1 ? 's' : '') + '!';
+    } catch(e) {
+      if (status) status.textContent = '❌ Error: ' + e.message;
+    }
+  }
+
+  async function leftoverAddRecipe(recipe) {
+    const res = await addRecipe(currentUser, {
+      title: recipe.title,
+      category: recipe.category || 'General',
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
+      notes: recipe.notes || '',
+      cookTime: recipe.cook_time || '',
+      prepTime: recipe.prep_time || '',
+      servings: recipe.servings || ''
+    });
+    if (res.status === 'Success') {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Added "' + recipe.title + '"!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+      init();
+      // Close the sheet
+      document.querySelectorAll('[style*="z-index:700"]').forEach(e => e.remove());
+      document.querySelectorAll('[style*="z-index:699"]').forEach(e => e.remove());
+    } else {
+      await rcAlert(res.message);
+    }
   }
 
   // ═══ EXPORT MEAL PLAN ════════════════════════════════════
