@@ -963,6 +963,7 @@
     </div>
     <div id="shareLinkResult" style="display:none;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:10px 12px;font-size:0.78em;word-break:break-all;color:var(--text-dim);margin-bottom:8px;"></div>
     <button class="btn btn-secondary" id="copyLinkBtn" style="display:none;margin-bottom:6px;" onclick="copyShareLink()">📋 Copy Link</button>
+    <button class="btn btn-secondary" id="qrLinkBtn" style="display:none;margin-bottom:6px;" onclick="showRecipeQR()">📱 Show QR Code</button>
     <button class="btn btn-secondary" style="margin-top:4px;" onclick="closeSharePanel()">Close</button>
   </div>
 
@@ -1229,6 +1230,12 @@
       <button id="streakDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openStreakDashboard()">
         <span>🔥</span>
         <span>Cooking Streaks</span>
+      </button>
+    </div>
+    <div style="padding:0 16px 4px;">
+      <button id="showcaseBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openCookbookShowcase()">
+        <span>🌐</span>
+        <span>Cookbook Showcase</span>
       </button>
     </div>
     <div id="profileHero" class="profile-hero"></div>
@@ -1627,13 +1634,6 @@
           <div class="settings-row-sub">Require approval before people can follow you</div>
         </div>
         <button class="settings-toggle" id="togglePrivateAccount" onclick="togglePrivateAccount()"></button>
-      </div>
-      <div class="settings-row" style="cursor:pointer;" onclick="openFamilyInheritanceSheet()">
-        <div class="settings-row-info">
-          <div class="settings-row-label">👨‍👩‍👧‍👦 Family Recipe Inheritance</div>
-          <div class="settings-row-sub" id="inheritanceStatusText">No heir designated</div>
-        </div>
-        <div style="font-size:1.2em;color:var(--gold);">→</div>
       </div>
     </div>
     <div style="text-align:center;padding:8px 0 0;"><span id="settingsAppVersion" style="font-size:0.7em;color:var(--text-faint);"></span></div>
@@ -3740,10 +3740,6 @@
     history.pushState({ modal: 'cookMode' }, '');
     _requestWakeLock();
     initCookSwipe();
-    // Lock to landscape orientation for better cooking experience
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {}); // Ignore errors on unsupported devices
-    }
   }
 
   function closeCookMode() {
@@ -3778,10 +3774,6 @@
     clearInterval(cookTimerInterval); cookTimerInterval = null;
     renderGlobalTimerBar();
     _releaseWakeLock();
-    // Unlock screen orientation
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
-    }
   }
 
   function cookStepNav(dir) {
@@ -4013,12 +4005,14 @@
         document.getElementById('shareLinkResult').style.display = 'block';
         document.getElementById('shareLinkResult').textContent = shareLinkUrl;
         document.getElementById('copyLinkBtn').style.display = 'block';
+        document.getElementById('qrLinkBtn').style.display = 'block';
       } else {
         shareLinkUrl = '';
         label.textContent = 'Link disabled';
         sub.textContent = 'Enable to generate a shareable link';
         document.getElementById('shareLinkResult').style.display = 'none';
         document.getElementById('copyLinkBtn').style.display = 'none';
+        document.getElementById('qrLinkBtn').style.display = 'none';
       }
     });
   }
@@ -4029,6 +4023,32 @@
     document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     document.getElementById('copyLinkBtn').innerHTML = '✅ Copied!';
     setTimeout(() => document.getElementById('copyLinkBtn').innerHTML = '📋 Copy Link', 2000);
+  }
+
+  function showRecipeQR() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r || !shareLinkUrl) return;
+    
+    // Generate QR code using a free API (no dependencies)
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(shareLinkUrl) + '&bgcolor=18181c&color=c9a84c';
+    
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:4px;text-align:center;">📱 QR Code — ' + escapeHtml(r.title) + '</div>' +
+      '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:16px;text-align:center;">Scan to open this recipe on any device</div>' +
+      '<div style="text-align:center;margin-bottom:16px;">' +
+      '<img src="' + qrUrl + '" style="width:250px;height:250px;border-radius:var(--radius-sm);border:2px solid var(--gold);background:var(--surface2);padding:10px;">' +
+      '</div>' +
+      '<div style="padding:10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.75em;color:var(--text-dim);word-break:break-all;text-align:center;margin-bottom:14px;">' + shareLinkUrl + '</div>' +
+      '<button onclick="navigator.clipboard.writeText(\'' + shareLinkUrl + '\');this.textContent=\'✅ Link Copied!\';setTimeout(()=>this.textContent=\'📋 Copy Link\',1500);" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;margin-bottom:8px;">📋 Copy Link</button>' +
+      '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
   }
 
   // ═══ FRIEND RATINGS ═══
@@ -7426,103 +7446,6 @@ ${text}`;
     const newVal = !isOn;
     setToggle('togglePrivateAccount', newVal);
     await updateUserProfile(currentUser, { is_private: newVal }).catch(() => {});
-  }
-
-  // ═══ FAMILY RECIPE INHERITANCE ════════════════════════════════
-  async function openFamilyInheritanceSheet() {
-    // Load current heir status
-    const settings = await getUserSettings(currentUser).catch(() => ({ settings: {} }));
-    const heirUsername = settings.settings?.heir_username || '';
-    const heirEmail = settings.settings?.heir_email || '';
-    
-    const sheet = document.createElement('div');
-    sheet.id = 'inheritanceSheet';
-    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
-    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
-
-    const currentHeirHtml = heirUsername ? 
-      '<div style="padding:12px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:var(--radius-sm);margin-bottom:14px;">' +
-      '<div style="font-size:0.78em;color:var(--gold);font-weight:700;margin-bottom:4px;">👤 Current Heir</div>' +
-      '<div style="font-weight:700;font-size:0.92em;">' + escapeHtml(heirUsername) + '</div>' +
-      '<div style="font-size:0.78em;color:var(--text-dim);margin-top:2px;">' + escapeHtml(heirEmail) + '</div>' +
-      '</div>' : 
-      '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:14px;font-size:0.85em;color:var(--text-dim);">No heir designated. Your cookbook will remain private if something happens to your account.</div>';
-
-    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:6px;">👨‍👩‍👧‍👦 Family Recipe Inheritance</div>' +
-      '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;line-height:1.4;">If your account becomes inactive for 6+ months, your designated heir will receive access to your entire cookbook.</div>' +
-      currentHeirHtml +
-      '<label class="edit-label">Heir Username</label>' +
-      '<input id="heirUsernameInput" class="edit-field" placeholder="Enter their Roll username..." style="margin-bottom:10px;">' +
-      '<label class="edit-label">Heir Email (for notification)</label>' +
-      '<input id="heirEmailInput" class="edit-field" type="email" placeholder="heir@example.com" style="margin-bottom:14px;">' +
-      '<button onclick="saveFamilyInheritance()" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;margin-bottom:8px;">💾 Save Heir</button>' +
-      (heirUsername ? '<button onclick="removeFamilyInheritance()" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">🗑 Remove Heir</button>' : '') +
-      '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
-
-    document.body.appendChild(overlay);
-    document.body.appendChild(sheet);
-  }
-
-  async function saveFamilyInheritance() {
-    const heirUsername = document.getElementById('heirUsernameInput')?.value.trim();
-    const heirEmail = document.getElementById('heirEmailInput')?.value.trim();
-    
-    if (!heirUsername) {
-      await rcAlert('Heir username is required');
-      return;
-    }
-    if (!heirEmail) {
-      await rcAlert('Heir email is required for notification');
-      return;
-    }
-
-    const btn = document.querySelector('#inheritanceSheet button[onclick="saveFamilyInheritance()"]');
-    if (btn) { btn.textContent = 'Saving...'; btn.disabled = true; }
-
-    try {
-      await updateUserSettings(currentUser, { 
-        heir_username: heirUsername.toLowerCase(), 
-        heir_email: heirEmail 
-      });
-      
-      // Update status text in settings
-      const statusText = document.getElementById('inheritanceStatusText');
-      if (statusText) statusText.textContent = 'Heir: ' + heirUsername;
-
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      toast.textContent = '✅ Heir saved: ' + heirUsername;
-      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
-
-      document.getElementById('inheritanceSheet')?.remove();
-      document.querySelectorAll('[style*="z-index:699"]').forEach(e => e.remove());
-    } catch(e) {
-      await rcAlert('Failed to save heir: ' + e.message);
-      if (btn) { btn.textContent = '💾 Save Heir'; btn.disabled = false; }
-    }
-  }
-
-  async function removeFamilyInheritance() {
-    if (!await rcConfirm('Remove the designated heir? They will no longer receive access to your cookbook.', {icon:'⚠️',confirmText:'Remove',danger:true})) return;
-
-    try {
-      await updateUserSettings(currentUser, { heir_username: null, heir_email: null });
-      
-      const statusText = document.getElementById('inheritanceStatusText');
-      if (statusText) statusText.textContent = 'No heir designated';
-
-      document.getElementById('inheritanceSheet')?.remove();
-      document.querySelectorAll('[style*="z-index:699"]').forEach(e => e.remove());
-
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-      toast.textContent = '✅ Heir removed';
-      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
-    } catch(e) {
-      await rcAlert('Failed to remove heir: ' + e.message);
-    }
   }
 
   // ═══ COLLECTIONS — description + cover ════════════════════
@@ -11248,6 +11171,32 @@ ${r.ingredients}`;
         </div>
       </div>
     `;
+  }
+
+  // ═══ COOKBOOK SHOWCASE ══════════════════════════════════════
+  function openCookbookShowcase() {
+    const showcaseUrl = 'https://rollcookbook.com/@' + currentUser;
+    closeProfileAnimated();
+    
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:6px;">🌐 Cookbook Showcase</div>' +
+      '<div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;line-height:1.4;">Share your public cookbook page where anyone can browse your public recipes</div>' +
+      '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:14px;">' +
+      '<div style="font-size:0.72em;color:var(--gold);font-weight:700;margin-bottom:4px;">Your Showcase URL</div>' +
+      '<div style="font-size:0.92em;font-weight:600;color:var(--text);word-break:break-all;">' + showcaseUrl + '</div>' +
+      '</div>' +
+      '<button onclick="navigator.clipboard.writeText(\'' + showcaseUrl + '\');this.textContent=\'✅ Copied!\';setTimeout(()=>this.textContent=\'📋 Copy URL\',1500);" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;margin-bottom:8px;">📋 Copy URL</button>' +
+      '<button onclick="if(typeof median!==\'undefined\'&&median.openExternalUrl){median.openExternalUrl({url:\'' + showcaseUrl + '\'});}else{window.open(\'' + showcaseUrl + '\',\'_blank\');}" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">🌐 Open in Browser</button>' +
+      '<div style="font-size:0.72em;color:var(--text-faint);margin-top:12px;line-height:1.4;">Only recipes in public collections will be visible. Private collections and favourites stay hidden.</div>' +
+      '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
   }
 
 </script>
