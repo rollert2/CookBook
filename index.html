@@ -99,6 +99,8 @@
     .ptr-indicator.visible { transform:translateY(0); }
     .ptr-spinner { width:24px; height:24px; border:2px solid var(--gold-dim); border-top-color:var(--gold); border-radius:50%; animation:spin 0.7s linear infinite; }
     @keyframes spin { to{transform:rotate(360deg);} }
+    @keyframes diceSpin { 0%{transform:rotate(0deg) scale(1);} 50%{transform:rotate(180deg) scale(1.15);} 100%{transform:rotate(360deg) scale(1);} }
+    @keyframes streakFlash { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
 
     /* ── MAIN ── */
     .main-content { padding-top:var(--header-height); }
@@ -827,7 +829,6 @@
         </div>
         <button class="icon-btn" id="inboxBtn" onclick="openInbox()">🔔<span class="notif-badge" id="inboxBadge" style="display:none;"></span></button>
         <button class="icon-btn" onclick="openMessaging(null)" style="position:relative;">💬<span id="msgBellBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:14px;height:14px;font-size:0.5em;font-weight:900;align-items:center;justify-content:center;position:absolute;top:-2px;right:-2px;"></span></button>
-        <button class="icon-btn" id="favFilterBtn" onclick="toggleFavFilter()">⭐</button>
         <button class="icon-btn" onclick="openCollectionsPanel()">📁</button>
         <button class="icon-btn" onclick="openShopPanel()" id="shopHeaderBtn">🛒<span id="shopBadge" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;position:absolute;top:-4px;right:-4px;"></span></button>
       </div>
@@ -840,7 +841,9 @@
     </div>
     <div class="header-chips" id="categoryFilters"></div>
     <div class="category-filter-row" id="sortFilterRow" style="display:flex;align-items:center;gap:8px;padding-left:16px;">
-      <button onclick="openSurpriseMe()" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Surprise Me">🎲</button>
+      <button onclick="openSurpriseMe()" id="surpriseDiceBtn" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Surprise Me">🎲</button>
+      <button class="icon-btn" id="cookTimeToggleBtn" onclick="toggleCookTimeFilterRow()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.85em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Cook Time Filter">⏱</button>
+      <button class="icon-btn" id="favFilterBtn2" onclick="toggleFavFilter2()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.9em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Favourites">⭐</button>
       <div class="sort-filter-wrap">
         <div class="sort-filter-btn" id="sortFilterBtn" onclick="toggleSortDropdown()">
           <span>⇅</span><span id="sortFilterLabel">Newest</span>
@@ -851,14 +854,12 @@
           <div class="sort-option" id="sortOpt_az" onclick="setSort('az')">A → Z</div>
           <div class="sort-option" id="sortOpt_za" onclick="setSort('za')">Z → A</div>
           <div class="sort-option" id="sortOpt_top" onclick="setSort('top')">⭐ Top Rated</div>
-          <div class="sort-option" id="sortOpt_fav" onclick="setSort('fav')">❤️ Favourites</div>
           <div class="sort-option" id="sortOpt_cooked" onclick="setSort('cooked')">🍳 Recently Cooked</div>
-          <div class="sort-option" id="sortOpt_cooktime" onclick="setSort('cooktime')">⏱ Cook Time</div>
         </div>
       </div>
       <div id="categoryFiltersInline" class="category-filter-inner"></div>
     </div>
-    <div id="cookTimeFilterRow" style="display:flex;gap:7px;padding:6px 16px 4px;overflow-x:auto;scrollbar-width:none;">
+    <div id="cookTimeFilterRow" style="display:none;gap:7px;padding:6px 16px 4px;overflow-x:auto;scrollbar-width:none;">
       <button class="sort-chip cooktime-filter-chip active" data-mins="0" onclick="setCookTimeFilter(0)">⏱ Any time</button>
       <button class="sort-chip cooktime-filter-chip" data-mins="15" onclick="setCookTimeFilter(15)">≤ 15 min</button>
       <button class="sort-chip cooktime-filter-chip" data-mins="30" onclick="setCookTimeFilter(30)">≤ 30 min</button>
@@ -946,17 +947,6 @@
         <div style="font-size:2em;margin-bottom:8px;">🧊</div>
         <div>Add at least 3 ingredients to find matching recipes from your cookbook.</div>
       </div>
-    </div>
-    <!-- Section 3: AI Find Recipes Online -->
-    <div style="margin:24px 0 6px;padding-top:16px;border-top:1px solid var(--glass-border);">
-      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:4px;">🤖 Find Recipes Online</div>
-      <div style="font-size:0.78em;color:var(--text-dim);margin-bottom:10px;">AI will find recipes using your pantry ingredients + any extras you add.</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-        <input type="text" id="pantryFridgeInput" placeholder="Extra ingredients (optional)..." style="flex:1;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.9em;font-family:inherit;" onkeydown="if(event.key==='Enter')runPantryFridgeSearch()">
-        <button onclick="runPantryFridgeSearch()" style="padding:10px 16px;background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">🔍 Find</button>
-      </div>
-      <div id="pantryFridgeStatus" style="display:none;text-align:center;padding:12px;color:var(--text-dim);font-size:0.85em;"></div>
-      <div id="pantryFridgeResults" style="display:none;margin-top:10px;"></div>
     </div>
   </div>
 
@@ -1352,16 +1342,16 @@
     </div>
     <div style="padding:0 16px 4px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openNutritionDashboard()">
+        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openNutritionDashboard()">
           <span>📊</span><span>Nutrition</span>
         </button>
-        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openStreakDashboard()">
+        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openStreakDashboard()">
           <span>🔥</span><span>Streaks</span>
         </button>
-        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openCookTimeStats()">
+        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openCookTimeStats()">
           <span>⏱</span><span>Stats</span>
         </button>
-        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openCookbookShowcase()">
+        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openCookbookShowcase()">
           <span>🌐</span><span>Showcase</span>
         </button>
       </div>
@@ -2537,9 +2527,14 @@
     if (tab === 'recipes') {
       searchWrap.style.display = ''; filterChips.style.display = '';
       if (sortFilterRow) sortFilterRow.style.display = '';
+      // Restore cook time filter row state only if user had it open
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = cookTimeFilterVisible ? 'flex' : 'none';
     } else {
       searchWrap.style.display = 'none'; filterChips.style.display = 'none';
       if (sortFilterRow) sortFilterRow.style.display = 'none';
+      const ctRow = document.getElementById('cookTimeFilterRow');
+      if (ctRow) ctRow.style.display = 'none';
     }
     setTimeout(adjustHeaderPadding, 50);
     if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
@@ -2622,6 +2617,41 @@
     renderCategories(); renderRecipes();
   }
   function toggleFavFilter() { showFavsOnly = !showFavsOnly; renderCategories(); renderRecipes(); }
+  function toggleFavFilter2() {
+    showFavsOnly = !showFavsOnly;
+    const btn = document.getElementById('favFilterBtn2');
+    if (btn) {
+      if (showFavsOnly) {
+        btn.style.background = 'var(--gold-dim)';
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.color = 'var(--gold)';
+      } else {
+        btn.style.background = 'var(--glass)';
+        btn.style.borderColor = 'var(--glass-border)';
+        btn.style.color = 'var(--text-dim)';
+      }
+    }
+    renderCategories();
+    renderRecipes();
+  }
+  let cookTimeFilterVisible = false;
+  function toggleCookTimeFilterRow() {
+    cookTimeFilterVisible = !cookTimeFilterVisible;
+    const row = document.getElementById('cookTimeFilterRow');
+    const btn = document.getElementById('cookTimeToggleBtn');
+    if (row) row.style.display = cookTimeFilterVisible ? 'flex' : 'none';
+    if (btn) {
+      if (cookTimeFilterVisible) {
+        btn.style.background = 'var(--gold-dim)';
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.color = 'var(--gold)';
+      } else {
+        btn.style.background = 'var(--glass)';
+        btn.style.borderColor = 'var(--glass-border)';
+        btn.style.color = 'var(--text-dim)';
+      }
+    }
+  }
 
   // ═══ SORT DROPDOWN ═══
   const sortLabels = { newest:'Newest', oldest:'Oldest', az:'A → Z', za:'Z → A', top:'Top Rated', fav:'Favourites', rating:'Top Rated', favs:'Favourites' };
@@ -3396,10 +3426,31 @@
       const streakStat = document.getElementById('streakStat');
       const streakNum = document.getElementById('streakNum');
       const headerStreak = document.getElementById('headerStreakBadge');
+      const _today = new Date().toISOString().slice(0, 10);
+      const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const _lastDate = (settingsRes.settings && settingsRes.settings.last_streak_date) || '';
       if (streak > 0) {
         if (streakStat) streakStat.style.display = 'block';
-        if (streakNum) streakNum.textContent = '🔥' + streak;
-        if (headerStreak) { headerStreak.style.display = 'inline'; headerStreak.textContent = '🔥' + streak; }
+        if (_lastDate === _today) {
+          // Cooked today — normal
+          if (streakNum) { streakNum.textContent = '🔥' + streak; streakNum.style.animation = ''; streakNum.style.opacity = ''; }
+        } else if (_lastDate === _yesterday) {
+          // Streak expiring soon
+          if (streakNum) { streakNum.textContent = '🔥' + streak; streakNum.style.animation = 'streakFlash 1s ease-in-out infinite'; streakNum.style.opacity = ''; }
+        } else {
+          // Streak expired
+          if (streakNum) { streakNum.textContent = '🥀' + streak; streakNum.style.animation = ''; streakNum.style.opacity = '0.6'; }
+        }
+        if (headerStreak) {
+          headerStreak.style.display = 'inline';
+          if (_lastDate === _today) {
+            headerStreak.textContent = '🔥' + streak; headerStreak.style.animation = ''; headerStreak.style.opacity = '';
+          } else if (_lastDate === _yesterday) {
+            headerStreak.textContent = '🔥' + streak; headerStreak.style.animation = 'streakFlash 1s ease-in-out infinite'; headerStreak.style.opacity = '';
+          } else {
+            headerStreak.textContent = '🥀' + streak; headerStreak.style.animation = ''; headerStreak.style.opacity = '0.6';
+          }
+        }
       } else {
         if (headerStreak) headerStreak.style.display = 'none';
       }
@@ -5199,12 +5250,28 @@
       const _lastStreakDate = userSettings.last_streak_date || '';
       const _yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       const _today = new Date().toISOString().slice(0, 10);
-      // Only show streak if it's still active (cooked today or yesterday)
-      const _streakActive = _lastStreakDate === _today || _lastStreakDate === _yesterday;
       const hsBadgeInit = document.getElementById('headerStreakBadge');
-      if (hsBadgeInit && _initStreak > 0 && _streakActive) {
-        hsBadgeInit.style.display = 'inline';
-        hsBadgeInit.textContent = '🔥' + _initStreak;
+      if (hsBadgeInit && _initStreak > 0) {
+        if (_lastStreakDate === _today) {
+          // Cooked today — normal streak
+          hsBadgeInit.style.display = 'inline';
+          hsBadgeInit.textContent = '🔥' + _initStreak;
+          hsBadgeInit.style.animation = '';
+          hsBadgeInit.title = _initStreak + ' day streak';
+        } else if (_lastStreakDate === _yesterday) {
+          // Streak expiring soon — cooked yesterday but not today yet
+          hsBadgeInit.style.display = 'inline';
+          hsBadgeInit.textContent = '🔥' + _initStreak;
+          hsBadgeInit.style.animation = 'streakFlash 1s ease-in-out infinite';
+          hsBadgeInit.title = 'Streak expiring! Cook today to keep it.';
+        } else {
+          // Streak expired — missed more than one day
+          hsBadgeInit.style.display = 'inline';
+          hsBadgeInit.textContent = '🥀' + _initStreak;
+          hsBadgeInit.style.animation = '';
+          hsBadgeInit.style.opacity = '0.6';
+          hsBadgeInit.title = 'Streak ended at ' + _initStreak + ' days. Cook today to start a new streak!';
+        }
       }
       if (currentUser === 'rollert2') checkExpiredDeletionsAdmin();
       checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
@@ -5219,6 +5286,16 @@
       }
     }
   }
+
+  // Surprise Me dice spin animation every 5 seconds
+  (function() {
+    var diceEl = document.getElementById('surpriseDiceBtn');
+    if (!diceEl) return;
+    setInterval(function() {
+      diceEl.style.animation = 'diceSpin 0.6s ease';
+      setTimeout(function() { diceEl.style.animation = ''; }, 650);
+    }, 5000);
+  })();
 
   // ═══ PLANNER (NEW) ═══
   let plannerView = localStorage.getItem('plannerView') || 'week'; // 'week' or 'calendar'
@@ -6745,10 +6822,20 @@
       'Garlic Bread','Steamed Broccoli','Mac and Cheese','Roasted Potatoes','Green Beans Almondine',
       'Caprese Salad','Cucumber Salad','Dinner Rolls','Creamed Spinach','Sweet Potato Fries'
     ],
-    Sides: [
-      'Garlic Mashed Potatoes','Roasted Vegetables','Caesar Salad','Coleslaw','Corn on the Cob',
-      'Garlic Bread','Steamed Broccoli','Mac and Cheese','Roasted Potatoes','Green Beans Almondine',
-      'Caprese Salad','Cucumber Salad','Dinner Rolls','Creamed Spinach','Sweet Potato Fries'
+    Dessert: [
+      'Chocolate Chip Cookies','Brownies','Cheesecake','Apple Pie','Tiramisu',
+      'Crème Brulee','Lemon Bars','Panna Cotta','Chocolate Mousse','Carrot Cake',
+      'Banana Bread','Rice Krispie Treats','Fruit Tart','Churros','Pavlova'
+    ],
+    Soup: [
+      'Tomato Basil Soup','Chicken Noodle Soup','Minestrone','Clam Chowder','French Onion Soup',
+      'Lentil Soup','Butternut Squash Soup','Chili','Potato Leek Soup','Thai Coconut Soup',
+      'Broccoli Cheddar Soup','Gazpacho','Tortilla Soup','Mushroom Soup','Borscht'
+    ],
+    Salad: [
+      'Greek Salad','Cobb Salad','Caesar Salad','Caprese Salad','Waldorf Salad',
+      'Asian Chicken Salad','Quinoa Salad','Nicoise Salad','Watermelon Feta Salad','Tabbouleh',
+      'Bean Salad','Pasta Salad','Taco Salad','Kale Salad','Potato Salad'
     ],
     Drink: [
       'Classic Lemonade','Iced Coffee','Mango Smoothie','Strawberry Daiquiri','Margarita',
@@ -8125,7 +8212,7 @@ ${text}`;
       const orig = btn.getAttribute('onclick');
       if (orig && orig.includes('switchTab')) {
         const tab = orig.match(/switchTab\('(\w+)'\)/)?.[1];
-        if (tab) btn.setAttribute('onclick', "switchTab('" + tab + "');(function(){const r=document.getElementById('cookTimeFilterRow');if(r)r.style.display='" + (tab==='recipes'?'flex':'none') + "';})()");
+        if (tab) btn.setAttribute('onclick', "switchTab('" + tab + "');(function(){const r=document.getElementById('cookTimeFilterRow');if(r)r.style.display='" + (tab==='recipes'?'':'none') + "';if(r&&'" + (tab==='recipes') + "'&&cookTimeFilterVisible)r.style.display='flex';})()");
       }
     });
   }
@@ -8216,10 +8303,35 @@ ${text}`;
       : '';
 
     card.style.display = 'block';
-    card.innerHTML = '<div class="seasonal-title">' + active.emoji + ' ' + active.title + '</div>' +
-      '<div class="seasonal-desc">' + active.desc + '</div>' +
-      '<div class="seasonal-chips">' + active.terms.map(t => '<div class="seasonal-chip" onclick="discoverSearch(\'' + t + '\')">'+t+'</div>').join('') + '</div>' +
-      myMatchesHtml;
+
+    // Build suggestion buttons in a grid
+    const suggestionsHtml = '<div style="margin-top:12px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:6px;">Try These</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">' +
+      active.terms.map(t =>
+        '<div onclick="discoverSearch(\'' + t.replace(/'/g, "\\'") + '\')" style="padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.78em;color:var(--text);cursor:pointer;text-align:center;font-weight:500;">' + t + '</div>'
+      ).join('') +
+      '</div></div>';
+
+    // Build "In Your Cookbook" section with larger recipe cards
+    const myMatchesHtml2 = myMatches.length > 0
+      ? '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--glass-border);">' +
+        '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">In Your Cookbook</div>' +
+        '<div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;">' +
+        myMatches.map(r => {
+          const idx = allRecipes.indexOf(r);
+          return '<div onclick="openDetails(' + idx + ')" style="flex-shrink:0;width:110px;cursor:pointer;">' +
+            (r.image ? '<img src="'+r.image+'" style="width:110px;height:70px;object-fit:cover;border-radius:8px;display:block;">' : '<div style="width:110px;height:70px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.5em;">🍽️</div>') +
+            '<div style="font-size:0.72em;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-weight:600;">'+r.title+'</div></div>';
+        }).join('') + '</div></div>'
+      : '';
+
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+        '<span style="font-size:2em;">' + active.emoji + '</span>' +
+        '<div><div style="font-size:0.95em;font-weight:800;color:var(--text);">' + active.title + '</div>' +
+        '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + active.desc + '</div></div>' +
+      '</div>' +
+      suggestionsHtml + myMatchesHtml2;
   }
 
   // ═══ LEFTOVERS TRACKER ════════════════════════════════════
