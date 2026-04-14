@@ -824,7 +824,7 @@
         <div class="user-badge" id="userBadge" onclick="openProfile()">
           <div class="user-badge-avatar" id="userBadgeAvatar"></div>
           <span id="userBadgeName"></span>
-          <span id="headerStreakBadge" style="display:none;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:1px 7px;font-size:0.65em;font-weight:700;margin-left:4px;">🔥0</span>
+          <span id="headerStreakBadge" style="display:none;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:12px;padding:2px 8px;font-size:0.8em;font-weight:700;margin-left:4px;">🔥0</span>
           <span id="notifBadge" onclick="event.stopPropagation();openProfile().then?.(()=>{});setTimeout(()=>{const s=document.getElementById('profileNotifSection');if(s&&s.style.display!=='none')s.scrollIntoView({behavior:'smooth',block:'start'});},450);" style="display:none;background:var(--red);color:white;border-radius:50%;width:16px;height:16px;font-size:0.55em;font-weight:900;align-items:center;justify-content:center;margin-left:2px;flex-shrink:0;"></span>
         </div>
         <button class="icon-btn" id="inboxBtn" onclick="openInbox()">🔔<span class="notif-badge" id="inboxBadge" style="display:none;"></span></button>
@@ -1342,16 +1342,16 @@
     </div>
     <div style="padding:0 16px 4px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openNutritionDashboard()">
+        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;line-height:1;min-height:32px;" onclick="openNutritionDashboard()">
           <span>📊</span><span>Nutrition</span>
         </button>
-        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openStreakDashboard()">
+        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;line-height:1;min-height:32px;" onclick="openStreakDashboard()">
           <span>🔥</span><span>Streaks</span>
         </button>
-        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openCookTimeStats()">
+        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;line-height:1;min-height:32px;" onclick="openCookTimeStats()">
           <span>⏱</span><span>Stats</span>
         </button>
-        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;" onclick="openCookbookShowcase()">
+        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;white-space:nowrap;line-height:1;min-height:32px;" onclick="openCookbookShowcase()">
           <span>🌐</span><span>Showcase</span>
         </button>
       </div>
@@ -2602,7 +2602,7 @@
   function closeProfileAnimated() { closeModalAnimated('profileModal'); }
   // ═══ CATEGORIES ═══
   function renderCategories() {
-    const cats = ['All', '⭐ Fav', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
+    const cats = ['All', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
     const container = document.getElementById('categoryFiltersInline');
     if (!container) return;
     container.innerHTML = cats.map(c =>
@@ -2612,7 +2612,6 @@
 
   function toggleCategory(cat) {
     if (cat === 'All') { activeCategories = new Set(['All']); showFavsOnly = false; }
-    else if (cat === '⭐ Fav') { showFavsOnly = !showFavsOnly; activeCategories.delete('All'); if (!showFavsOnly && activeCategories.size === 0) activeCategories.add('All'); }
     else { activeCategories.delete('All'); if (activeCategories.has(cat)) { activeCategories.delete(cat); if (activeCategories.size === 0) activeCategories.add('All'); } else { activeCategories.add(cat); } }
     renderCategories(); renderRecipes();
   }
@@ -12113,23 +12112,24 @@ ${r.ingredients}`;
       rcAlert('No meal plan data to export.');
       return;
     }
-    
+
     let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Roll Cookbook//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n';
-    
+
     const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
     const defaultTimes = { 'Breakfast': '080000', 'Lunch': '120000', 'Dinner': '180000' };
-    
+    let eventCount = 0;
+
     plannerData.forEach(entry => {
       if (!entry.recipe_id && !entry.custom_title) return;
       const title = entry.custom_title || (entry.recipes ? entry.recipes.title : 'Meal');
       const dateStr = (entry.entry_date || entry.date || '').replace(/-/g, '');
       if (!dateStr || dateStr.length < 8) return;
-      
+
       const mt = entry.meal_type || 'Dinner';
       const time = defaultTimes[mt] || '180000';
       const dtStart = dateStr + 'T' + time;
       const dtEnd = dateStr + 'T' + String(parseInt(time) + 10000).padStart(6, '0');
-      
+
       ics += 'BEGIN:VEVENT\n';
       ics += 'DTSTART:' + dtStart + '\n';
       ics += 'DTEND:' + dtEnd + '\n';
@@ -12141,27 +12141,63 @@ ${r.ingredients}`;
       ics += 'UID:rollcookbook-' + (entry.id || Date.now()) + '@rollcookbook.com\n';
       ics += 'STATUS:CONFIRMED\n';
       ics += 'END:VEVENT\n';
+      eventCount++;
     });
-    
+
     ics += 'END:VCALENDAR';
-    
-    // Download .ics file
+
+    if (eventCount === 0) {
+      rcAlert('No valid meal plan entries to export.');
+      return;
+    }
+
     const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const fileName = 'rollcookbook-mealplan-' + weekStart.toISOString().slice(0, 10) + '.ics';
+
+    // Try Web Share API first (mobile) — allows direct calendar import
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], fileName, { type: 'text/calendar' });
+      const shareData = { files: [file], title: 'Roll Cookbook Meal Plan', text: 'Add these events to your calendar' };
+      if (navigator.canShare(shareData)) {
+        navigator.share(shareData).then(() => {
+          // Share succeeded, still save a local copy
+          saveIcsFile(blob, fileName);
+        }).catch(() => {
+          // Share cancelled or failed, fallback to download
+          saveIcsFile(blob, fileName);
+        });
+        return;
+      }
+    }
+
+    // Fallback: download file + offer to share
+    saveIcsFile(blob, fileName);
+  }
+
+  function saveIcsFile(blob, fileName) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const weekStart = getWeekStart(plannerWeekOffset);
-    a.download = 'rollcookbook-mealplan-' + weekStart.toISOString().slice(0, 10) + '.ics';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    const toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-    toast.textContent = '✅ Calendar file downloaded! Open it to add to your phone calendar.';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+
+    // Show a popup asking user to open/share the file
+    const overlay = document.createElement('div');
+    overlay.id = 'calExportOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;animation:rcFadeIn 0.15s ease;';
+    overlay.innerHTML =
+      '<div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">' +
+        '<div style="font-size:2em;margin-bottom:12px;">📅</div>' +
+        '<div style="font-size:1.1em;font-weight:800;margin-bottom:6px;color:var(--text);">Meal Plan Exported!</div>' +
+        '<div style="font-size:0.85em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">The calendar file has been downloaded. Tap the button below to import it into your phone\'s calendar app.</div>' +
+        '<button onclick="document.getElementById(\'calExportOverlay\').remove()" style="width:100%;padding:13px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">Got it</button>' +
+      '</div>';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
   }
 
   // ═══ SHOPPING LIST SHARE AS TEXT ══════════════════════════════════════
