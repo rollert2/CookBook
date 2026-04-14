@@ -878,29 +878,46 @@
   <!-- Discover tab -->
   <div id="discoverContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
     <div id="seasonalCard" class="seasonal-card" style="display:none;"></div>
+    <!-- Main AI search -->
+    <div style="margin:14px 0 4px;">
+      <div style="font-size:1.1em;font-weight:800;margin-bottom:4px;">🔎 Discover Recipes</div>
+      <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;">Search by name, cuisine, or ingredient — or paste a URL to import any recipe.</div>
+    </div>
     <div class="discover-search-wrap">
-      <input type="text" id="discoverInput" placeholder="Search for a recipe..." onkeydown="if(event.key==='Enter') runDiscoverSearch()">
+      <input type="text" id="discoverInput" placeholder="e.g. Thai green curry, pasta carbonara, https://..." onkeydown="if(event.key==='Enter') runDiscoverSearch()">
       <button class="discover-search-btn" onclick="runDiscoverSearch()">Search</button>
     </div>
-    <!-- What's In My Fridge? -->
-    <div style="margin:14px 0 6px;">
-      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">🧑‍🍳 What's In My Fridge?</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="text" id="fridgeInput" placeholder="e.g. chicken, rice, broccoli..." style="flex:1;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.9em;font-family:inherit;" onkeydown="if(event.key==='Enter') runFridgeSearch()">
-        <button class="discover-search-btn" onclick="runFridgeSearch()" style="white-space:nowrap;">🔍 Find Recipes</button>
-      </div>
-      <div id="fridgeResults" style="margin-top:10px;display:none;"></div>
-    </div>
-    <!-- Quick category picks -->
-    <div style="margin:10px 0 6px;">
-      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">Quick Browse</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Breakfast','🌅')">🌅 Breakfast</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Lunch','🥗')">🥗 Lunch</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Dinner','🍽️')">🍽️ Dinner</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Snack','🍿')">🍿 Snacks</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Drink','🥤')">🥤 Drinks</button>
-        <button class="sort-chip" onclick="showDiscoverQuickPicks('Sides','🥘')">🥘 Sides</button>
+    <!-- Quick browse categories -->
+    <div style="margin:18px 0 6px;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:10px;">Quick Browse</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button onclick="showDiscoverQuickPicks('Breakfast','🌅')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🌅</span><span style="font-size:0.78em;font-weight:600;">Breakfast</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Lunch','🥗')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🥗</span><span style="font-size:0.78em;font-weight:600;">Lunch</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Dinner','🍽️')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🍽️</span><span style="font-size:0.78em;font-weight:600;">Dinner</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Snack','🍿')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🍿</span><span style="font-size:0.78em;font-weight:600;">Snacks</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Drink','🥤')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🥤</span><span style="font-size:0.78em;font-weight:600;">Drinks</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Sides','🥘')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🥘</span><span style="font-size:0.78em;font-weight:600;">Sides</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Dessert','🍰')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🍰</span><span style="font-size:0.78em;font-weight:600;">Desserts</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Soup','🍲')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🍲</span><span style="font-size:0.78em;font-weight:600;">Soups</span>
+        </button>
+        <button onclick="showDiscoverQuickPicks('Salad','🥬')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text);font-family:inherit;">
+          <span style="font-size:1.5em;">🥬</span><span style="font-size:0.78em;font-weight:600;">Salads</span>
+        </button>
       </div>
     </div>
     <div id="discoverQuickPicks" style="display:none;margin:10px 0 6px;"></div>
@@ -911,6 +928,7 @@
 
   <!-- Pantry tab -->
   <div id="pantryContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
+    <!-- Section 1: My Pantry -->
     <div style="margin:14px 0 6px;">
       <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">🧊 My Pantry</div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
@@ -920,13 +938,25 @@
       <div id="pantryItemsList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
       <button onclick="clearPantry()" style="padding:8px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:var(--radius-sm);font-size:0.78em;cursor:pointer;font-family:inherit;">🗑 Clear All</button>
     </div>
+    <!-- Section 2: Recipes From Your Cookbook -->
     <div style="margin:20px 0 6px;">
-      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🍳 Recipes You Can Make</div>
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">📖 Recipes From Your Cookbook</div>
       <div id="pantryRecipeMatches" style="display:flex;flex-direction:column;gap:8px;"></div>
       <div id="pantryNoMatches" style="display:none;text-align:center;padding:30px;color:var(--text-faint);font-size:0.9em;">
         <div style="font-size:2em;margin-bottom:8px;">🧊</div>
-        <div>Add pantry ingredients to find matching recipes from your cookbook.</div>
+        <div>Add at least 3 ingredients to find matching recipes from your cookbook.</div>
       </div>
+    </div>
+    <!-- Section 3: AI Find Recipes Online -->
+    <div style="margin:24px 0 6px;padding-top:16px;border-top:1px solid var(--glass-border);">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:4px;">🤖 Find Recipes Online</div>
+      <div style="font-size:0.78em;color:var(--text-dim);margin-bottom:10px;">AI will find recipes using your pantry ingredients + any extras you add.</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <input type="text" id="pantryFridgeInput" placeholder="Extra ingredients (optional)..." style="flex:1;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.9em;font-family:inherit;" onkeydown="if(event.key==='Enter')runPantryFridgeSearch()">
+        <button onclick="runPantryFridgeSearch()" style="padding:10px 16px;background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">🔍 Find</button>
+      </div>
+      <div id="pantryFridgeStatus" style="display:none;text-align:center;padding:12px;color:var(--text-dim);font-size:0.85em;"></div>
+      <div id="pantryFridgeResults" style="display:none;margin-top:10px;"></div>
     </div>
   </div>
 
@@ -11562,30 +11592,72 @@ ${r.ingredients}`;
     const noMatch = document.getElementById('pantryNoMatches');
     if (!matches || !noMatch || pantryItems.length === 0 || !allRecipes) return;
 
+    const MIN_PANTRY_ITEMS = 3;
+    const MIN_MATCH_COUNT = 2;
+
+    // Helper: check if a pantry word matches a recipe ingredient word (word-boundary, not substring)
+    function ingredientMatches(pantryItem, recipeIngredient) {
+      const pantryWords = pantryItem.toLowerCase().split(/\s+/);
+      const ingWords = recipeIngredient.toLowerCase().replace(/\*+/g, '').trim();
+      // All pantry words must appear as whole words in the ingredient
+      return pantryWords.every(pw => {
+        if (pw.length < 2) return false; // skip tiny words like 'a'
+        // Check word boundaries: the word appears standalone or at start/end of ingredient
+        const regex = new RegExp('(?:^|\\s|[-,])' + pw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\s|[-,.)]|$)', 'i');
+        return regex.test(ingWords) || ingWords === pw;
+      });
+    }
+
     // For each recipe, check how many pantry ingredients match
     const scored = allRecipes.map(r => {
-      const recipeIngredients = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g,'').trim()).filter(Boolean);
-      // Count how many pantry items match this recipe
-      const matchedPantry = pantryItems.filter(p => recipeIngredients.some(i => i.includes(p) || p.includes(i)));
-      // Score based on fraction of pantry items found in recipe
-      const pct = pantryItems.length > 0 ? Math.round((matchedPantry.length / pantryItems.length) * 100) : 0;
-      return { recipe: r, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, pct };
-    }).filter(s => s.pct > 0).sort((a, b) => b.pct - a.pct || b.matchCount - a.matchCount);
+      const recipeIngredients = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
+      const matchedPantry = [];
+      pantryItems.forEach(p => {
+        if (recipeIngredients.some(i => ingredientMatches(p, i))) {
+          matchedPantry.push(p);
+        }
+      });
+      // Calculate: what fraction of pantry items match
+      const pantryPct = pantryItems.length > 0 ? Math.round((matchedPantry.length / pantryItems.length) * 100) : 0;
+      // Also: what fraction of recipe ingredients are covered
+      const recipeCoverage = recipeIngredients.length > 0 ? Math.round((matchedPantry.length / recipeIngredients.length) * 100) : 0;
+      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, pantryPct, recipeCoverage, totalIngredients: recipeIngredients.length };
+    }).filter(s => {
+      // Require minimum pantry items before showing results
+      if (pantryItems.length < MIN_PANTRY_ITEMS) return false;
+      // Require at least 2 pantry items matched
+      if (s.matchCount < MIN_MATCH_COUNT) return false;
+      // Require at least 30% of pantry items matched
+      if (s.pantryPct < 30) return false;
+      return true;
+    }).sort((a, b) => {
+      // Primary: match count (more matches = more useful)
+      if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+      // Secondary: pantry percentage
+      return b.pantryPct - a.pantryPct;
+    });
 
     if (scored.length === 0) {
       matches.innerHTML = '';
       noMatch.style.display = 'block';
+      if (pantryItems.length < MIN_PANTRY_ITEMS) {
+        noMatch.innerHTML = '<div style="font-size:2em;margin-bottom:8px;">🧊</div><div>Add at least ' + MIN_PANTRY_ITEMS + ' ingredients to start matching recipes from your cookbook.</div>';
+      } else {
+        noMatch.innerHTML = '<div style="font-size:2em;margin-bottom:8px;">🧊</div><div>No recipes match your pantry ingredients yet. Try adding more ingredients!</div>';
+      }
       return;
     }
 
     noMatch.style.display = 'none';
     matches.innerHTML = scored.map(s => {
       const r = s.recipe;
-      const color = s.pct >= 70 ? 'var(--green)' : s.pct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
+      const color = s.pantryPct >= 70 ? 'var(--green)' : s.pantryPct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
+      const matchedList = s.matchedPantry.slice(0, 3).join(', ') + (s.matchedPantry.length > 3 ? '...' : '');
       return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
         '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + escapeHtml(r.title) + '</div>' +
-        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.pantryTotal + ' pantry items found</div></div>' +
-        '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.pct + '%</div>' +
+        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.pantryTotal + ' pantry items matched</div>' +
+        '<div style="font-size:0.7em;color:var(--text-faint);margin-top:1px;">Matches: ' + matchedList + '</div></div>' +
+        '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.pantryPct + '%</div>' +
         '</div>';
     }).join('');
   }
@@ -11595,6 +11667,93 @@ ${r.ingredients}`;
     if (idx >= 0) {
       activeRecipeIndex = idx;
       openDetailsAnimated();
+    }
+  }
+
+  // ═══ PANTRY: AI FIND RECIPES ONLINE ══════════════════════════════════════
+  async function runPantryFridgeSearch() {
+    const extraInput = document.getElementById('pantryFridgeInput');
+    const extra = extraInput?.value.trim() || '';
+
+    // Combine pantry items + extra ingredients
+    const allIngredients = [...pantryItems];
+    if (extra) {
+      extra.split(',').forEach(i => {
+        const trimmed = i.trim().toLowerCase();
+        if (trimmed && !allIngredients.includes(trimmed)) allIngredients.push(trimmed);
+      });
+    }
+
+    if (allIngredients.length === 0) {
+      rcAlert('Add some pantry ingredients first, or type extra ingredients above.');
+      return;
+    }
+
+    const statusEl = document.getElementById('pantryFridgeStatus');
+    const resultsEl = document.getElementById('pantryFridgeResults');
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<div class="spinner" style="margin:0 auto 8px;"></div>Finding recipes online using your ingredients...';
+    resultsEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fridge_recipes',
+          ingredients: allIngredients.join(', '),
+          username: currentUser
+        })
+      });
+      const data = await res.json();
+      statusEl.style.display = 'none';
+
+      if (data.status === 'Error') {
+        resultsEl.style.display = 'block';
+        resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + data.message + '</div>';
+        return;
+      }
+
+      const recipes = data.recipes || [];
+      resultsEl.style.display = 'block';
+
+      if (recipes.length === 0) {
+        resultsEl.innerHTML = '<div style="padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.88em;color:var(--text-dim);text-align:center;">No recipes found. Try different ingredients!</div>';
+        return;
+      }
+
+      resultsEl.innerHTML = '<div style="font-size:0.72em;color:var(--text-faint);margin-bottom:8px;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + ' you can make:</div>' +
+        recipes.map(r => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;" onclick="pantryAddRecipe(' + JSON.stringify(r).replace(/"/g, '&quot;') + ')">' +
+          '<div style="font-weight:700;font-size:0.92em;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(r.match_reason || 'Uses your ingredients') + '</div>' +
+          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
+        '</div>').join('');
+    } catch(e) {
+      statusEl.style.display = 'none';
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + e.message + '</div>';
+    }
+  }
+
+  async function pantryAddRecipe(recipe) {
+    const res = await addRecipe(currentUser, {
+      title: recipe.title,
+      category: recipe.category || 'General',
+      ingredients: recipe.ingredients,
+      instructions: recipe.instructions,
+      notes: recipe.notes || '',
+      cookTime: recipe.cook_time || '',
+      prepTime: recipe.prep_time || '',
+      servings: recipe.servings || ''
+    });
+    if (res.status === 'Success') {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Added "' + recipe.title + '"!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+      init();
+    } else {
+      await rcAlert(res.message);
     }
   }
 
