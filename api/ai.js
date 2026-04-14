@@ -26,7 +26,9 @@ export default async function handler(req, res) {
     const { ingredients, username } = req.body;
     if (!ingredients) return res.status(400).json({ status: 'Error', message: 'Ingredients are required' });
 
-    const prompt = `A user has these ingredients available: ${ingredients}
+    const prompt = `You must return ONLY a JSON array. No text before or after. No markdown formatting. No code blocks.
+
+A user has these ingredients available: ${ingredients}
 
 Generate 3-5 complete recipe suggestions that primarily use these ingredients. For each recipe, provide:
 - title: Creative recipe name
@@ -38,7 +40,7 @@ Generate 3-5 complete recipe suggestions that primarily use these ingredients. F
 - servings: Number of servings
 - match_reason: Brief explanation of how it uses their ingredients (1 sentence)
 
-Format as a JSON array. Return ONLY the JSON array, no markdown formatting.`;
+Return ONLY the JSON array, nothing else.`;
 
     try {
       const geminiRes = await fetch(
@@ -63,14 +65,27 @@ Format as a JSON array. Return ONLY the JSON array, no markdown formatting.`;
       }
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      // Parse the JSON response
+      // Parse the JSON response - be very robust about handling markdown/formatting
       try {
-        // Strip markdown code blocks if present
-        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        // Strip markdown code blocks, backticks, and any leading/trailing text
+        let cleanText = text;
+        // Remove ```json or ``` blocks
+        cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        // Find the first [ and last ] to extract just the JSON array
+        const firstBracket = cleanText.indexOf('[');
+        const lastBracket = cleanText.lastIndexOf(']');
+        if (firstBracket === -1 || lastBracket === -1) {
+          throw new Error('No JSON array found in response');
+        }
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
         const recipes = JSON.parse(cleanText);
+        if (!Array.isArray(recipes) || recipes.length === 0) {
+          throw new Error('Response was not a valid recipe array');
+        }
         return res.json({ status: 'Success', recipes });
       } catch(e) {
-        return res.status(500).json({ status: 'Error', message: 'Failed to parse AI response. Please try again.' });
+        console.error('Parse error:', e.message, 'Raw text:', text);
+        return res.status(500).json({ status: 'Error', message: 'AI returned an invalid format. Try again or rephrase your ingredients.' });
       }
     } catch(e) {
       return res.status(500).json({ status: 'Error', message: e.message });
@@ -82,7 +97,9 @@ Format as a JSON array. Return ONLY the JSON array, no markdown formatting.`;
     const { ingredients, original_recipe, username } = req.body;
     if (!ingredients) return res.status(400).json({ status: 'Error', message: 'Ingredients are required' });
 
-    const prompt = `A user just finished cooking "${original_recipe}" and likely has leftover ingredients, partial items, or base components remaining.
+    const prompt = `You must return ONLY a JSON array. No text before or after. No markdown formatting. No code blocks.
+
+A user just finished cooking "${original_recipe}" and likely has leftover ingredients, partial items, or base components remaining.
 
 Based on these ingredients they used: ${ingredients}
 
@@ -96,7 +113,7 @@ Suggest 2-4 different recipes they could make with what's likely left over or co
 - servings: Number of servings
 - match_reason: Brief explanation of how it uses leftovers from the original recipe (1 sentence)
 
-Format as a JSON array. Return ONLY the JSON array, no markdown formatting.`;
+Return ONLY the JSON array, nothing else.`;
 
     try {
       const geminiRes = await fetch(
@@ -122,11 +139,22 @@ Format as a JSON array. Return ONLY the JSON array, no markdown formatting.`;
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       try {
-        const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        let cleanText = text;
+        cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        const firstBracket = cleanText.indexOf('[');
+        const lastBracket = cleanText.lastIndexOf(']');
+        if (firstBracket === -1 || lastBracket === -1) {
+          throw new Error('No JSON array found in response');
+        }
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
         const recipes = JSON.parse(cleanText);
+        if (!Array.isArray(recipes) || recipes.length === 0) {
+          throw new Error('Response was not a valid recipe array');
+        }
         return res.json({ status: 'Success', recipes });
       } catch(e) {
-        return res.status(500).json({ status: 'Error', message: 'Failed to parse AI response. Please try again.' });
+        console.error('Parse error:', e.message, 'Raw text:', text);
+        return res.status(500).json({ status: 'Error', message: 'AI returned an invalid format. Try again.' });
       }
     } catch(e) {
       return res.status(500).json({ status: 'Error', message: e.message });

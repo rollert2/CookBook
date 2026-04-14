@@ -11175,7 +11175,7 @@ ${r.ingredients}`;
 
   // ═══ COOKBOOK SHOWCASE ══════════════════════════════════════
   function openCookbookShowcase() {
-    const showcaseUrl = 'https://rollcookbook.com/@' + currentUser;
+    const showcaseUrl = 'https://rollcookbook.com/#showcase=' + currentUser;
     closeProfileAnimated();
     
     const sheet = document.createElement('div');
@@ -11192,7 +11192,7 @@ ${r.ingredients}`;
       '</div>' +
       '<button onclick="navigator.clipboard.writeText(\'' + showcaseUrl + '\');this.textContent=\'✅ Copied!\';setTimeout(()=>this.textContent=\'📋 Copy URL\',1500);" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;margin-bottom:8px;">📋 Copy URL</button>' +
       '<button onclick="if(typeof median!==\'undefined\'&&median.openExternalUrl){median.openExternalUrl({url:\'' + showcaseUrl + '\'});}else{window.open(\'' + showcaseUrl + '\',\'_blank\');}" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;">🌐 Open in Browser</button>' +
-      '<div style="font-size:0.72em;color:var(--text-faint);margin-top:12px;line-height:1.4;">Only recipes in public collections will be visible. Private collections and favourites stay hidden.</div>' +
+      '<div style="font-size:0.72em;color:var(--text-faint);margin-top:12px;line-height:1.4;">Note: Showcase page needs a dedicated landing page to be built. URL shares to rollcookbook.com with user hash.</div>' +
       '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
     
     document.body.appendChild(overlay);
