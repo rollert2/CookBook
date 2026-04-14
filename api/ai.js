@@ -69,23 +69,25 @@ Return ONLY the JSON array, nothing else.`;
       try {
         // Strip markdown code blocks, backticks, and any leading/trailing text
         let cleanText = text;
-        // Remove ```json or ``` blocks
-        cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        // Remove ```json or ``` blocks (case insensitive)
+        cleanText = cleanText.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
         // Find the first [ and last ] to extract just the JSON array
         const firstBracket = cleanText.indexOf('[');
         const lastBracket = cleanText.lastIndexOf(']');
-        if (firstBracket === -1 || lastBracket === -1) {
-          throw new Error('No JSON array found in response');
+        if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
+          console.error('No JSON array found. Raw response:', text.substring(0, 200));
+          return res.status(500).json({ status: 'Error', message: 'AI returned invalid format. Try simpler ingredients like "chicken rice vegetables".' });
         }
-        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1).trim();
         const recipes = JSON.parse(cleanText);
         if (!Array.isArray(recipes) || recipes.length === 0) {
-          throw new Error('Response was not a valid recipe array');
+          console.error('Not an array. Parsed:', typeof recipes, 'Raw:', text.substring(0, 200));
+          return res.status(500).json({ status: 'Error', message: 'AI returned invalid format. Try simpler ingredients like "chicken rice vegetables".' });
         }
         return res.json({ status: 'Success', recipes });
       } catch(e) {
-        console.error('Parse error:', e.message, 'Raw text:', text);
-        return res.status(500).json({ status: 'Error', message: 'AI returned an invalid format. Try again or rephrase your ingredients.' });
+        console.error('Parse error:', e.message, 'Raw text first 200:', text.substring(0, 200));
+        return res.status(500).json({ status: 'Error', message: 'AI returned invalid format. Try simpler ingredients like "chicken rice vegetables".' });
       }
     } catch(e) {
       return res.status(500).json({ status: 'Error', message: e.message });
@@ -140,21 +142,23 @@ Return ONLY the JSON array, nothing else.`;
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       try {
         let cleanText = text;
-        cleanText = cleanText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        cleanText = cleanText.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
         const firstBracket = cleanText.indexOf('[');
         const lastBracket = cleanText.lastIndexOf(']');
-        if (firstBracket === -1 || lastBracket === -1) {
-          throw new Error('No JSON array found in response');
+        if (firstBracket === -1 || lastBracket === -1 || lastBracket <= firstBracket) {
+          console.error('No JSON array found. Raw:', text.substring(0, 200));
+          return res.status(500).json({ status: 'Error', message: 'Invalid format from AI. Try again.' });
         }
-        cleanText = cleanText.substring(firstBracket, lastBracket + 1);
+        cleanText = cleanText.substring(firstBracket, lastBracket + 1).trim();
         const recipes = JSON.parse(cleanText);
         if (!Array.isArray(recipes) || recipes.length === 0) {
-          throw new Error('Response was not a valid recipe array');
+          console.error('Not an array. Raw:', text.substring(0, 200));
+          return res.status(500).json({ status: 'Error', message: 'Invalid format from AI. Try again.' });
         }
         return res.json({ status: 'Success', recipes });
       } catch(e) {
-        console.error('Parse error:', e.message, 'Raw text:', text);
-        return res.status(500).json({ status: 'Error', message: 'AI returned an invalid format. Try again.' });
+        console.error('Parse error:', e.message, 'Raw:', text.substring(0, 200));
+        return res.status(500).json({ status: 'Error', message: 'Invalid format from AI. Try again.' });
       }
     } catch(e) {
       return res.status(500).json({ status: 'Error', message: e.message });

@@ -353,6 +353,12 @@
     .detail-meta-row { display:flex; align-items:center; gap:10px; padding:14px 18px 0; flex-wrap:wrap; }
     .detail-category { font-size:0.7em; color:var(--gold); text-transform:uppercase; font-weight:700; letter-spacing:0.5px; }
     .detail-time { font-size:0.75em; color:var(--text-dim); }
+    .card-difficulty.easy { background:rgba(76,175,125,0.9); color:white; }
+    .card-difficulty.medium { background:rgba(201,168,76,0.9); color:white; }
+    .card-difficulty.hard { background:rgba(224,85,85,0.9); color:white; }
+    #detailDifficultyBadge.easy { background:rgba(76,175,125,0.2); color:var(--green); border:1px solid var(--green); }
+    #detailDifficultyBadge.medium { background:rgba(201,168,76,0.2); color:var(--gold); border:1px solid var(--gold); }
+    #detailDifficultyBadge.hard { background:rgba(224,85,85,0.2); color:var(--red); border:1px solid var(--red); }
     .detail-rating-badge { margin-left:auto; background:var(--gold-dim); border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:3px 9px; font-size:0.75em; font-weight:700; }
     .detail-title { font-size:1.5em; font-weight:800; padding:8px 18px 0; letter-spacing:-0.3px; }
     .detail-actions { display:flex; gap:5px; padding:14px 18px 0; flex-wrap:wrap; }
@@ -633,6 +639,39 @@
 
   /* Shopping page full-width fix */
   #shoppingPage > div { width: 100%; box-sizing: border-box; }
+
+  /* ── SHOWCASE VIEW ── */
+  .showcase-view { display:none; min-height:100vh; background:var(--bg); }
+  .showcase-view.active { display:block; }
+  .showcase-header { position:sticky; top:0; left:0; right:0; background:var(--header-bg); z-index:100; border-bottom:1px solid rgba(201,168,76,0.2); padding:16px; }
+  .showcase-header-inner { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .showcase-title { font-size:1.2em; font-weight:800; letter-spacing:-0.5px; color:var(--text); }
+  .showcase-title span { color:var(--gold); }
+  .showcase-recipe-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; }
+  @media (orientation:landscape) { .showcase-recipe-grid { grid-template-columns:1fr 1fr 1fr; } }
+  .showcase-register-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:900; align-items:center; justify-content:center; padding:24px; }
+  .showcase-register-overlay.active { display:flex; }
+  .showcase-register-card { background:var(--surface); border:2px solid var(--gold); border-radius:var(--radius); padding:28px 24px; max-width:340px; width:100%; text-align:center; }
+  .showcase-register-icon { font-size:2.5em; margin-bottom:12px; }
+  .showcase-register-title { font-size:1.2em; font-weight:800; margin-bottom:8px; color:var(--text); }
+  .showcase-register-desc { font-size:0.88em; color:var(--text-dim); line-height:1.5; margin-bottom:20px; }
+  .showcase-register-features { text-align:left; font-size:0.82em; color:var(--text-dim); margin-bottom:20px; line-height:1.8; }
+  .showcase-register-btn { width:100%; padding:13px; background:var(--gold); color:var(--bg); border:none; border-radius:var(--radius-sm); font-weight:700; font-size:0.95em; cursor:pointer; margin-bottom:8px; }
+  .showcase-register-dismiss { width:100%; padding:11px; background:transparent; border:none; color:var(--text-faint); font-size:0.85em; cursor:pointer; font-family:inherit; }
+  .showcase-back-btn { background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); border-radius:10px; padding:7px 13px; font-size:0.85em; font-weight:600; cursor:pointer; }
+
+  /* ── MILESTONE CONFETTI ── */
+  .confetti-container { position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;overflow:hidden; }
+  .confetti-piece { position:absolute;width:10px;height:10px;top:-10px;animation:confettiFall 3s ease-out forwards; }
+  @keyframes confettiFall { 0%{transform:translateY(0) rotate(0deg);opacity:1;} 100%{transform:translateY(100vh) rotate(720deg);opacity:0;} }
+  .milestone-modal { position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;animation:fadeIn 0.3s ease; }
+  .milestone-card { background:var(--surface);border:2px solid var(--gold);border-radius:var(--radius);padding:32px 28px;max-width:340px;width:100%;text-align:center;animation:fadeInScale 0.3s ease; }
+  .milestone-icon { font-size:3.5em;margin-bottom:16px; }
+  .milestone-title { font-size:1.4em;font-weight:800;margin-bottom:8px; }
+  .milestone-desc { font-size:0.9em;color:var(--text-dim);margin-bottom:20px;line-height:1.5; }
+  .milestone-btn { width:100%;padding:13px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;margin-bottom:8px; }
+  .milestone-share-btn { width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;margin-bottom:8px; }
+  .milestone-dismiss { width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit; }
 </style>
 <script>
 // Apply theme as early as possible — body may not exist yet so use DOMContentLoaded
@@ -716,6 +755,43 @@
   </div>
   <div style="font-size:0.72em;color:var(--text-faint);text-align:center;margin-top:16px;max-width:300px;line-height:1.5;">
     By signing in you agree to our <a href="https://rollcookbook.com/privacy_policy.html" target="_blank" style="color:var(--gold);text-decoration:none;">Privacy Policy</a>. Your data is stored securely.
+  </div>
+</div>
+
+<!-- ═══ SHOWCASE VIEW ═══ -->
+<div id="showcaseView" class="showcase-view">
+  <div class="showcase-header">
+    <div class="showcase-header-inner">
+      <div class="showcase-title"><span>Roll</span> Cookbook</div>
+      <button class="showcase-back-btn" onclick="exitShowcase()">← Sign In</button>
+    </div>
+    <div style="margin-top:8px;">
+      <div style="font-size:0.78em;color:var(--text-faint);" id="showcaseUsername"></div>
+      <div style="font-size:0.68em;color:var(--gold);font-weight:700;margin-top:2px;">🌐 Public Cookbook</div>
+    </div>
+  </div>
+  <div id="showcaseRecipeGrid" class="showcase-recipe-grid"></div>
+  <div id="showcaseEmpty" style="text-align:center;padding:60px 20px;color:var(--text-faint);font-size:0.95em;display:none;">
+    <div style="font-size:3em;margin-bottom:12px;">📖</div>
+    <div>No public recipes yet.</div>
+  </div>
+</div>
+
+<!-- Showcase Registration Prompt -->
+<div id="showcaseRegisterOverlay" class="showcase-register-overlay">
+  <div class="showcase-register-card">
+    <div class="showcase-register-icon">📖</div>
+    <div class="showcase-register-title">Want full access?</div>
+    <div class="showcase-register-desc">Create a free account to save recipes, follow friends, and build your own cookbook.</div>
+    <div class="showcase-register-features">
+      ✓ Save unlimited recipes<br>
+      ✓ Follow friends and share recipes<br>
+      ✓ Meal planning and shopping lists<br>
+      ✓ AI recipe import from any URL<br>
+      ✓ Join the community
+    </div>
+    <button class="showcase-register-btn" onclick="exitShowcase();showLoginScreen();">Create Free Account</button>
+    <button class="showcase-register-dismiss" onclick="document.getElementById('showcaseRegisterOverlay').classList.remove('active');">Just Browse</button>
   </div>
 </div>
 
@@ -833,6 +909,27 @@
     <div id="discoverEmpty" class="discover-empty"><div style="font-size:2.5em;margin-bottom:10px;">🔎</div><p>Search for any recipe above.<br>Tap a result to preview and add it.</p></div>
   </div>
 
+  <!-- Pantry tab -->
+  <div id="pantryContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
+    <div style="margin:14px 0 6px;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">🧊 My Pantry</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <input type="text" id="pantryAddInput" placeholder="Add ingredient..." style="flex:1;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.9em;font-family:inherit;" onkeydown="if(event.key==='Enter')addPantryItem()">
+        <button onclick="addPantryItem()" style="padding:10px 16px;background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:inherit;">+</button>
+      </div>
+      <div id="pantryItemsList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+      <button onclick="clearPantry()" style="padding:8px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:var(--radius-sm);font-size:0.78em;cursor:pointer;font-family:inherit;">🗑 Clear All</button>
+    </div>
+    <div style="margin:20px 0 6px;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🍳 Recipes You Can Make</div>
+      <div id="pantryRecipeMatches" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div id="pantryNoMatches" style="display:none;text-align:center;padding:30px;color:var(--text-faint);font-size:0.9em;">
+        <div style="font-size:2em;margin-bottom:8px;">🧊</div>
+        <div>Add pantry ingredients to find matching recipes from your cookbook.</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Community tab (replaces Featured) -->
   <div id="featuredContent" style="display:none; padding-top:var(--header-height); padding-bottom:20px;">
     <!-- Community header -->
@@ -877,6 +974,7 @@
         <button onclick="openLeftoversPanel()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">🫙 Leftovers</button>
         <button onclick="openPlannerTemplates()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">📋 Templates</button>
         <button onclick="shufflePlanner()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;" title="Shuffle week">🔀</button>
+        <button onclick="exportMealPlanToCalendar()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">📅 Export to Calendar</button>
       </div>
     </div>
     <!-- Week nav -->
@@ -901,6 +999,7 @@
   <div class="bottom-nav">
     <button class="nav-tab active" id="navRecipes" onclick="switchTab('recipes')"><span class="nav-icon">🍽️</span>Recipes</button>
     <button class="nav-tab" id="navFeatured" onclick="switchTab('featured')"><span class="nav-icon">🌍</span>Community<span id="featuredBadge" style="display:none;background:var(--gold);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:0.9em;margin-left:2px;"></span></button>
+    <button class="nav-tab" id="navPantry" onclick="switchTab('pantry')"><span class="nav-icon">🧊</span>Pantry</button>
     <button class="nav-tab" id="navDiscover" onclick="switchTab('discover')"><span class="nav-icon">🔎</span>Discover</button>
     <button class="nav-tab" id="navPlanner" onclick="switchTab('planner')"><span class="nav-icon">📅</span>Planner</button>
     <button class="nav-tab" id="navAdd" onclick="openAddModal()"><span class="nav-icon">➕</span>Add</button>
@@ -1048,6 +1147,7 @@
         <button class="detail-hero-weigh" onclick="toggleConverter()" id="converterBtn">⚖️</button>
         <div class="detail-hero-b-overlay">
           <div class="detail-hero-b-cat" id="detailCategoryB"></div>
+          <span id="detailDifficultyBadge" style="display:inline-block;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 8px;border-radius:8px;margin-left:6px;"></span>
           <div class="detail-hero-b-title" id="detailTitleB"></div>
           <div class="detail-hero-b-meta">
             <span id="detailTimeB" style="display:none;"></span>
@@ -1230,6 +1330,12 @@
       <button id="streakDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openStreakDashboard()">
         <span>🔥</span>
         <span>Cooking Streaks</span>
+      </button>
+    </div>
+    <div style="padding:0 16px 4px;">
+      <button id="cooktimeStatsBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openCookTimeStats()">
+        <span>⏱</span>
+        <span>Cook Time Stats</span>
       </button>
     </div>
     <div style="padding:0 16px 4px;">
@@ -1576,6 +1682,13 @@
       </div>
       <div class="settings-row">
         <div class="settings-row-info">
+          <div class="settings-row-label">🥜 Allergy Filter</div>
+          <div class="settings-row-sub">Hide recipes containing allergens</div>
+        </div>
+        <button class="settings-toggle" id="toggleAllergyFilter" onclick="toggleAllergySettings()"></button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
           <div class="settings-row-label">Card size</div>
         </div>
         <select class="settings-select" id="settingCardSize" onchange="saveSetting('card_size',this.value);applyCardSize(this.value)">
@@ -1594,6 +1707,33 @@
         </div>
         <button class="settings-toggle" id="toggleAutoShop" onclick="toggleSetting('auto_shop_planner','toggleAutoShop')"></button>
       </div>
+    </div>
+    <div class="settings-section" id="allergySettingsSection" style="display:none;">
+      <div class="settings-section-title">Allergens to Avoid</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="allergyCheckboxes">
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="peanut" onchange="saveAllergySettings()"> 🥜 Peanuts
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="tree nut" onchange="saveAllergySettings()"> 🌰 Tree Nuts
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="dairy" onchange="saveAllergySettings()"> 🥛 Dairy
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="egg" onchange="saveAllergySettings()"> 🥚 Eggs
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="shellfish" onchange="saveAllergySettings()"> 🦐 Shellfish
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="gluten" onchange="saveAllergySettings()"> 🌾 Gluten
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;cursor:pointer;">
+          <input type="checkbox" class="allergy-check" value="soy" onchange="saveAllergySettings()"> 🫘 Soy
+        </label>
+      </div>
+      <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;">Filtered recipes will be hidden from recipe grid and search results.</div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Profile Picture</div>
@@ -2014,12 +2154,23 @@
     }
     // Push initial state so back gesture has somewhere to go
     history.replaceState({ root: true }, '');
-    const saved = localStorage.getItem('currentUser');
-    if (saved) enterApp(saved); else showLoginScreen();
+    // Check for showcase URL first
+    const showcaseUser = checkShowcaseOnLoad();
+    if (showcaseUser) {
+      enterShowcase(showcaseUser);
+    } else {
+      const saved = localStorage.getItem('currentUser');
+      if (saved) enterApp(saved); else showLoginScreen();
+    }
   };
 
   // Handle back gesture / back button — close topmost open modal
   window.addEventListener('popstate', function(e) {
+    // If showcase view is active, exit it
+    if (document.getElementById('showcaseView').classList.contains('active')) {
+      exitShowcase();
+      return;
+    }
     // Close any dynamically created sheets/overlays first (picker sheets, etc)
     const dynamicSheet = document.getElementById('plannerPickerSheet') || document.getElementById('batchCatSheet') || document.getElementById('batchColSheet');
     if (dynamicSheet) {
@@ -2222,7 +2373,7 @@
       // Timer bar is inside the header now, so headerH already includes it
       const headerH = Math.ceil(header.getBoundingClientRect().height);
       const pad = (headerH + 8) + 'px';
-      ['mainContent','discoverContent','plannerContent','featuredContent'].forEach(id => {
+      ['mainContent','discoverContent','plannerContent','featuredContent','pantryContent'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.paddingTop = pad;
       });
@@ -2339,7 +2490,7 @@
     if (batchSelectMode) exitBatchSelect();
     if (window._revealHeader) window._revealHeader();
     currentTab = tab;
-    ['recipes','featured','discover','planner'].forEach(t => {
+    ['recipes','featured','discover','planner','pantry'].forEach(t => {
       const el = document.getElementById(t === 'recipes' ? 'mainContent' : t + 'Content');
       if (!el) return;
       if (t === tab) {
@@ -2368,6 +2519,7 @@
     setTimeout(adjustHeaderPadding, 50);
     if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
     if (tab === 'discover') renderSeasonalCard();
+    if (tab === 'pantry') { loadPantry(); findPantryMatches(); }
     if (tab === 'featured') {
       loadCommunity();
       localStorage.setItem('featuredLastSeen_' + currentUser, Date.now().toString());
@@ -2501,7 +2653,11 @@
 
   function renderRecipes() {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
-    let list = allRecipes.filter(r => {
+    let displayRecipes = allRecipes;
+    if (window._filteredRecipeIndices && allergyFilterEnabled) {
+      displayRecipes = allRecipes.filter((r, i) => window._filteredRecipeIndices[i]);
+    }
+    let list = displayRecipes.filter(r => {
       const catMatch = activeCategories.has('All') || activeCategories.has(r.category);
       const favMatch = !showFavsOnly || r.favourite;
       const searchMatch = !q || (r.title||'').toLowerCase().includes(q) || (r.category||'').toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q) || (r.tags||'').toLowerCase().includes(q);
@@ -2523,8 +2679,9 @@
       const colName = getRecipeCollection(r.id);
       const favHtml = r.favourite ? '<div class="fav-badge">⭐</div>' : '';
       const cookBadge = r.cookCount && r.cookCount > 0 ? '<div style="position:absolute;top:6px;right:6px;z-index:3;background:rgba(0,0,0,0.65);color:#fff;border-radius:10px;padding:2px 8px;font-size:0.62em;font-weight:700;backdrop-filter:blur(4px);">🍳 ' + r.cookCount + 'x</div>' : '';
+      const diffBadge = r.difficulty ? '<span class="card-difficulty ' + r.difficulty + '" style="font-size:0.6em;padding:2px 6px;border-radius:6px;font-weight:700;position:absolute;bottom:8px;right:10px;z-index:2;">' + (r.difficultyLabel || r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)) + '</span>' : '';
       const imgContent = hasImg
-        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>'
+        ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>' + diffBadge
         : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>';
       const timeHtml = r.cookTime && r.cookTime.length < 30 ? '<span class="card-time">⏱ ' + r.cookTime + '</span>' : '';
       const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
@@ -5006,9 +5163,11 @@
       }
       await loadGenericMeals(); // Load generic meals for planner
       await loadLeftovers(); // Load leftovers from server
+      autoTagAllRecipes();
       renderCategories(); renderSortBar(); renderRecipes(); renderShopList();
       renderRotd();
       checkInbox(); checkTour(); loadCollections(); renderSeasonalCard(); checkNotifications();
+      loadPantry();
       if (userSettings.unit_preference) { _unitPref = userSettings.unit_preference; }
       // Show streak in header immediately on app load
       const _initStreak = userSettings.cook_streak || 0;
@@ -6766,6 +6925,16 @@
     document.getElementById('detailCategoryB').textContent = r.category || '';
     document.getElementById('detailTitleB').textContent = r.title;
 
+    // Difficulty badge
+    const diffBadge = document.getElementById('detailDifficultyBadge');
+    if (diffBadge) {
+      const label = renderDifficultyBadge(r);
+      diffBadge.textContent = label;
+      diffBadge.className = '';
+      diffBadge.classList.add(r.difficulty);
+      diffBadge.style.display = 'inline-block';
+    }
+
     const timeEl = document.getElementById('detailTimeB');
     if (r.cookTime) { timeEl.style.display = ''; timeEl.textContent = '⏱ ' + r.cookTime; } else timeEl.style.display = 'none';
 
@@ -7652,8 +7821,11 @@ ${text}`;
     listModal.innerHTML = `
       <div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">
         <button onclick="document.getElementById('sharedListDetailModal').remove();openSharedListsPanel();" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
-        <span style="font-weight:800;font-size:1em;flex:1;">${escapeHtml(listName)}</span>
+        <span id="sharedListTitle" style="font-weight:800;font-size:1em;flex:1;">${escapeHtml(listName)}</span>
         <button onclick="inviteToSharedList('${listId}')" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>
+        <button onclick="shareShoppingListAsText()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">📤 Share</button>
+        <button onclick="renameSharedList()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>
+        <button onclick="leaveSharedList()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>
       </div>
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <input id="sharedListInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')addSharedItem()">
@@ -10713,6 +10885,9 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
         setTimeout(() => toast.remove(), 3000);
       }
 
+      // Check for milestone badges with confetti
+      checkMilestone(newStreak);
+
       return newStreak;
     } catch(e) { return 0; }
   }
@@ -11173,6 +11348,127 @@ ${r.ingredients}`;
     `;
   }
 
+  // ═══ SHOWCASE SYSTEM ══════════════════════════════════════
+  let showcaseCurrentUser = null;
+  let showcaseRecipes = [];
+
+  function checkShowcaseOnLoad() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#showcase=')) {
+      const username = hash.replace('#showcase=', '').trim().toLowerCase();
+      if (username && /^[a-z0-9_]+$/.test(username)) {
+        return username;
+      }
+    }
+    return null;
+  }
+
+  async function enterShowcase(username) {
+    showcaseCurrentUser = username;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('showcaseView').classList.add('active');
+    document.getElementById('showcaseUsername').textContent = username + "'s Cookbook";
+    
+    // Show register overlay after a short delay
+    setTimeout(() => {
+      document.getElementById('showcaseRegisterOverlay').classList.add('active');
+    }, 2000);
+
+    await loadShowcaseRecipes(username);
+  }
+
+  async function loadShowcaseRecipes(username) {
+    const grid = document.getElementById('showcaseRecipeGrid');
+    const emptyEl = document.getElementById('showcaseEmpty');
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);"><div class="spinner" style="margin:0 auto 10px;"></div>Loading...</div>';
+    
+    try {
+      // Get user ID first
+      const users = await sbFetch('GET', 'users', null, 'username=eq.' + encodeURIComponent(username) + '&select=id');
+      if (!users || users.length === 0) {
+        grid.innerHTML = '';
+        emptyEl.style.display = 'block';
+        emptyEl.innerHTML = '<div style="font-size:3em;margin-bottom:12px;">🔍</div><div>User not found.</div>';
+        return;
+      }
+      const userId = users[0].id;
+      
+      // Load all recipes for this user
+      const recipes = await sbFetch('GET', 'recipes', null, 'user_id=eq.' + userId + '&select=*&order=created_at.desc');
+      showcaseRecipes = (recipes || []).map(r => ({
+        id: r.id, title: r.title, category: r.category || 'General',
+        image: r.image_url || '', cookTime: r.cook_time || '',
+        prepTime: r.prep_time || '', rating: r.rating, favourite: r.favourite,
+        ingredients: r.ingredients || '', instructions: r.instructions || '',
+        notes: r.notes || '', servings: r.servings || '', sourceUrl: r.source_url || '',
+        tags: r.tags || '', cookCount: r.cook_count || 0
+      }));
+      
+      if (showcaseRecipes.length === 0) {
+        grid.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      
+      emptyEl.style.display = 'none';
+      grid.innerHTML = showcaseRecipes.map((r, i) => {
+        const imgHtml = r.image ? '<img src="' + r.image + '" loading="lazy" onerror="this.parentElement.innerHTML=\'🍽️\'">' : '🍽️';
+        const timeHtml = r.cookTime ? '<span class="card-time">⏱ ' + r.cookTime + '</span>' : '';
+        const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
+        return '<div class="glass-card" onclick="showcaseTapRecipe(' + i + ')" style="animation-delay:' + (i * 0.04) + 's;">' +
+          '<div class="card-img-wrap">' + imgHtml + '<div class="card-img-gradient"></div><div class="card-category-overlay">' + escapeHtml(r.category) + '</div></div>' +
+          '<div class="card-info"><div class="card-title">' + escapeHtml(r.title) + '</div>' +
+          '<div class="card-footer">' + timeHtml + ratingHtml + '</div></div></div>';
+      }).join('');
+    } catch(e) {
+      grid.innerHTML = '';
+      emptyEl.style.display = 'block';
+      emptyEl.innerHTML = '<div style="font-size:3em;margin-bottom:12px;">⚠️</div><div>Error loading cookbook.</div>';
+    }
+  }
+
+  function showcaseTapRecipe(idx) {
+    const r = showcaseRecipes[idx];
+    if (!r) return;
+    
+    // Check if user is logged in
+    const loggedIn = !!localStorage.getItem('currentUser');
+    if (!loggedIn) {
+      // Show register overlay
+      document.getElementById('showcaseRegisterOverlay').classList.add('active');
+      return;
+    }
+    
+    // User is logged in - enter app and open this recipe
+    const currentUser = localStorage.getItem('currentUser');
+    enterApp(currentUser);
+    setTimeout(() => {
+      // Load recipes and open this one
+      init().then(() => {
+        const recipeIdx = allRecipes.findIndex(x => x.id === r.id);
+        if (recipeIdx >= 0) {
+          activeRecipeIndex = recipeIdx;
+          openDetailsAnimated();
+        } else {
+          // Recipe not in current user's cookbook - show it anyway
+          allRecipes.push(r);
+          activeRecipeIndex = allRecipes.length - 1;
+          openDetailsAnimated();
+        }
+      });
+    }, 500);
+  }
+
+  function exitShowcase() {
+    document.getElementById('showcaseView').classList.remove('active');
+    document.getElementById('showcaseRegisterOverlay').classList.remove('active');
+    showcaseCurrentUser = null;
+    showcaseRecipes = [];
+    window.location.hash = '';
+    showLoginScreen();
+  }
+
   // ═══ COOKBOOK SHOWCASE ══════════════════════════════════════
   function openCookbookShowcase() {
     const showcaseUrl = 'https://rollcookbook.com/#showcase=' + currentUser;
@@ -11197,6 +11493,590 @@ ${r.ingredients}`;
     
     document.body.appendChild(overlay);
     document.body.appendChild(sheet);
+  }
+
+  // ═══ PANTRY TRACKER ══════════════════════════════════════
+  let pantryItems = [];
+
+  function loadPantry() {
+    try {
+      pantryItems = JSON.parse(localStorage.getItem('pantry_' + currentUser) || '[]');
+    } catch(e) { pantryItems = []; }
+    renderPantry();
+  }
+
+  function addPantryItem() {
+    const input = document.getElementById('pantryAddInput');
+    const text = input?.value.trim().toLowerCase();
+    if (!text || pantryItems.includes(text)) { if(input) input.value=''; return; }
+    pantryItems.push(text);
+    savePantry();
+    if(input) input.value='';
+    renderPantry();
+    findPantryMatches();
+  }
+
+  function removePantryItem(text) {
+    pantryItems = pantryItems.filter(p => p !== text);
+    savePantry();
+    renderPantry();
+    findPantryMatches();
+  }
+
+  function clearPantry() {
+    pantryItems = [];
+    savePantry();
+    renderPantry();
+    findPantryMatches();
+  }
+
+  function savePantry() {
+    localStorage.setItem('pantry_' + currentUser, JSON.stringify(pantryItems));
+  }
+
+  function renderPantry() {
+    const list = document.getElementById('pantryItemsList');
+    const noMatch = document.getElementById('pantryNoMatches');
+    const matches = document.getElementById('pantryRecipeMatches');
+    if (!list) return;
+    if (pantryItems.length === 0) {
+      list.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:8px 0;">No ingredients added yet.</div>';
+      if(noMatch) noMatch.style.display='block';
+      if(matches) matches.innerHTML='';
+      return;
+    }
+    list.innerHTML = pantryItems.map(p => 
+      '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;color:var(--text);">' +
+      escapeHtml(p) + 
+      '<button onclick="removePantryItem(\'' + escapeHtml(p) + '\')" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:1em;padding:0 0 0 2px;">✕</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  function findPantryMatches() {
+    const matches = document.getElementById('pantryRecipeMatches');
+    const noMatch = document.getElementById('pantryNoMatches');
+    if (!matches || !noMatch || pantryItems.length === 0 || !allRecipes) return;
+    
+    // For each recipe, check how many ingredients match
+    const scored = allRecipes.map(r => {
+      const recipeIngredients = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g,'').trim()).filter(Boolean);
+      const matchCount = pantryItems.filter(p => recipeIngredients.some(i => i.includes(p) || p.includes(i))).length;
+      const pct = recipeIngredients.length > 0 ? Math.round((matchCount / recipeIngredients.length) * 100) : 0;
+      return { recipe: r, matchCount, pct };
+    }).filter(s => s.pct > 0).sort((a, b) => b.pct - a.pct);
+    
+    if (scored.length === 0) {
+      matches.innerHTML = '';
+      noMatch.style.display = 'block';
+      return;
+    }
+    
+    noMatch.style.display = 'none';
+    matches.innerHTML = scored.map(s => {
+      const r = s.recipe;
+      const color = s.pct >= 70 ? 'var(--green)' : s.pct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
+        '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + escapeHtml(r.title) + '</div>' +
+        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + r.ingredients.split('\n').filter(Boolean).length + ' ingredients matched</div></div>' +
+        '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.pct + '%</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function openRecipeFromPantry(recipeId) {
+    const idx = allRecipes.findIndex(r => r.id === recipeId);
+    if (idx >= 0) {
+      activeRecipeIndex = idx;
+      openDetailsAnimated();
+    }
+  }
+
+  // ═══ COOK TIME ANALYTICS ══════════════════════════════════════
+  async function openCookTimeStats() {
+    closeProfileAnimated();
+    
+    // Calculate cooking stats from all recipes
+    const stats = { totalMinutes: 0, totalRecipes: 0, monthData: {}, avgCookTime: 0 };
+    
+    allRecipes.forEach(r => {
+      const cookCount = r.cookCount || 0;
+      if (cookCount > 0) {
+        // Parse cook time (handle formats like "30 min", "1 hr", "1 hour 30 min")
+        let mins = 0;
+        const ct = (r.cookTime || '').toLowerCase();
+        const hrMatch = ct.match(/(\d+)\s*(?:hr|hour)/);
+        const minMatch = ct.match(/(\d+)\s*(?:min|m\b)/);
+        if (hrMatch) mins += parseInt(hrMatch[1]) * 60;
+        if (minMatch) mins += parseInt(minMatch[1]);
+        
+        const totalMins = mins * cookCount;
+        stats.totalMinutes += totalMins;
+        stats.totalRecipes += cookCount;
+        
+        // Monthly breakdown from last_cooked
+        if (r.lastCooked) {
+          const month = r.lastCooked.slice(0, 7); // "2026-04"
+          if (!stats.monthData[month]) stats.monthData[month] = { count: 0, minutes: 0 };
+          stats.monthData[month].count += cookCount;
+          stats.monthData[month].minutes += totalMins;
+        }
+      }
+    });
+    
+    stats.avgCookTime = stats.totalRecipes > 0 ? Math.round(stats.totalMinutes / stats.totalRecipes) : 0;
+    
+    const hours = Math.floor(stats.totalMinutes / 60);
+    const mins = stats.totalMinutes % 60;
+    
+    // Build monthly chart data
+    const sortedMonths = Object.keys(stats.monthData).sort().slice(-6); // Last 6 months
+    const maxMonthMins = sortedMonths.reduce((max, m) => Math.max(max, stats.monthData[m].minutes || 0), 0);
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    
+    const chartHtml = sortedMonths.length > 0 ? sortedMonths.map(m => {
+      const d = stats.monthData[m];
+      const [, month, year] = m.split('-');
+      const pct = maxMonthMins > 0 ? Math.round((d.minutes / maxMonthMins) * 100) : 0;
+      return '<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:8px;">' +
+        '<div style="width:36px;font-size:0.72em;color:var(--text-faint);text-align:right;">' + monthNames[parseInt(month)-1].slice(0,3) + '</div>' +
+        '<div style="flex:1;background:var(--glass);border-radius:4px;height:24px;overflow:hidden;">' +
+        '<div style="height:100%;background:var(--gold);border-radius:4px;width:' + pct + '%;transition:width 0.5s;"></div></div>' +
+        '<div style="width:50px;font-size:0.72em;color:var(--text-dim);">' + Math.round(d.minutes/60) + 'h ' + d.count + 'x</div></div>';
+    }).join('') : '<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:0.85em;">No cooking history yet.</div>';
+    
+    const modal = document.createElement('div');
+    modal.id = 'cookTimeStatsModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:500;overflow-y:auto;animation:fadeInScale 0.2s ease;';
+    modal.innerHTML = `
+      <div style="position:sticky;top:0;background:var(--bg);padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--glass-border);z-index:10;">
+        <button onclick="document.getElementById('cookTimeStatsModal').remove()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:10px;padding:7px 13px;font-size:0.85em;font-weight:600;cursor:pointer;">← Back</button>
+        <div style="font-weight:800;font-size:1.1em;">⏱ Cook Time Stats</div>
+      </div>
+      <div style="padding:20px 16px;max-width:400px;margin:0 auto;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+          <div style="padding:16px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.8em;font-weight:800;color:var(--gold);">` + hours + 'h' + (mins > 0 ? ' ' + mins + 'm' : '') + `</div>
+            <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">Total Cooking</div>
+          </div>
+          <div style="padding:16px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.8em;font-weight:800;color:var(--green);">` + stats.totalRecipes + `</div>
+            <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">Times Cooked</div>
+          </div>
+          <div style="padding:16px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.8em;font-weight:800;color:var(--gold);">` + stats.avgCookTime + `m</div>
+            <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">Avg Per Cook</div>
+          </div>
+          <div style="padding:16px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center;">
+            <div style="font-size:1.8em;font-weight:800;color:var(--text);">` + allRecipes.length + `</div>
+            <div style="font-size:0.72em;color:var(--text-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.5px;">Total Recipes</div>
+          </div>
+        </div>
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:12px;">📅 Monthly Activity</div>
+        <div style="background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:14px;">
+          ` + chartHtml + `
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // ═══ ALLERGY FILTER ══════════════════════════════════════
+  let allergyFilterEnabled = false;
+  let activeAllergies = [];
+
+  function toggleAllergySettings() {
+    const btn = document.getElementById('toggleAllergyFilter');
+    const section = document.getElementById('allergySettingsSection');
+    if (!btn || !section) return;
+    allergyFilterEnabled = !btn.classList.contains('on');
+    btn.classList.toggle('on', allergyFilterEnabled);
+    section.style.display = allergyFilterEnabled ? 'block' : 'none';
+    localStorage.setItem('allergyFilter_' + currentUser, JSON.stringify({ enabled: allergyFilterEnabled, allergies: activeAllergies }));
+    applyAllergyFilter();
+  }
+
+  function saveAllergySettings() {
+    const checks = document.querySelectorAll('.allergy-check');
+    activeAllergies = [];
+    checks.forEach(c => { if (c.checked) activeAllergies.push(c.value); });
+    localStorage.setItem('allergyFilter_' + currentUser, JSON.stringify({ enabled: allergyFilterEnabled, allergies: activeAllergies }));
+    applyAllergyFilter();
+  }
+
+  function loadAllergySettings() {
+    try {
+      const data = JSON.parse(localStorage.getItem('allergyFilter_' + currentUser) || '{}');
+      allergyFilterEnabled = data.enabled || false;
+      activeAllergies = data.allergies || [];
+    } catch(e) { allergyFilterEnabled = false; activeAllergies = []; }
+    
+    const btn = document.getElementById('toggleAllergyFilter');
+    const section = document.getElementById('allergySettingsSection');
+    if (btn) btn.classList.toggle('on', allergyFilterEnabled);
+    if (section) section.style.display = allergyFilterEnabled ? 'block' : 'none';
+    
+    // Check the checkboxes
+    setTimeout(() => {
+      document.querySelectorAll('.allergy-check').forEach(c => {
+        c.checked = activeAllergies.includes(c.value);
+      });
+    }, 100);
+    
+    applyAllergyFilter();
+  }
+
+  function applyAllergyFilter() {
+    // This is called after renderRecipes to filter out allergen-containing recipes
+    if (!allergyFilterEnabled || activeAllergies.length === 0 || !allRecipes) return;
+    
+    const filteredRecipes = allRecipes.filter(r => {
+      const ingredients = (r.ingredients || '').toLowerCase();
+      const instructions = (r.instructions || '').toLowerCase();
+      const notes = (r.notes || '').toLowerCase();
+      const fullText = ingredients + ' ' + instructions + ' ' + notes;
+      
+      // Check if any allergen is in the recipe
+      return !activeAllergies.some(allergen => {
+        // Match common variations
+        const allergenPatterns = {
+          'peanut': ['peanut', 'peanuts', 'groundnut'],
+          'tree nut': ['almond', 'walnut', 'pecan', 'cashew', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut', 'pine nut'],
+          'dairy': ['milk', 'butter', 'cheese', 'cream', 'yogurt', 'yoghurt', 'ghee', 'whey', 'casein'],
+          'egg': ['egg', 'eggs', 'egg whites', 'egg yolks', 'mayonnaise'],
+          'shellfish': ['shrimp', 'prawn', 'crab', 'lobster', 'clam', 'mussel', 'oyster', 'scallop'],
+          'gluten': ['wheat', 'flour', 'barley', 'rye', 'bulgur', 'semolina', 'couscous', 'pasta', 'bread'],
+          'soy': ['soy', 'soya', 'tofu', 'tamari', 'miso', 'edamame', 'tempeh', 'soy sauce']
+        };
+        const patterns = allergenPatterns[allergen] || [allergen];
+        return patterns.some(p => fullText.includes(p));
+      });
+    });
+    
+    // Re-render with filtered recipes
+    if (typeof renderRecipes === 'function') {
+      const origAllRecipes = allRecipes.slice();
+      // Temporarily replace allRecipes with filtered version
+      const filteredIdx = filteredRecipes.map(r => allRecipes.indexOf(r));
+      window._allRecipesBackup = allRecipes.slice();
+      // We'll store filtered indices and modify the visible set
+      window._filteredRecipeIndices = allRecipes.map((r, i) => {
+        const ingredients = (r.ingredients || '').toLowerCase();
+        const instructions = (r.instructions || '').toLowerCase();
+        const notes = (r.notes || '').toLowerCase();
+        const fullText = ingredients + ' ' + instructions + ' ' + notes;
+        const hasAllergen = activeAllergies.some(allergen => {
+          const allergenPatterns = {
+            'peanut': ['peanut', 'peanuts', 'groundnut'],
+            'tree nut': ['almond', 'walnut', 'pecan', 'cashew', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut', 'pine nut'],
+            'dairy': ['milk', 'butter', 'cheese', 'cream', 'yogurt', 'yoghurt', 'ghee', 'whey', 'casein'],
+            'egg': ['egg', 'eggs', 'egg whites', 'egg yolks', 'mayonnaise'],
+            'shellfish': ['shrimp', 'prawn', 'crab', 'lobster', 'clam', 'mussel', 'oyster', 'scallop'],
+            'gluten': ['wheat', 'flour', 'barley', 'rye', 'bulgur', 'semolina', 'couscous', 'pasta', 'bread'],
+            'soy': ['soy', 'soya', 'tofu', 'tamari', 'miso', 'edamame', 'tempeh', 'soy sauce']
+          };
+          const patterns = allergenPatterns[allergen] || [allergen];
+          return patterns.some(p => fullText.includes(p));
+        });
+        return !hasAllergen;
+      });
+      renderRecipes();
+    }
+  }
+
+  // ═══ RECIPE DIFFICULTY BADGES ══════════════════════════════════════
+  function calculateDifficulty(recipe) {
+    const instructions = (recipe.instructions || '').split('\n').filter(s => s.trim());
+    const ingredients = (recipe.ingredients || '').split('\n').filter(s => s.trim());
+    const fullText = ((recipe.instructions || '') + ' ' + (recipe.ingredients || '') + ' ' + (recipe.notes || '')).toLowerCase();
+    
+    const stepCount = instructions.length;
+    const ingredientCount = ingredients.length;
+    
+    // Advanced techniques that indicate harder recipes
+    const advancedTerms = ['sous vide', 'temper', 'fold in', 'blanch', 'julienne', 'brunoise', 'roux', 'emulsify', 'caramelize', 'deglaze', 'reduce by half', 'proof', 'knead', 'rest for', 'chill overnight', 'marinate overnight', 'deep fry', 'pressure cook', 'double boiler'];
+    const advancedCount = advancedTerms.filter(t => fullText.includes(t)).length;
+    
+    // Score: 0-100
+    let score = 0;
+    score += Math.min(stepCount * 4, 40); // Up to 40 points for steps
+    score += Math.min(ingredientCount * 2, 20); // Up to 20 points for ingredients
+    score += Math.min(advancedCount * 10, 40); // Up to 40 points for advanced techniques
+    
+    if (score <= 25) return { label: 'Easy', color: 'easy' };
+    if (score <= 55) return { label: 'Medium', color: 'medium' };
+    return { label: 'Hard', color: 'hard' };
+  }
+
+  function autoTagAllRecipes() {
+    let changed = 0;
+    allRecipes.forEach(r => {
+      if (!r.difficulty) {
+        const diff = calculateDifficulty(r);
+        r.difficulty = diff.label.toLowerCase();
+        r.difficultyLabel = diff.label;
+        changed++;
+      }
+    });
+    return changed;
+  }
+
+  function renderDifficultyBadge(recipe) {
+    if (!recipe.difficulty) {
+      const diff = calculateDifficulty(recipe);
+      recipe.difficulty = diff.color;
+      recipe.difficultyLabel = diff.label;
+    }
+    return recipe.difficultyLabel || recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1);
+  }
+
+  // ═══ MEAL PLAN EXPORT TO CALENDAR (.ics) ══════════════════════════════════════
+  function exportMealPlanToCalendar() {
+    if (!plannerData || plannerData.length === 0) {
+      rcAlert('No meal plan data to export.');
+      return;
+    }
+    
+    let ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Roll Cookbook//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n';
+    
+    const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+    const defaultTimes = { 'Breakfast': '080000', 'Lunch': '120000', 'Dinner': '180000' };
+    
+    plannerData.forEach(entry => {
+      if (!entry.recipe_id && !entry.custom_title) return;
+      const title = entry.custom_title || (entry.recipes ? entry.recipes.title : 'Meal');
+      const dateStr = (entry.entry_date || entry.date || '').replace(/-/g, '');
+      if (!dateStr || dateStr.length < 8) return;
+      
+      const mt = entry.meal_type || 'Dinner';
+      const time = defaultTimes[mt] || '180000';
+      const dtStart = dateStr + 'T' + time;
+      const dtEnd = dateStr + 'T' + String(parseInt(time) + 10000).padStart(6, '0');
+      
+      ics += 'BEGIN:VEVENT\n';
+      ics += 'DTSTART:' + dtStart + '\n';
+      ics += 'DTEND:' + dtEnd + '\n';
+      ics += 'SUMMARY:' + title.replace(/[,\n;]/g, ' ') + '\n';
+      if (entry.recipes && entry.recipes.ingredients) {
+        ics += 'DESCRIPTION:Ingredients: ' + entry.recipes.ingredients.replace(/\n/g, ' | ').replace(/[,\n;]/g, ' ') + '\n';
+      }
+      ics += 'CATEGORIES:Meal Plan,' + mt + '\n';
+      ics += 'UID:rollcookbook-' + (entry.id || Date.now()) + '@rollcookbook.com\n';
+      ics += 'STATUS:CONFIRMED\n';
+      ics += 'END:VEVENT\n';
+    });
+    
+    ics += 'END:VCALENDAR';
+    
+    // Download .ics file
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const weekStart = getWeekStart(plannerWeekOffset);
+    a.download = 'rollcookbook-mealplan-' + weekStart.toISOString().slice(0, 10) + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Calendar file downloaded! Open it to add to your phone calendar.';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // ═══ SHOPPING LIST SHARE AS TEXT ══════════════════════════════════════
+  function shareShoppingListAsText() {
+    let listText = '';
+    
+    if (activeSharedListId) {
+      // Shared list
+      listText = '🛒 Shopping List: ' + activeSharedListName + '\n\n';
+      if (sharedListItems && sharedListItems.length > 0) {
+        const unchecked = sharedListItems.filter(i => !i.checked);
+        const groups = {};
+        unchecked.forEach(item => {
+          const group = item.item_group || 'Other';
+          if (!groups[group]) groups[group] = [];
+          groups[group].push(item.text);
+        });
+        Object.keys(groups).forEach(group => {
+          listText += '📦 ' + group + ':\n';
+          groups[group].forEach(item => { listText += '  • ' + item + '\n'; });
+          listText += '\n';
+        });
+      }
+    } else {
+      // Personal list
+      listText = '🛒 My Shopping List\n\n';
+      const items = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+      const unchecked = items.filter(i => !i.checked);
+      const groups = {};
+      unchecked.forEach(item => {
+        const group = item.group || 'Other';
+        if (!groups[group]) groups[group] = [];
+        groups[group].push(item.text);
+      });
+      Object.keys(groups).forEach(group => {
+        listText += '📦 ' + group + ':\n';
+        groups[group].forEach(item => { listText += '  • ' + item + '\n'; });
+        listText += '\n';
+      });
+    }
+    
+    if (listText.trim().split('\n').length <= 2) {
+      rcAlert('List is empty!');
+      return;
+    }
+    
+    // Show share options
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    
+    sheet.innerHTML = '<div style="font-size:0.88em;font-weight:800;margin-bottom:10px;">📤 Share Shopping List</div>' +
+      '<textarea id="shareListText" readonly style="width:100%;height:180px;background:var(--surface2);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);padding:10px;font-size:0.82em;font-family:monospace;resize:none;box-sizing:border-box;margin-bottom:10px;">' + listText.replace(/</g, '&lt;') + '</textarea>' +
+      '<button onclick="navigator.clipboard.writeText(document.getElementById(\'shareListText\').value);this.textContent=\'✅ Copied!\';setTimeout(()=>this.textContent=\'📋 Copy to Clipboard\',1500);" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:0.9em;cursor:pointer;font-family:inherit;margin-bottom:8px;">📋 Copy to Clipboard</button>' +
+      (typeof median !== 'undefined' && median.share ? '<button onclick="median.share({text:document.getElementById(\'shareListText\').value});" style="width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-weight:600;font-size:0.85em;cursor:pointer;font-family:inherit;margin-bottom:8px;">📱 Share via App</button>' : '') +
+      '<button onclick="this.closest(\'div[style*=\'position:fixed\']\').remove();document.querySelector(\'[style*=\'z-index:699\']\')?.remove();" style="width:100%;padding:10px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+    
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  // ═══ RENAME SHARED LIST ══════════════════════════════════════
+  async function renameSharedList() {
+    if (!activeSharedListId) return;
+    const newName = await rcPrompt('', {icon:'✏️',title:'Rename list',placeholder:'New list name...',confirmText:'Rename'});
+    if (!newName || !newName.trim()) return;
+    
+    try {
+      await sbFetch('PATCH', `shopping_lists?id=eq.${activeSharedListId}`, { name: newName.trim() });
+      activeSharedListName = newName.trim();
+      // Update header
+      const titleEl = document.getElementById('sharedListTitle');
+      if (titleEl) titleEl.textContent = activeSharedListName;
+      // Update tabs
+      const tabEl = document.querySelector('#shopSharedTabs .sort-chip.active');
+      if (tabEl) tabEl.textContent = activeSharedListName;
+      
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ List renamed!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000);
+    } catch(e) {
+      rcAlert('Failed to rename list: ' + e.message);
+    }
+  }
+
+  // ═══ LEAVE SHARED LIST ══════════════════════════════════════
+  async function leaveSharedList() {
+    if (!activeSharedListId) return;
+    if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
+    
+    try {
+      await leaveSharedList(activeSharedListId, currentUser);
+      activeSharedListId = null;
+      activeSharedListName = '';
+      sharedListItems = [];
+      // Switch back to personal list
+      switchShopListTab('personal');
+      
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Left the shared list';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000);
+    } catch(e) {
+      rcAlert('Failed to leave list: ' + e.message);
+    }
+  }
+
+  // ═══ COOK STREAK MILESTONES ══════════════════════════════════════
+  const milestoneDays = [7, 30, 50, 100, 200, 365];
+  let acknowledgedMilestones = [];
+
+  function loadAcknowledgedMilestones() {
+    try {
+      acknowledgedMilestones = JSON.parse(localStorage.getItem('milestones_' + currentUser) || '[]');
+    } catch(e) { acknowledgedMilestones = []; }
+  }
+
+  function acknowledgeMilestone(day) {
+    if (!acknowledgedMilestones.includes(day)) {
+      acknowledgedMilestones.push(day);
+      localStorage.setItem('milestones_' + currentUser, JSON.stringify(acknowledgedMilestones));
+    }
+  }
+
+  function checkMilestone(streak) {
+    loadAcknowledgedMilestones();
+    const hit = milestoneDays.find(d => streak >= d && !acknowledgedMilestones.includes(d));
+    if (hit) {
+      showMilestoneModal(hit);
+      acknowledgeMilestone(hit);
+    }
+  }
+
+  function showMilestoneModal(days) {
+    const messages = {
+      7: { icon: '🔥', title: '7 Day Streak!', desc: 'A week of cooking! You\'re building a real habit. Keep it going!' },
+      30: { icon: '🏆', title: '30 Day Streak!', desc: 'A full month! You\'re a dedicated home cook. Impressive!' },
+      50: { icon: '⭐', title: '50 Day Streak!', desc: 'Halfway to 100! You\'re in the top 1% of home cooks.' },
+      100: { icon: '💎', title: '100 Day Streak!', desc: 'Three months of cooking! You\'re a true master of the kitchen.' },
+      200: { icon: '👑', title: '200 Day Streak!', desc: 'You\'ve cooked for over 6 months straight. Legendary!' },
+      365: { icon: '🎖️', title: '365 Day Streak!', desc: 'An entire year of cooking! You\'re a Roll Cookbook champion!' }
+    };
+    const m = messages[days] || { icon: '🔥', title: days + ' Day Streak!', desc: 'Amazing dedication to cooking!' };
+    
+    const shareText = '🔥 I\'ve cooked for ' + days + ' days in a row on Roll Cookbook! Try it free at rollcookbook.com';
+    
+    const modal = document.createElement('div');
+    modal.className = 'milestone-modal';
+    modal.id = 'milestoneModal';
+    modal.innerHTML = `
+      <div class="confetti-container" id="confettiContainer"></div>
+      <div class="milestone-card">
+        <div class="milestone-icon">${m.icon}</div>
+        <div class="milestone-title">${m.title}</div>
+        <div class="milestone-desc">${m.desc}</div>
+        <button class="milestone-btn" onclick="document.getElementById('milestoneModal')?.remove();document.getElementById('confettiContainer')?.remove();">🎉 Awesome!</button>
+        <button class="milestone-share-btn" onclick="navigator.clipboard.writeText('${shareText}');this.textContent='✅ Copied!';setTimeout(()=>this.textContent='📋 Share Milestone',1500);">📋 Share Milestone</button>
+        <button class="milestone-dismiss" onclick="document.getElementById('milestoneModal')?.remove();document.getElementById('confettiContainer')?.remove();">Dismiss</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Generate confetti
+    spawnConfetti();
+  }
+
+  function spawnConfetti() {
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    container.id = 'confettiContainer';
+    
+    const colors = ['#c9a84c', '#4caf7d', '#3b82f6', '#e05555', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const shapes = ['circle', 'square'];
+    
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.animationDelay = Math.random() * 1.5 + 's';
+      piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)] === 'circle' ? '50%' : '2px';
+      piece.style.width = (6 + Math.random() * 8) + 'px';
+      piece.style.height = (6 + Math.random() * 8) + 'px';
+      container.appendChild(piece);
+    }
+    
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 5000);
   }
 
 </script>
