@@ -1321,28 +1321,20 @@
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div style="padding:0 16px 4px;">
-      <button id="nutritionDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openNutritionDashboard()">
-        <span>📊</span>
-        <span>Nutrition Dashboard</span>
-      </button>
-    </div>
-    <div style="padding:0 16px 4px;">
-      <button id="streakDashboardBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openStreakDashboard()">
-        <span>🔥</span>
-        <span>Cooking Streaks</span>
-      </button>
-    </div>
-    <div style="padding:0 16px 4px;">
-      <button id="cooktimeStatsBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openCookTimeStats()">
-        <span>⏱</span>
-        <span>Cook Time Stats</span>
-      </button>
-    </div>
-    <div style="padding:0 16px 4px;">
-      <button id="showcaseBtn" class="btn btn-secondary" style="width:100%;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="openCookbookShowcase()">
-        <span>🌐</span>
-        <span>Cookbook Showcase</span>
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openNutritionDashboard()">
+          <span>📊</span><span>Nutrition</span>
+        </button>
+        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openStreakDashboard()">
+          <span>🔥</span><span>Streaks</span>
+        </button>
+        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openCookTimeStats()">
+          <span>⏱</span><span>Stats</span>
+        </button>
+        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 10px;font-size:0.78em;" onclick="openCookbookShowcase()">
+          <span>🌐</span><span>Showcase</span>
+        </button>
+      </div>
     </div>
     <div id="profileHero" class="profile-hero"></div>
     <!-- Notifications -->
@@ -1541,6 +1533,9 @@
     <div style="position:fixed;top:0;left:0;right:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:510;">
       <button onclick="closeShoppingPage()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>
       <span style="font-weight:800;font-size:1em;flex:1;">🛒 Shopping</span>
+      <button id="shopPageShareBtn" onclick="shareShoppingListFromPage()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;display:none;">📤 Share</button>
+      <button id="shopPageRenameBtn" onclick="renameSharedListFromPage()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;display:none;">✏️ Rename</button>
+      <button id="shopPageLeaveBtn" onclick="leaveSharedListFromPage()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;display:none;">🚪 Leave</button>
     </div>
     <!-- List tabs -->
     <div id="shopPageTabRow" style="display:flex;gap:7px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--glass-border);position:fixed;top:53px;left:0;right:0;background:var(--bg);z-index:509;">
@@ -8754,13 +8749,22 @@ ${text}`;
     if (btn) btn.classList.add('active');
     const personal = document.getElementById('shopPagePersonal');
     const shared = document.getElementById('shopPageShared');
+    const shareBtn = document.getElementById('shopPageShareBtn');
+    const renameBtn = document.getElementById('shopPageRenameBtn');
+    const leaveBtn = document.getElementById('shopPageLeaveBtn');
     if (tabId === 'personal') {
       if (personal) personal.style.display = 'block';
       if (shared) shared.style.display = 'none';
+      if (shareBtn) { shareBtn.style.display = ''; shareBtn.textContent = '📤 Share as Text'; }
+      if (renameBtn) renameBtn.style.display = 'none';
+      if (leaveBtn) leaveBtn.style.display = 'none';
       renderShoppingPagePersonal();
     } else {
       if (personal) personal.style.display = 'none';
       if (shared) shared.style.display = 'flex';
+      if (shareBtn) { shareBtn.style.display = ''; shareBtn.textContent = '📤 Share'; }
+      if (renameBtn) renameBtn.style.display = '';
+      if (leaveBtn) leaveBtn.style.display = '';
       renderShoppingPageShared(tabId, tabName || '');
       // Wire action buttons
       const clearChecked = document.getElementById('shopPageClearChecked');
@@ -11557,28 +11561,30 @@ ${r.ingredients}`;
     const matches = document.getElementById('pantryRecipeMatches');
     const noMatch = document.getElementById('pantryNoMatches');
     if (!matches || !noMatch || pantryItems.length === 0 || !allRecipes) return;
-    
-    // For each recipe, check how many ingredients match
+
+    // For each recipe, check how many pantry ingredients match
     const scored = allRecipes.map(r => {
       const recipeIngredients = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g,'').trim()).filter(Boolean);
-      const matchCount = pantryItems.filter(p => recipeIngredients.some(i => i.includes(p) || p.includes(i))).length;
-      const pct = recipeIngredients.length > 0 ? Math.round((matchCount / recipeIngredients.length) * 100) : 0;
-      return { recipe: r, matchCount, pct };
-    }).filter(s => s.pct > 0).sort((a, b) => b.pct - a.pct);
-    
+      // Count how many pantry items match this recipe
+      const matchedPantry = pantryItems.filter(p => recipeIngredients.some(i => i.includes(p) || p.includes(i)));
+      // Score based on fraction of pantry items found in recipe
+      const pct = pantryItems.length > 0 ? Math.round((matchedPantry.length / pantryItems.length) * 100) : 0;
+      return { recipe: r, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, pct };
+    }).filter(s => s.pct > 0).sort((a, b) => b.pct - a.pct || b.matchCount - a.matchCount);
+
     if (scored.length === 0) {
       matches.innerHTML = '';
       noMatch.style.display = 'block';
       return;
     }
-    
+
     noMatch.style.display = 'none';
     matches.innerHTML = scored.map(s => {
       const r = s.recipe;
       const color = s.pct >= 70 ? 'var(--green)' : s.pct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
       return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
         '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + escapeHtml(r.title) + '</div>' +
-        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + r.ingredients.split('\n').filter(Boolean).length + ' ingredients matched</div></div>' +
+        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.pantryTotal + ' pantry items found</div></div>' +
         '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.pct + '%</div>' +
         '</div>';
     }).join('');
@@ -11977,7 +11983,7 @@ ${r.ingredients}`;
   async function leaveSharedList() {
     if (!activeSharedListId) return;
     if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
-    
+
     try {
       await leaveSharedList(activeSharedListId, currentUser);
       activeSharedListId = null;
@@ -11985,7 +11991,77 @@ ${r.ingredients}`;
       sharedListItems = [];
       // Switch back to personal list
       switchShopListTab('personal');
-      
+
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ Left the shared list';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000);
+    } catch(e) {
+      rcAlert('Failed to leave list: ' + e.message);
+    }
+  }
+
+  // ═══ SHOPPING PAGE: SHARE AS TEXT ══════════════════════════════════════
+  function shareShoppingListFromPage() {
+    if (shopPageActiveListId) {
+      // Shared list — use the existing function
+      shareShoppingListAsText();
+    } else {
+      // Personal list — export as formatted text
+      if (shopItems.length === 0) { rcAlert('Your list is empty!'); return; }
+      const groups = {};
+      shopItems.forEach(item => {
+        if (!item.checked) {
+          const g = item.group || 'Other';
+          if (!groups[g]) groups[g] = [];
+          groups[g].push(item.text);
+        }
+      });
+      if (Object.keys(groups).length === 0) { rcAlert('No unchecked items to share!'); return; }
+      let text = '🛒 My Shopping List\n\n';
+      Object.entries(groups).forEach(([group, items]) => {
+        text += group + '\n';
+        items.forEach(i => { text += '  - ' + i + '\n'; });
+        text += '\n';
+      });
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          rcAlert('Copied to clipboard!', 'Shopping list copied!');
+        }).catch(() => {
+          rcAlert('Could not copy to clipboard.');
+        });
+      } else {
+        rcAlert('Clipboard not available.');
+      }
+    }
+  }
+
+  // ═══ SHOPPING PAGE: RENAME SHARED LIST ══════════════════════════════════════
+  async function renameSharedListFromPage() {
+    if (!shopPageActiveListId) return;
+    const newName = await rcPrompt('', {icon:'✏️',title:'Rename list',placeholder:'New name...',confirmText:'Rename'});
+    if (!newName || !newName.trim()) return;
+    try {
+      await renameSharedList(shopPageActiveListId, newName.trim());
+      activeSharedListName = newName.trim();
+      loadShoppingPageSharedTabs();
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+      toast.textContent = '✅ List renamed!';
+      document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000);
+    } catch(e) {
+      rcAlert('Failed to rename list: ' + e.message);
+    }
+  }
+
+  // ═══ SHOPPING PAGE: LEAVE SHARED LIST ══════════════════════════════════════
+  async function leaveSharedListFromPage() {
+    if (!shopPageActiveListId) return;
+    if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
+    try {
+      await leaveSharedList(shopPageActiveListId, currentUser);
+      await loadShoppingPageSharedTabs();
+      switchShoppingPageTab('personal');
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
       toast.textContent = '✅ Left the shared list';
