@@ -45,7 +45,7 @@ async function getUserId(username) {
 
 async function getUserProfile(username) {
   const data = await sbFetch('GET', 'users', null,
-    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at`);
+    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at,achievements,showcase_achievements`);
   return data && data[0] ? data[0] : null;
 }
 
@@ -210,11 +210,19 @@ async function updateAdminSettings(settings) {
   } catch(e) { return { status: 'Error', message: e.message }; }
 }
 
-// Check saved users still exist (for login screen cleanup)
 async function validateSavedUsers(usernames) {
   if (!usernames || usernames.length === 0) return [];
   const data = await sbFetch('GET', 'users', null,
     `username=in.(${usernames.join(',')})&select=username`).catch(() => []);
   const valid = new Set((data || []).map(u => u.username));
   return usernames.filter(u => valid.has(u));
+}
+
+async function unlockAchievement(username, achievementId) {
+  const profile = await getUserProfile(username);
+  if (!profile) return;
+  const current = profile.achievements || [];
+  if (current.includes(achievementId)) return;
+  current.push(achievementId);
+  await sbFetch('PATCH', `users?id=eq.${profile.id}`, { achievements: current });
 }
