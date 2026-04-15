@@ -1337,6 +1337,7 @@
       <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;">❓ Tutorial</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
+      <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;">Test</button>
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div style="padding:0 16px 4px;">
@@ -3386,6 +3387,8 @@
     // Show admin button for rollert2
     const adminBtn = document.getElementById('adminPanelBtnWrap');
     if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
+    const testBtn = document.getElementById('testBtn');
+    if (testBtn) testBtn.style.display = currentUser === 'rollert2' ? 'inline-block' : 'none';
 
     Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser), getUserSettings(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount, settingsRes]) => {
       const streak = (settingsRes.settings && settingsRes.settings.cook_streak) || 0;
