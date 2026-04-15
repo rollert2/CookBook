@@ -45,7 +45,7 @@ async function getUserId(username) {
 
 async function getUserProfile(username) {
   const data = await sbFetch('GET', 'users', null,
-    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at,achievements,showcase_achievements`);
+    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at`);
   return data && data[0] ? data[0] : null;
 }
 
