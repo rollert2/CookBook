@@ -3402,7 +3402,9 @@
       // Load bio for hero
       getUserProfile(currentUser).then(profile => {
         const bioHtml = (profile && profile.bio) ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '';
+        const pandaBtnHtml = currentUser === 'rollert2' ? '<button onclick="alert(\'Panda!\')" style="background:#3b82f6;border:none;color:white;border-radius:12px;padding:8px 16px;font-size:0.85em;font-weight:700;cursor:pointer;margin-bottom:10px;">panda</button>' : '';
         hero.innerHTML = avatarHtml +
+          pandaBtnHtml +
           '<div class="profile-username">' + currentUser + '</div>' +
           bioHtml +
           '<div class="profile-stats">' +
