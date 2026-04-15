@@ -3410,12 +3410,7 @@
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');showFavsOnly=true;renderRecipes();},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div>' +
           '<div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div>' +
           '<div class="profile-stat" id="streakStat" style="display:none;"><div class="profile-stat-num" id="streakNum" style="color:var(--gold);">🔥0</div><div class="profile-stat-label">Streak</div></div>' +
-          '</div>' +
-          '<div id="achievementsSection" style="padding:16px;border-top:1px solid var(--glass-border);margin-top:10px;">' +
-            '<div style="font-size:0.75em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:10px;">Achievements</div>' +
-            '<div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>' +
           '</div>';
-        renderAchievements(profile.achievements || []);
       });
       // Update settings avatar preview
       const settingsAvatar = document.getElementById('settingsAvatarPreview');
@@ -3479,26 +3474,8 @@
     });
   }
 
-  const ACHIEVEMENTS = [
-    { id: 'first_recipe', name: 'First Steps', icon: '🐣', desc: 'Add your first recipe' },
-    { id: 'kitchen_pro', name: 'Kitchen Pro', icon: '👨‍🍳', desc: 'Cook 10 recipes' },
-    { id: 'early_bird', name: 'Early Bird', icon: '🌅', desc: 'Cook before 8 AM' },
-    { id: 'night_owl', name: 'Night Owl', icon: '🦉', desc: 'Cook after 10 PM' },
-    { id: 'explorer', name: 'Cuisine Explorer', icon: '🌍', desc: 'Cook from 3 categories' }
-  ];
-
-  function renderAchievements(unlockedIds) {
-    const grid = document.getElementById('achievementsGrid');
-    if (!grid) return;
-    grid.innerHTML = ACHIEVEMENTS.map(a => {
-      const isUnlocked = unlockedIds.includes(a.id);
-      return `<div style="text-align:center;opacity:${isUnlocked?'1':'0.4'};position:relative;" title="${a.desc}">` +
-        `<div style="font-size:1.5em;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;padding:8px;">${a.icon}</div>` +
-        (!isUnlocked ? `<div style="position:absolute;top:0;right:0;font-size:0.6em;">🔒</div>` : '') +
-        `<div style="font-size:0.6em;margin-top:4px;color:var(--text-dim);">${a.name}</div>` +
-      `</div>`;
-    }).join('');
-  }
+  let activeFriendOptionsUser = null;
+  async function renderFriendsList(following) {
     const list = document.getElementById('friendsList');
     if (following.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Not following anyone yet.<br>Add a friend by username above.</div>'; return; }
     // Fetch streaks for all friends in parallel
