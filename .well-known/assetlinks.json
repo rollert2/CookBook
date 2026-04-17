@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.rollcookbook.app",
+    "sha256_cert_fingerprints": [
+      "E9:51:68:FA:3B:6B:CB:F4:41:3C:09:5C:1A:E6:D7:C4:AA:55:B8:26:D1:6D:CD:26:87:D9:4E:28:F4:EA:DD:C4"
+    ]
+  }
+}]

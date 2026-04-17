@@ -12,11 +12,46 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS Restrictions
+  const allowedOrigins = ['https://rollcookbook.com', 'https://www.rollcookbook.com', 'http://localhost:3000', 'capacitor://localhost', 'http://localhost'];
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // If no origin or not in allowed list, default to rollcookbook.com for safety
+    res.setHeader('Access-Control-Allow-Origin', 'https://rollcookbook.com');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Simple IP-based rate limiting using an in-memory Map (Note: This resets on serverless cold starts, but provides basic protection)
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  if (!global.rateLimitMap) global.rateLimitMap = new Map();
+  
+  // Clean up old entries
+  for (const [key, timestamp] of global.rateLimitMap.entries()) {
+    if (now - timestamp > 60000) { // 1 minute window
+      global.rateLimitMap.delete(key);
+    }
+  }
+
+  // Count requests from this IP in the last minute
+  let requestCount = 0;
+  for (const [key, timestamp] of global.rateLimitMap.entries()) {
+    if (key.startsWith(ip) && now - timestamp < 60000) {
+      requestCount++;
+    }
+  }
+
+  if (requestCount >= 10) { // Max 10 requests per minute per IP
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
+
+  // Record this request
+  global.rateLimitMap.set(`${ip}-${now}`, now);
 
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) return res.status(500).json({ error: 'Gemini API key not configured' });

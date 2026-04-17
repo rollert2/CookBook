@@ -2330,15 +2330,51 @@
   function cancelWarning() { document.getElementById('loginWarning').style.display = 'none'; pendingLoginUsername = null; }
   function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.style.display = 'block'; }
 
+  function showThemeSelectionPopup() {
+    const modal = document.createElement('div');
+    modal.id = 'themeSelectionModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);';
+    modal.innerHTML = `
+      <div style="background:var(--bg);padding:24px;border-radius:var(--radius-lg);width:90%;max-width:320px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.3);border:1px solid var(--glass-border);">
+        <div style="font-size:2.5em;margin-bottom:12px;">🎨</div>
+        <div style="font-size:1.2em;font-weight:800;margin-bottom:8px;">Choose Your Theme</div>
+        <div style="font-size:0.9em;color:var(--text-dim);margin-bottom:20px;">How would you like Roll Cookbook to look?</div>
+        
+        <button onclick="selectInitialTheme('light')" style="width:100%;padding:12px;margin-bottom:10px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--glass-border);color:var(--text);font-weight:600;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          ☀️ Light Mode
+        </button>
+        <button onclick="selectInitialTheme('dark')" style="width:100%;padding:12px;margin-bottom:10px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--glass-border);color:var(--text);font-weight:600;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          🌙 Dark Mode
+        </button>
+        <button onclick="selectInitialTheme('system')" style="width:100%;padding:12px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--glass-border);color:var(--text);font-weight:600;font-size:1em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          ⚙️ System Default
+        </button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  window.selectInitialTheme = function(theme) {
+    applyTheme(theme, true);
+    saveSetting('theme', theme);
+    const userThemeKey = 'rc_theme_user_' + currentUser;
+    localStorage.setItem(userThemeKey, theme);
+    document.getElementById('themeSelectionModal')?.remove();
+  };
+
   async function enterApp(username) {
     currentUser = username.toLowerCase();
     localStorage.setItem('currentUser', currentUser);
     const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
     if (!allSaved.includes(currentUser)) { allSaved.unshift(currentUser); localStorage.setItem('savedUsers', JSON.stringify(allSaved)); }
-    // Load shopping list — Supabase first, localStorage fallback
+    // Load shopping list and theme — Supabase first, localStorage fallback
+    let dbTheme = null;
     try {
       const _shopRes = await getUserSettings(currentUser);
       const _dbList = _shopRes.settings && _shopRes.settings.shopping_list;
+      if (_shopRes.settings && _shopRes.settings.theme) {
+        dbTheme = _shopRes.settings.theme;
+      }
       if (_dbList) {
         shopItems = JSON.parse(_dbList);
         localStorage.setItem('shopItems_' + currentUser, _dbList);
@@ -2358,16 +2394,17 @@
     });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
-    // Default light for new users who have never set a theme
+    
     const userThemeKey = 'rc_theme_user_' + currentUser;
-    if (!localStorage.getItem(userThemeKey)) {
-      // First time for this user — force light mode regardless of previous session
-      document.body.classList.add('light-mode');
-      localStorage.setItem('rc_theme', 'light');
-      localStorage.setItem(userThemeKey, 'light');
-      // Also save to Supabase so loadTheme doesn't override it
-      try { updateUserSettings(currentUser, { theme: 'light' }); } catch(e) {}
+    if (dbTheme) {
+      // User has a theme in Supabase, apply it
+      localStorage.setItem('rc_theme', dbTheme);
+      localStorage.setItem(userThemeKey, dbTheme);
+    } else if (!localStorage.getItem(userThemeKey)) {
+      // New user (no theme in DB, no theme locally) -> Show popup
+      showThemeSelectionPopup();
     }
+    
     loadTheme();
     initPullToRefresh();
     initScrollHideHeader();
@@ -7834,7 +7871,10 @@ ${text}`;
     page.innerHTML = '<div style="position:sticky;top:0;background:var(--bg);padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;z-index:1;">' +
       '<button onclick="openSharedListsPanel()" style="background:none;border:none;color:var(--text-dim);font-size:1em;cursor:pointer;font-family:inherit;">← Back</button>' +
       '<span style="font-weight:800;font-size:1em;flex:1;">' + escapeHtml(listName) + '</span>' +
-      '<button id="sharedListPageInviteBtn" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>' +
+      '<button onclick="inviteToSharedList(\'' + listId + '\')" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>' +
+      '<button onclick="shareShoppingListAsText()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">📤 Share</button>' +
+      '<button onclick="renameSharedList()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>' +
+      '<button onclick="leaveSharedList()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>' +
       '</div>' +
       '<div style="padding:12px 16px 8px;display:flex;gap:8px;">' +
       '<input id="sharedListPageInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;">' +
@@ -7854,9 +7894,6 @@ ${text}`;
     if (clearBtn2) clearBtn2.onclick = () => clearCheckedSharedItems(listId).then(() => refreshSharedListPage(listId, listName));
     const removeAllBtn = page.querySelector('#sharedListRemoveAll');
     if (removeAllBtn) removeAllBtn.onclick = () => deleteSharedListItems_all(listId, listName);
-    // Wire invite button
-    const invBtn2 = page.querySelector('#sharedListPageInviteBtn');
-    if (invBtn2) invBtn2.onclick = () => inviteToSharedList(listId);
     await refreshSharedListPage(listId, listName);
     // No auto-polling — refreshes on open only
   }
@@ -11730,24 +11767,23 @@ ${r.ingredients}`;
           matchedPantry.push(p);
         }
       });
-      // Calculate: what fraction of pantry items match
-      const pantryPct = pantryItems.length > 0 ? Math.round((matchedPantry.length / pantryItems.length) * 100) : 0;
-      // Also: what fraction of recipe ingredients are covered
-      const recipeCoverage = recipeIngredients.length > 0 ? Math.round((matchedPantry.length / recipeIngredients.length) * 100) : 0;
-      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, pantryPct, recipeCoverage, totalIngredients: recipeIngredients.length };
+      // Calculate: what fraction of recipe ingredients are covered by the pantry
+      // This is the true "match percentage" for a recipe
+      const recipePct = recipeIngredients.length > 0 ? Math.round((matchedPantry.length / recipeIngredients.length) * 100) : 0;
+      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, recipePct, totalIngredients: recipeIngredients.length };
     }).filter(s => {
       // Require minimum pantry items before showing results
       if (pantryItems.length < MIN_PANTRY_ITEMS) return false;
       // Require at least 2 pantry items matched
       if (s.matchCount < MIN_MATCH_COUNT) return false;
-      // Require at least 30% of pantry items matched
-      if (s.pantryPct < 30) return false;
+      // Require at least 30% of the recipe to be covered
+      if (s.recipePct < 30) return false;
       return true;
     }).sort((a, b) => {
       // Primary: match count (more matches = more useful)
       if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
-      // Secondary: pantry percentage
-      return b.pantryPct - a.pantryPct;
+      // Secondary: recipe percentage
+      return b.recipePct - a.recipePct;
     });
 
     if (scored.length === 0) {
@@ -11764,13 +11800,13 @@ ${r.ingredients}`;
     noMatch.style.display = 'none';
     matches.innerHTML = scored.map(s => {
       const r = s.recipe;
-      const color = s.pantryPct >= 70 ? 'var(--green)' : s.pantryPct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
+      const color = s.recipePct >= 70 ? 'var(--green)' : s.recipePct >= 40 ? 'var(--gold)' : 'var(--text-dim)';
       const matchedList = s.matchedPantry.slice(0, 3).join(', ') + (s.matchedPantry.length > 3 ? '...' : '');
       return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
         '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + escapeHtml(r.title) + '</div>' +
-        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.pantryTotal + ' pantry items matched</div>' +
+        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.totalIngredients + ' recipe ingredients matched</div>' +
         '<div style="font-size:0.7em;color:var(--text-faint);margin-top:1px;">Matches: ' + matchedList + '</div></div>' +
-        '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.pantryPct + '%</div>' +
+        '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.recipePct + '%</div>' +
         '</div>';
     }).join('');
   }
