@@ -1185,6 +1185,10 @@
           <div class="detail-action-b-icon">🛒</div>
           <div class="detail-action-b-label">Shop</div>
         </div>
+        <div class="detail-action-b" onclick="openAddToPlannerSheet()">
+          <div class="detail-action-b-icon">📅</div>
+          <div class="detail-action-b-label">Add to Plan</div>
+        </div>
         <div class="detail-action-b" onclick="openSharePanel()">
           <div class="detail-action-b-icon">📤</div>
           <div class="detail-action-b-label">Share</div>
@@ -6004,6 +6008,85 @@
     el.innerHTML = html;
   }
 
+  // ═══ ADD TO MEAL PLAN FROM DETAIL VIEW ═══════════════════════
+  function openAddToPlannerSheet() {
+    const r = allRecipes[activeRecipeIndex];
+    if (!r) return;
+
+    document.getElementById('addToPlannerSheet')?.remove();
+    document.getElementById('addToPlannerOverlay')?.remove();
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const overlay = document.createElement('div');
+    overlay.id = 'addToPlannerOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:800;';
+    overlay.onclick = () => { overlay.remove(); document.getElementById('addToPlannerSheet')?.remove(); };
+
+    const sheet = document.createElement('div');
+    sheet.id = 'addToPlannerSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:801;padding:20px 20px 48px;animation:slideUp 0.22s ease;';
+
+    sheet.innerHTML =
+      '<div style="width:36px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;"></div>' +
+      '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:4px;">ADD TO MEAL PLAN</div>' +
+      '<div style="font-size:1em;font-weight:800;margin-bottom:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(r.title) + '</div>' +
+      '<label style="font-size:0.75em;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Date</label>' +
+      '<input type="date" id="plannerAddDate" value="' + today + '" style="width:100%;padding:11px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--radius-sm);font-size:0.95em;font-family:inherit;margin-bottom:16px;box-sizing:border-box;">' +
+      '<label style="font-size:0.75em;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px;">Meal Slot</label>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;" id="mealSlotGrid">' +
+        ['Breakfast','Lunch','Dinner','Snack'].map((m,idx) =>
+          '<button onclick="selectPlannerMealSlot(this)" data-meal="' + m + '" class="planner-slot-btn" style="padding:12px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid ' + (m==='Dinner'?'var(--gold)':'var(--glass-border)') + ';color:' + (m==='Dinner'?'var(--gold)':'var(--text-dim)') + ';font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">' +
+          (m==='Breakfast'?'🌅':m==='Lunch'?'☀️':m==='Dinner'?'🌙':'🍎') + ' ' + m + '</button>'
+        ).join('') +
+      '</div>' +
+      '<button onclick="confirmAddToPlanner(\'' + r.id + '\')" style="width:100%;padding:14px;background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius-sm);font-size:0.95em;font-weight:800;cursor:pointer;font-family:inherit;">📅 Add to Calendar</button>';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+  }
+
+  function selectPlannerMealSlot(btn) {
+    document.querySelectorAll('.planner-slot-btn').forEach(b => {
+      b.style.borderColor = 'var(--glass-border)';
+      b.style.color = 'var(--text-dim)';
+    });
+    btn.style.borderColor = 'var(--gold)';
+    btn.style.color = 'var(--gold)';
+  }
+
+  async function confirmAddToPlanner(recipeId) {
+    const dateInput = document.getElementById('plannerAddDate');
+    const activeBtn = document.querySelector('.planner-slot-btn[style*="var(--gold)"]') ||
+                      document.querySelector('.planner-slot-btn');
+    const date = dateInput?.value;
+    const meal = activeBtn?.dataset.meal;
+
+    if (!date) { await rcAlert('Please pick a date.', { icon: '📅' }); return; }
+    if (!meal) { await rcAlert('Please select a meal slot.', { icon: '🍽️' }); return; }
+
+    document.getElementById('addToPlannerSheet')?.remove();
+    document.getElementById('addToPlannerOverlay')?.remove();
+
+    await addPlannerEntry(currentUser, date, recipeId, meal, null);
+
+    // Refresh planner data cache
+    const weekStart = getWeekStart(plannerWeekOffset);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    plannerData = await getPlannerRange(currentUser,
+      weekStart.toISOString().split('T')[0],
+      weekEnd.toISOString().split('T')[0]);
+
+    // Toast confirmation
+    const d = new Date(date + 'T00:00:00');
+    const label = d.toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' });
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '📅 Added to ' + meal + ' on ' + label;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
+  }
+
   function openAddMealPrep() { mealPrepSelectedRecipeId = null; mealPrepScale = 1; openModalAnimated('addMealPrepModal'); }
   function searchMealPrepRecipes() {
     const q = document.getElementById('mealPrepSearch').value.toLowerCase();
@@ -7120,10 +7203,7 @@
       // Use data-ing attribute to avoid quoting issues in onclick
       const div = document.createElement('div');
       div.className = 'ingredient-line';
-      div.style.cursor = 'pointer';
-      div.dataset.ing = ing;
-      div.innerHTML = '<div class="ingredient-line-dot"></div><span>' + scaled + '</span><span style="margin-left:auto;font-size:0.7em;color:var(--text-faint);flex-shrink:0;padding-left:6px;">sub?</span>';
-      div.onclick = function() { showSubstitution(this, this.dataset.ing); };
+      div.innerHTML = '<div class="ingredient-line-dot"></div><span>' + scaled + '</span>';
       return div.outerHTML;    }).join('');
 
     // Init servings slider
@@ -11760,17 +11840,20 @@ ${r.ingredients}`;
 
     // For each recipe, check how many pantry ingredients match
     const scored = allRecipes.map(r => {
-      const recipeIngredients = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
+      // Only count lines that look like real ingredients (start with a quantity or known measure)
+      const allLines = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
+      const recipeIngredients = allLines.filter(i => i.match(/^[\d½¼¾⅓⅔⅛]/) || i.match(/^(a |an |pinch|handful|dash|splash|to taste)/i));
+      // Fall back to all non-blank lines if none qualify (e.g. ingredient-only lists)
+      const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
       const matchedPantry = [];
       pantryItems.forEach(p => {
-        if (recipeIngredients.some(i => ingredientMatches(p, i))) {
+        if (ingLines.some(i => ingredientMatches(p, i))) {
           matchedPantry.push(p);
         }
       });
-      // Calculate: what fraction of recipe ingredients are covered by the pantry
-      // This is the true "match percentage" for a recipe
-      const recipePct = recipeIngredients.length > 0 ? Math.round((matchedPantry.length / recipeIngredients.length) * 100) : 0;
-      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, recipePct, totalIngredients: recipeIngredients.length };
+      // % = pantry items that matched / total real ingredient lines, capped at 100
+      const recipePct = ingLines.length > 0 ? Math.min(100, Math.round((matchedPantry.length / ingLines.length) * 100)) : 0;
+      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, recipePct, totalIngredients: ingLines.length };
     }).filter(s => {
       // Require minimum pantry items before showing results
       if (pantryItems.length < MIN_PANTRY_ITEMS) return false;
@@ -11813,10 +11896,10 @@ ${r.ingredients}`;
 
   function openRecipeFromPantry(recipeId) {
     const idx = allRecipes.findIndex(r => r.id === recipeId);
-    if (idx >= 0) {
-      activeRecipeIndex = idx;
-      openDetailsAnimated();
-    }
+    if (idx < 0) return;
+    activeRecipeIndex = idx;
+    switchTab('recipes');
+    setTimeout(() => openDetailsAnimated(), 80);
   }
 
   // ═══ PANTRY: AI FIND RECIPES ONLINE ══════════════════════════════════════
