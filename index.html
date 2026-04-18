@@ -1341,7 +1341,7 @@
       <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;">❓ Tutorial</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
-      <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;">Test</button>
+      <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="forceAppReviewTest()">Test</button>
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div style="padding:0 16px 4px;">
@@ -12502,6 +12502,25 @@ ${r.ingredients}`;
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
+  }
+
+  // Admin test function for rollert2 to force-show app review prompt
+  function forceAppReviewTest() {
+    console.log('Admin: Forcing app review prompt test');
+    
+    // Create a test modal to show we're triggering the review
+    const testModal = document.createElement('div');
+    testModal.className = 'milestone-modal';
+    testModal.innerHTML = `
+      <div class="milestone-card">
+        <div class="milestone-icon">🛠️</div>
+        <div class="milestone-title">Admin Test: App Review</div>
+        <div class="milestone-desc">Testing the app review prompt. This would normally trigger after 30+ day streaks or periodic usage.</div>
+        <button class="milestone-btn" onclick="promptAppReview();this.parentElement.parentElement.remove();">Trigger Review Prompt</button>
+        <button class="milestone-dismiss" onclick="this.parentElement.parentElement.remove();">Cancel</button>
+      </div>
+    `;
+    document.body.appendChild(testModal);
   }
 
   function showMilestoneModal(days) {
