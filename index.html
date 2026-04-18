@@ -2171,6 +2171,8 @@
         console.log('Notification permission:', res);
       }).catch(e => {});
     }
+    // Track app usage for review prompts
+    trackAppUsage();
     // Push initial state so back gesture has somewhere to go
     history.replaceState({ root: true }, '');
     // Check for showcase URL first
@@ -12430,6 +12432,78 @@ ${r.ingredients}`;
     }
   }
 
+  // App Review Functions
+  function trackAppUsage() {
+    // Track app launches for review prompts
+    const today = new Date().toISOString().slice(0, 10);
+    const lastPromptDate = localStorage.getItem('rc_last_review_prompt');
+    const launchCount = parseInt(localStorage.getItem('rc_app_launches') || '0') + 1;
+    
+    localStorage.setItem('rc_app_launches', launchCount.toString());
+    
+    // Only prompt once per month and after certain number of launches
+    if (lastPromptDate !== today && launchCount >= 10 && launchCount % 5 === 0) {
+      // Wait a bit before showing prompt
+      setTimeout(() => {
+        if (Math.random() < 0.3) { // 30% chance to show prompt
+          showReviewPrompt();
+        }
+      }, 5000);
+    }
+  }
+
+  function showReviewPrompt() {
+    const today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('rc_last_review_prompt', today);
+    
+    const modal = document.createElement('div');
+    modal.className = 'milestone-modal';
+    modal.innerHTML = `
+      <div class="milestone-card">
+        <div class="milestone-icon">⭐</div>
+        <div class="milestone-title">Enjoying Roll Cookbook?</div>
+        <div class="milestone-desc">Your review helps other cooks discover the app!</div>
+        <button class="milestone-btn" onclick="promptAppReview();this.parentElement.parentElement.remove();">⭐ Rate the App</button>
+        <button class="milestone-dismiss" onclick="this.parentElement.parentElement.remove();">Maybe Later</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  function promptAppReview() {
+    if (typeof median !== 'undefined' && median.appreview && median.appreview.prompt) {
+      median.appreview.prompt({'callback': appReviewComplete});
+    } else {
+      // Fallback for web or if Median not available
+      const fallbackModal = document.createElement('div');
+      fallbackModal.className = 'milestone-modal';
+      fallbackModal.innerHTML = `
+        <div class="milestone-card">
+          <div class="milestone-icon">⭐</div>
+          <div class="milestone-title">Rate Roll Cookbook</div>
+          <div class="milestone-desc">Enjoying the app? Please consider leaving a review on the Play Store!</div>
+          <button class="milestone-btn" onclick="window.open('https://play.google.com/store/apps/details?id=co.median.android.bnlzmrb', '_blank');this.parentElement.parentElement.remove();">Open Play Store</button>
+          <button class="milestone-dismiss" onclick="this.parentElement.parentElement.remove();">Maybe Later</button>
+        </div>
+      `;
+      document.body.appendChild(fallbackModal);
+    }
+  }
+
+  function appReviewComplete(result) {
+    console.log('App review completed:', result);
+    // You could track review completions here
+    // For example: increment a counter or show a thank you message
+    if (result && result.completed) {
+      // Simple toast notification
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--gold);color:var(--text);padding:12px 20px;border-radius:20px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+      toast.textContent = 'Thanks for your review! ❤️';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  }
+
   function showMilestoneModal(days) {
     const messages = {
       7: { icon: '🔥', title: '7 Day Streak!', desc: 'A week of cooking! You\'re building a real habit. Keep it going!' },
@@ -12440,9 +12514,9 @@ ${r.ingredients}`;
       365: { icon: '🎖️', title: '365 Day Streak!', desc: 'An entire year of cooking! You\'re a Roll Cookbook champion!' }
     };
     const m = messages[days] || { icon: '🔥', title: days + ' Day Streak!', desc: 'Amazing dedication to cooking!' };
-    
-    const shareText = '🔥 I\'ve cooked for ' + days + ' days in a row on Roll Cookbook! Try it free at rollcookbook.com';
-    
+
+    const shareText = '🔥 I\'ve cooked for ' + days + ' days in a row on Roll Cookbook! Try it free: https://play.google.com/store/apps/details?id=co.median.android.bnlzmrb';
+
     const modal = document.createElement('div');
     modal.className = 'milestone-modal';
     modal.id = 'milestoneModal';
@@ -12454,11 +12528,12 @@ ${r.ingredients}`;
         <div class="milestone-desc">${m.desc}</div>
         <button class="milestone-btn" onclick="document.getElementById('milestoneModal')?.remove();document.getElementById('confettiContainer')?.remove();">🎉 Awesome!</button>
         <button class="milestone-share-btn" onclick="navigator.clipboard.writeText('${shareText}');this.textContent='✅ Copied!';setTimeout(()=>this.textContent='📋 Share Milestone',1500);">📋 Share Milestone</button>
+        ${days >= 30 ? '<button class="milestone-share-btn" onclick="promptAppReview()" style="margin-top:8px;">⭐ Rate Roll Cookbook</button>' : ''}
         <button class="milestone-dismiss" onclick="document.getElementById('milestoneModal')?.remove();document.getElementById('confettiContainer')?.remove();">Dismiss</button>
       </div>
     `;
     document.body.appendChild(modal);
-    
+
     // Generate confetti
     spawnConfetti();
   }
