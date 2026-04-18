@@ -433,6 +433,30 @@
     .btn-secondary { background:var(--glass); border:1px solid var(--glass-border); color:var(--text-dim); }
     .btn-danger { background:rgba(224,85,85,0.12); border:1px solid rgba(224,85,85,0.3); color:var(--red); }
     .btn+.btn { margin-top:10px; }
+    
+    /* Profile button alignment fix */
+    #profileModal .btn-secondary {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      vertical-align: middle !important;
+    }
+    
+    /* Ensure all profile buttons have same height */
+    #profileModal [id$="Btn"] {
+      height: 32px !important;
+      line-height: 32px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    
+    /* Fix text overflow for achievements and tutorial buttons */
+    #achievementsBtn span:last-child,
+    #profileModal .icon-btn {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
 
     /* ── TABS ── */
     .tab-bar { display:flex; background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--radius-sm); overflow:hidden; margin-bottom:18px; }
@@ -1209,10 +1233,6 @@
           <div class="detail-action-b-icon gold">👨‍🍳</div>
           <div class="detail-action-b-label">Cook</div>
         </div>
-        <div class="detail-action-b" onclick="markCookedFromDetail()" id="markCookedBtn">
-          <div class="detail-action-b-icon">✅</div>
-          <div class="detail-action-b-label">Cooked</div>
-        </div>
       </div>
       <!-- Tags row -->
       <div id="detailTagsRow" style="display:none;flex-wrap:wrap;gap:6px;padding:6px 18px 0;"></div>
@@ -1270,6 +1290,15 @@
       <!-- Instructions -->
       <div class="detail-section-title">Instructions</div>
       <div class="detail-section-body" id="stepsList"></div>
+      
+      <!-- I Cooked This Button -->
+      <div style="margin: 24px 18px 16px;">
+        <button onclick="markCookedFromDetail()" id="markCookedBtn" style="width:100%;padding:18px;background:var(--gold);border:none;border-radius:var(--radius);color:var(--bg);font-size:1.1em;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s ease;">
+          <span style="font-size:1.3em;">✅</span>
+          <span>I COOKED THIS MEAL</span>
+        </button>
+      </div>
+      
       <!-- Notes -->
       <div id="notesSection" style="display:none;">
         <div class="detail-section-title">Notes</div>
@@ -1338,7 +1367,7 @@
     <div class="modal-header">
       <button class="modal-back" onclick="closeProfileAnimated()">← Back</button>
       <h2>Profile</h2>
-      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;">❓ Tutorial</button>
+      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">❓ Tutorial</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
       <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="forceAppReviewTest()">Test</button>
@@ -1346,20 +1375,20 @@
     </div>
     <div style="padding:0 16px 4px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openNutritionDashboard()">
-          <span>📊</span><span>Nutrition</span>
+        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openNutritionDashboard()">
+          <span style="flex-shrink:0;">📊</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Nutrition</span>
         </button>
-        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openStreakDashboard()">
-          <span>🔥</span><span>Streaks</span>
+        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openStreakDashboard()">
+          <span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Streaks</span>
         </button>
-        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openCookTimeStats()">
-          <span>⏱</span><span>Stats</span>
+        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openCookTimeStats()">
+          <span style="flex-shrink:0;">⏱</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Stats</span>
         </button>
-        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openCookbookShowcase()">
-          <span>🌐</span><span>Showcase</span>
+        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openCookbookShowcase()">
+          <span style="flex-shrink:0;">🌐</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Showcase</span>
         </button>
-        <button id="achievementsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openAchievementsModal()">
-          <span>🏆</span><span>Achievements</span>
+        <button id="achievementsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openAchievementsModal()">
+          <span style="flex-shrink:0;">🏆</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Achievements</span>
         </button>
       </div>
     </div>
@@ -1447,6 +1476,16 @@
       <div style="text-align:center;color:var(--text-dim);font-size:0.9em;margin-bottom:20px;">
         Spin to randomly pick a recipe from your collection!
       </div>
+      <!-- Audio elements for sounds -->
+      <audio id="rouletteSpinSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-spin-1079.mp3" type="audio/mpeg">
+      </audio>
+      <audio id="rouletteStopSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+      </audio>
+      <audio id="achievementUnlockSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" type="audio/mpeg">
+      </audio>
     </div>
   </div>
 
@@ -2015,6 +2054,28 @@
       <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminCleanupOldNotifications()">🔔 Clear old seen notifications</button>
       <button class="btn btn-danger" style="width:100%;margin-bottom:8px;" onclick="adminClearCache()">🧹 Clear cached recipe data</button>
       <div id="cleanupStatus" style="font-size:0.78em;text-align:center;margin-top:6px;height:16px;"></div>
+    </div>
+
+    <div class="admin-section" id="adminAchievementUnlockerSection" style="display:none;">
+      <div class="admin-section-title">🏆 Achievement Unlocker (rollert2 only)</div>
+      <p style="font-size:0.82em;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">Unlock achievements for testing. This section is only visible to rollert2.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:8px;margin-bottom:12px;">
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('first_cook')" style="font-size:0.8em;padding:8px;">🍳 First Cook</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('cook_25')" style="font-size:0.8em;padding:8px;">👨‍🍳 Home Cook</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('cook_100')" style="font-size:0.8em;padding:8px;">👨‍🍳 Master Chef</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('cook_500')" style="font-size:0.8em;padding:8px;">👑 Kitchen Legend</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('streak_7')" style="font-size:0.8em;padding:8px;">🔥 Weekly Streak</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('streak_30')" style="font-size:0.8em;padding:8px;">🔥 Monthly Streak</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('streak_100')" style="font-size:0.8em;padding:8px;">🔥 Century Streak</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('streak_200')" style="font-size:0.8em;padding:8px;">👑 200 Day Streak</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('midnight_cook')" style="font-size:0.8em;padding:8px;">🌙 Midnight Chef</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('breakfast_king')" style="font-size:0.8em;padding:8px;">🥞 Breakfast King</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('spicy_lover')" style="font-size:0.8em;padding:8px;">🌶️ Spicy Lover</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('pantry_perfect')" style="font-size:0.8em;padding:8px;">📦 Pantry Perfect</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('shopping_list')" style="font-size:0.8em;padding:8px;">🛒 Shopping Pro</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('community_contributor')" style="font-size:0.8em;padding:8px;">🌍 Community Contributor</button>
+      </div>
+      <button class="btn btn-danger" onclick="adminResetAllAchievements()" style="margin-top:8px;">🗑 Reset All Achievements</button>
     </div>
 
     <div class="admin-section">
@@ -4800,6 +4861,11 @@
       if (rotdEl && adminSettings.rotd_override_id) {
         rotdEl.textContent = 'Current override: ' + (adminSettings.rotd_override_date || '') + ' — ID: ' + adminSettings.rotd_override_id.slice(0,8) + '...';
       }
+      // Show achievement unlocker only for rollert2
+      const achievementSection = document.getElementById('adminAchievementUnlockerSection');
+      if (achievementSection) {
+        achievementSection.style.display = currentUser === 'rollert2' ? 'block' : 'none';
+      }
       openModalAnimated('adminModal');
     });
   }
@@ -5085,6 +5151,60 @@
     }
     statusEl.textContent = '✅ Cleared ' + cleared + ' cached items — reload to refresh'; statusEl.style.color = 'var(--green)';
     setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  }
+
+  // ═══ ADMIN ACHIEVEMENT UNLOCKER ═══
+  function adminUnlockAchievement(achievementId) {
+    if (currentUser !== 'rollert2') {
+      rcAlert('This feature is only available for rollert2.');
+      return;
+    }
+    
+    const achievement = ACHIEVEMENTS[achievementId];
+    if (!achievement) {
+      rcAlert('Achievement not found: ' + achievementId);
+      return;
+    }
+    
+    // Get current achievements
+    const userAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+    
+    // Unlock the achievement
+    userAchievements[achievementId] = {
+      unlocked: true,
+      unlockedAt: new Date().toISOString(),
+      progress: 100
+    };
+    
+    // Set the achievement data to the threshold
+    userData[achievementId] = achievement.threshold;
+    
+    // Save back to localStorage
+    localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
+    localStorage.setItem('rc_user_achievement_data', JSON.stringify(userData));
+    
+    // Show the achievement unlocked toast
+    showAchievementUnlocked(achievement);
+    
+    rcAlert('✅ Achievement "' + achievement.title + '" unlocked!');
+  }
+  
+  function adminResetAllAchievements() {
+    if (currentUser !== 'rollert2') {
+      rcAlert('This feature is only available for rollert2.');
+      return;
+    }
+    
+    if (!rcConfirm('Reset ALL achievements? This will clear all your achievement progress.', {icon:'🗑',title:'Reset Achievements',confirmText:'Reset',danger:true})) {
+      return;
+    }
+    
+    // Clear achievement data
+    localStorage.removeItem('rc_achievements');
+    localStorage.removeItem('rc_user_achievement_data');
+    
+    rcAlert('✅ All achievements have been reset.');
   }
 
   // ═══ QUICK STATS ═══
@@ -7301,16 +7421,18 @@
     // Update cooked button state based on recipe
     const cookedBtn = document.getElementById('markCookedBtn');
     if (cookedBtn) {
+      const iconSpan = cookedBtn.querySelector('span:first-child');
+      const textSpan = cookedBtn.querySelector('span:last-child');
       if (r.lastCooked) {
-        cookedBtn.querySelector('.detail-action-b-icon').textContent = '✅';
-        cookedBtn.querySelector('.detail-action-b-label').textContent = 'Cooked!';
+        if (iconSpan) iconSpan.textContent = '✅';
+        if (textSpan) textSpan.textContent = 'COOKED!';
         cookedBtn.style.background = 'rgba(76,175,125,0.15)';
         cookedBtn.style.color = '#4caf7d';
       } else {
-        cookedBtn.querySelector('.detail-action-b-icon').textContent = '✅';
-        cookedBtn.querySelector('.detail-action-b-label').textContent = 'Cooked';
-        cookedBtn.style.background = '';
-        cookedBtn.style.color = '';
+        if (iconSpan) iconSpan.textContent = '✅';
+        if (textSpan) textSpan.textContent = 'I COOKED THIS MEAL';
+        cookedBtn.style.background = 'var(--gold)';
+        cookedBtn.style.color = 'var(--bg)';
       }
     }
     // Reset journal state
@@ -7757,14 +7879,17 @@ ${text}`;
     if (!r) return;
     const btn = document.getElementById('markCookedBtn');
     if (btn) {
-      btn.querySelector('.detail-action-b-icon').textContent = '⏳';
-      btn.querySelector('.detail-action-b-label').textContent = 'Marking...';
+      const iconSpan = btn.querySelector('span:first-child');
+      const textSpan = btn.querySelector('span:last-child');
+      if (iconSpan) iconSpan.textContent = '⏳';
+      if (textSpan) textSpan.textContent = 'MARKING...';
+      btn.style.opacity = '0.8';
     }
     const res = await markRecipeCooked(r.id, currentUser);
     if (res.status === 'Success') {
       r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
       updateCookStreak();
-      
+
       // Track achievement for cooking
       const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
       const totalCooked = (userData.cook_25 || 0) + 1;
@@ -7772,38 +7897,44 @@ ${text}`;
       checkAchievement('cook_25', totalCooked);
       checkAchievement('cook_100', totalCooked);
       checkAchievement('cook_500', totalCooked);
-      
+
       // Check for midnight cooking achievement
       const now = new Date();
       if (now.getHours() >= 0 && now.getHours() < 4) {
         checkAchievement('midnight_cook', 1);
       }
-      
+
       // Check for breakfast recipes
       if (r.category.toLowerCase().includes('breakfast')) {
         const breakfastCount = (userData.breakfast_king || 0) + 1;
         checkAchievement('breakfast_king', breakfastCount);
       }
-      
+
       // Check for spicy recipes
       if (r.title.toLowerCase().includes('spicy') || r.category.toLowerCase().includes('spicy')) {
         const spicyCount = (userData.spicy_lover || 0) + 1;
         checkAchievement('spicy_lover', spicyCount);
       }
-      
+
       if (btn) {
-        btn.querySelector('.detail-action-b-icon').textContent = '✅';
-        btn.querySelector('.detail-action-b-icon').style.filter = 'none';
+        const iconSpan = btn.querySelector('span:first-child');
+        const textSpan = btn.querySelector('span:last-child');
+        if (iconSpan) iconSpan.textContent = '✅';
+        if (textSpan) textSpan.textContent = 'COOKED!';
         btn.style.background = 'rgba(76,175,125,0.15)';
-        btn.style.borderRadius = 'var(--radius-sm)';
-        btn.querySelector('.detail-action-b-label').textContent = 'Cooked!';
         btn.style.color = '#4caf7d';
+        btn.style.opacity = '1';
       }
       renderDetailContent();
     } else {
       if (btn) {
-        btn.querySelector('.detail-action-b-icon').textContent = '✅';
-        btn.querySelector('.detail-action-b-label').textContent = 'Cooked';
+        const iconSpan = btn.querySelector('span:first-child');
+        const textSpan = btn.querySelector('span:last-child');
+        if (iconSpan) iconSpan.textContent = '✅';
+        if (textSpan) textSpan.textContent = 'I COOKED THIS MEAL';
+        btn.style.background = 'var(--gold)';
+        btn.style.color = 'var(--bg)';
+        btn.style.opacity = '1';
       }
     }
   }
@@ -8075,8 +8206,8 @@ ${text}`;
       '<span style="font-weight:800;font-size:1em;flex:1;">' + escapeHtml(listName) + '</span>' +
       '<button onclick="inviteToSharedList(\'' + listId + '\')" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>' +
       '<button onclick="shareShoppingListAsText()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">📤 Share</button>' +
-      '<button onclick="renameSharedList()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>' +
-      '<button onclick="leaveSharedList()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>' +
+      '<button onclick="renameSharedListUI()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>' +
+      '<button onclick="leaveSharedListUI()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>' +
       '</div>' +
       '<div style="padding:12px 16px 8px;display:flex;gap:8px;">' +
       '<input id="sharedListPageInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;">' +
@@ -8176,8 +8307,8 @@ ${text}`;
         <span id="sharedListTitle" style="font-weight:800;font-size:1em;flex:1;">${escapeHtml(listName)}</span>
         <button onclick="inviteToSharedList('${listId}')" style="padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.78em;cursor:pointer;font-family:inherit;">+ Invite</button>
         <button onclick="shareShoppingListAsText()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">📤 Share</button>
-        <button onclick="renameSharedList()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>
-        <button onclick="leaveSharedList()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>
+        <button onclick="renameSharedListUI()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">✏️ Rename</button>
+        <button onclick="leaveSharedListUI()" style="background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:6px 10px;border-radius:8px;font-size:0.75em;cursor:pointer;">🚪 Leave</button>
       </div>
       <div style="padding:12px 16px 8px;display:flex;gap:8px;">
         <input id="sharedListInput" class="edit-field" placeholder="Add item..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')addSharedItem()">
@@ -9486,6 +9617,7 @@ ${text}`;
         '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followerCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>' +
         '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followingCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div></div>' +
         '<div id="pubProfileBtns" style="display:flex;gap:8px;justify-content:center;"></div></div>' +
+        '<div id="pubProfileAchievements" style="padding:0 16px 16px;"></div>' +
         (cols.length ? '<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>' + colHtml + '</div>' : '') +
         '<div id="pubProfileRecipes" style="padding:0 16px;margin-top:10px;"></div>' +
         '<div style="padding:0 16px 20px;margin-top:10px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div><div id="pubProfilePosts">Loading...</div></div>';
@@ -9510,6 +9642,62 @@ ${text}`;
         mb.textContent = '💬 Message'; mb.style.cssText = 'padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;';
         mb.onclick = () => { closeModalAnimated('publicProfileModal'); setTimeout(() => openMessaging(username), 300); };
         btnsEl.append(fb, mb);
+      }
+
+      // Load achievements
+      const achievementsEl = document.getElementById('pubProfileAchievements');
+      if (achievementsEl) {
+        try {
+          // Fetch user's achievements
+          const { data: achievementsData, error } = await supabase
+            .from('user_achievements')
+            .select('achievement_id, unlocked_at')
+            .eq('user_id', profile.id)
+            .order('unlocked_at', { ascending: false })
+            .limit(6);
+          
+          if (!error && achievementsData && achievementsData.length > 0) {
+            // Get achievement definitions
+            const achievementDefs = {
+              'first_cook': { icon: '🍳', title: 'First Cook', desc: 'Cooked your first recipe' },
+              'cook_25': { icon: '👨‍🍳', title: 'Home Cook', desc: 'Cooked 25 recipes' },
+              'cook_100': { icon: '👨‍🍳', title: 'Master Chef', desc: 'Cooked 100 recipes' },
+              'cook_500': { icon: '👑', title: 'Kitchen Legend', desc: 'Cooked 500 recipes' },
+              'streak_7': { icon: '🔥', title: 'Weekly Streak', desc: '7-day cooking streak' },
+              'streak_30': { icon: '🔥', title: 'Monthly Streak', desc: '30-day cooking streak' },
+              'streak_100': { icon: '🔥', title: 'Century Streak', desc: '100-day cooking streak' },
+              'streak_200': { icon: '👑', title: '200 Day Streak', desc: '200-day cooking streak' },
+              'midnight_cook': { icon: '🌙', title: 'Midnight Chef', desc: 'Cooked between midnight and 4am' },
+              'breakfast_king': { icon: '🥞', title: 'Breakfast King', desc: 'Cooked 10 breakfast recipes' },
+              'spicy_lover': { icon: '🌶️', title: 'Spicy Lover', desc: 'Cooked 10 spicy recipes' },
+              'pantry_perfect': { icon: '📦', title: 'Pantry Perfect', desc: 'Found 10 perfect pantry matches' },
+              'shopping_list': { icon: '🛒', title: 'Shopping Pro', desc: 'Created 10 shopping lists' },
+              'community_contributor': { icon: '🌍', title: 'Community Contributor', desc: 'Shared 10 recipes to community' }
+            };
+            
+            let achievementsHtml = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>';
+            achievementsHtml += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">';
+            
+            achievementsData.forEach(ach => {
+              const def = achievementDefs[ach.achievement_id];
+              if (def) {
+                achievementsHtml += '<div style="flex-shrink:0;width:80px;text-align:center;">' +
+                  '<div style="width:50px;height:50px;border-radius:12px;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:1.5em;">' + def.icon + '</div>' +
+                  '<div style="font-size:0.7em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + def.title + '</div>' +
+                  '</div>';
+              }
+            });
+            
+            achievementsHtml += '</div>';
+            achievementsEl.innerHTML = achievementsHtml;
+          } else {
+            achievementsEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>' +
+              '<div style="text-align:center;padding:12px;color:var(--text-faint);font-size:0.85em;">No achievements yet</div>';
+          }
+        } catch (e) {
+          achievementsEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>' +
+            '<div style="text-align:center;padding:12px;color:var(--text-faint);font-size:0.85em;">Could not load achievements</div>';
+        }
       }
 
       // Load recipes
@@ -10895,6 +11083,7 @@ ${text}`;
         '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followerCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Followers</div></div>' +
         '<div><div style="font-size:1.2em;font-weight:800;">' + (stats.followingCount||0) + '</div><div style="font-size:0.7em;color:var(--text-faint);">Following</div></div></div>' +
         '<div id="pubProfileBtns" style="display:flex;gap:8px;justify-content:center;"></div></div>' +
+        '<div id="pubProfileAchievements" style="padding:0 16px 16px;"></div>' +
         (cols.length ? '<div style="padding:0 16px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Public Collections</div>' + colHtml + '</div>' : '') +
         '<div id="pubProfileRecipes" style="padding:0 16px;margin-top:10px;"></div>' +
         '<div style="padding:0 16px 20px;margin-top:10px;"><div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">Community Posts</div><div id="pubProfilePosts">Loading...</div></div>';
@@ -10919,6 +11108,62 @@ ${text}`;
         mb.textContent = '💬 Message'; mb.style.cssText = 'padding:8px 20px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.82em;font-weight:600;cursor:pointer;font-family:inherit;';
         mb.onclick = () => { closeModalAnimated('publicProfileModal'); setTimeout(() => openMessaging(username), 300); };
         btnsEl.append(fb, mb);
+      }
+
+      // Load achievements
+      const achievementsEl = document.getElementById('pubProfileAchievements');
+      if (achievementsEl) {
+        try {
+          // Fetch user's achievements
+          const { data: achievementsData, error } = await supabase
+            .from('user_achievements')
+            .select('achievement_id, unlocked_at')
+            .eq('user_id', profile.id)
+            .order('unlocked_at', { ascending: false })
+            .limit(6);
+          
+          if (!error && achievementsData && achievementsData.length > 0) {
+            // Get achievement definitions
+            const achievementDefs = {
+              'first_cook': { icon: '🍳', title: 'First Cook', desc: 'Cooked your first recipe' },
+              'cook_25': { icon: '👨‍🍳', title: 'Home Cook', desc: 'Cooked 25 recipes' },
+              'cook_100': { icon: '👨‍🍳', title: 'Master Chef', desc: 'Cooked 100 recipes' },
+              'cook_500': { icon: '👑', title: 'Kitchen Legend', desc: 'Cooked 500 recipes' },
+              'streak_7': { icon: '🔥', title: 'Weekly Streak', desc: '7-day cooking streak' },
+              'streak_30': { icon: '🔥', title: 'Monthly Streak', desc: '30-day cooking streak' },
+              'streak_100': { icon: '🔥', title: 'Century Streak', desc: '100-day cooking streak' },
+              'streak_200': { icon: '👑', title: '200 Day Streak', desc: '200-day cooking streak' },
+              'midnight_cook': { icon: '🌙', title: 'Midnight Chef', desc: 'Cooked between midnight and 4am' },
+              'breakfast_king': { icon: '🥞', title: 'Breakfast King', desc: 'Cooked 10 breakfast recipes' },
+              'spicy_lover': { icon: '🌶️', title: 'Spicy Lover', desc: 'Cooked 10 spicy recipes' },
+              'pantry_perfect': { icon: '📦', title: 'Pantry Perfect', desc: 'Found 10 perfect pantry matches' },
+              'shopping_list': { icon: '🛒', title: 'Shopping Pro', desc: 'Created 10 shopping lists' },
+              'community_contributor': { icon: '🌍', title: 'Community Contributor', desc: 'Shared 10 recipes to community' }
+            };
+            
+            let achievementsHtml = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>';
+            achievementsHtml += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">';
+            
+            achievementsData.forEach(ach => {
+              const def = achievementDefs[ach.achievement_id];
+              if (def) {
+                achievementsHtml += '<div style="flex-shrink:0;width:80px;text-align:center;">' +
+                  '<div style="width:50px;height:50px;border-radius:12px;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:1.5em;">' + def.icon + '</div>' +
+                  '<div style="font-size:0.7em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + def.title + '</div>' +
+                  '</div>';
+              }
+            });
+            
+            achievementsHtml += '</div>';
+            achievementsEl.innerHTML = achievementsHtml;
+          } else {
+            achievementsEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>' +
+              '<div style="text-align:center;padding:12px;color:var(--text-faint);font-size:0.85em;">No achievements yet</div>';
+          }
+        } catch (e) {
+          achievementsEl.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>' +
+            '<div style="text-align:center;padding:12px;color:var(--text-faint);font-size:0.85em;">Could not load achievements</div>';
+        }
       }
 
       // Load recipes
@@ -11834,13 +12079,11 @@ ${r.ingredients}`;
       init().then(() => {
         const recipeIdx = allRecipes.findIndex(x => x.id === r.id);
         if (recipeIdx >= 0) {
-          activeRecipeIndex = recipeIdx;
-          openDetailsAnimated();
+          openDetails(recipeIdx);
         } else {
           // Recipe not in current user's cookbook - show it anyway
           allRecipes.push(r);
-          activeRecipeIndex = allRecipes.length - 1;
-          openDetailsAnimated();
+          openDetails(allRecipes.length - 1);
         }
       });
     }, 500);
@@ -12024,8 +12267,7 @@ ${r.ingredients}`;
   function openRecipeFromPantry(recipeId) {
     const idx = allRecipes.findIndex(r => r.id === recipeId);
     if (idx < 0) return;
-    activeRecipeIndex = idx;
-    openDetailsAnimated();
+    openDetails(idx);
   }
 
   // ═══ PANTRY: AI FIND RECIPES ONLINE ══════════════════════════════════════
@@ -12415,21 +12657,33 @@ ${r.ingredients}`;
   }
 
   // ═══ RENAME SHARED LIST ══════════════════════════════════════
-  async function renameSharedList() {
-    if (!activeSharedListId) return;
-    const newName = await rcPrompt('', {icon:'✏️',title:'Rename list',placeholder:'New list name...',confirmText:'Rename'});
-    if (!newName || !newName.trim()) return;
+  async function renameSharedListUI(listId, newName) {
+    // If called without parameters (from UI), prompt for new name
+    if (arguments.length === 0) {
+      if (!activeSharedListId) return;
+      newName = await rcPrompt('', {icon:'✏️',title:'Rename list',placeholder:'New list name...',confirmText:'Rename'});
+      if (!newName || !newName.trim()) return;
+      newName = newName.trim();
+      listId = activeSharedListId;
+    }
     
+    if (!listId || !newName) return;
+
     try {
-      await sbFetch('PATCH', `shopping_lists?id=eq.${activeSharedListId}`, { name: newName.trim() });
-      activeSharedListName = newName.trim();
-      // Update header
-      const titleEl = document.getElementById('sharedListTitle');
-      if (titleEl) titleEl.textContent = activeSharedListName;
+      await sbFetch('PATCH', `shopping_lists?id=eq.${listId}`, { name: newName });
+      
+      // Update active list name if this is the current active list
+      if (listId === activeSharedListId) {
+        activeSharedListName = newName;
+        // Update header
+        const titleEl = document.getElementById('sharedListTitle');
+        if (titleEl) titleEl.textContent = activeSharedListName;
+      }
+      
       // Update tabs
       const tabEl = document.querySelector('#shopSharedTabs .sort-chip.active');
-      if (tabEl) tabEl.textContent = activeSharedListName;
-      
+      if (tabEl) tabEl.textContent = newName;
+
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
       toast.textContent = '✅ List renamed!';
@@ -12440,17 +12694,33 @@ ${r.ingredients}`;
   }
 
   // ═══ LEAVE SHARED LIST ══════════════════════════════════════
-  async function leaveSharedList() {
-    if (!activeSharedListId) return;
-    if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
+  async function leaveSharedListUI(listId, userId) {
+    // If called without parameters (from UI), use active list and current user
+    if (arguments.length === 0) {
+      if (!activeSharedListId) return;
+      if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
+      listId = activeSharedListId;
+      userId = currentUser;
+    }
+    
+    if (!listId || !userId) return;
 
     try {
-      await leaveSharedList(activeSharedListId, currentUser);
-      activeSharedListId = null;
-      activeSharedListName = '';
-      sharedListItems = [];
-      // Switch back to personal list
-      switchShopListTab('personal');
+      // Call the sb-shop.js function to leave the list
+      const result = await leaveSharedList(listId, userId);
+      
+      if (result.status === 'Success') {
+        // If this is the active list, clear it
+        if (listId === activeSharedListId) {
+          activeSharedListId = null;
+          activeSharedListName = '';
+          sharedListItems = [];
+          // Switch back to personal list
+          switchShopListTab('personal');
+        }
+      } else {
+        throw new Error('Failed to leave list');
+      }
 
       const toast = document.createElement('div');
       toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
@@ -12502,7 +12772,7 @@ ${r.ingredients}`;
     const newName = await rcPrompt('', {icon:'✏️',title:'Rename list',placeholder:'New name...',confirmText:'Rename'});
     if (!newName || !newName.trim()) return;
     try {
-      await renameSharedList(shopPageActiveListId, newName.trim());
+      await renameSharedListUI(shopPageActiveListId, newName.trim());
       activeSharedListName = newName.trim();
       loadShoppingPageSharedTabs();
       const toast = document.createElement('div');
@@ -12519,7 +12789,7 @@ ${r.ingredients}`;
     if (!shopPageActiveListId) return;
     if (!await rcConfirm('Leave this shared list? You will need to be re-invited to rejoin.', {icon:'🚪',confirmText:'Leave',danger:true})) return;
     try {
-      await leaveSharedList(shopPageActiveListId, currentUser);
+      await leaveSharedListUI(shopPageActiveListId, currentUser);
       await loadShoppingPageSharedTabs();
       switchShoppingPageTab('personal');
       const toast = document.createElement('div');
@@ -12722,6 +12992,13 @@ ${r.ingredients}`;
 
   // Show achievement unlocked animation
   function showAchievementUnlocked(achievement) {
+    // Play achievement unlock sound
+    const achievementSound = document.getElementById('achievementUnlockSound');
+    if (achievementSound) {
+      achievementSound.currentTime = 0;
+      achievementSound.play().catch(e => console.log('Achievement sound play failed:', e));
+    }
+    
     const toast = document.createElement('div');
     toast.className = 'achievement-toast';
     toast.style.cssText = `
@@ -12742,7 +13019,7 @@ ${r.ingredients}`;
       animation: slideInRight 0.5s ease-out;
       backdrop-filter: blur(10px);
     `;
-    
+
     toast.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
         <div style="font-size: 2em;">${achievement.icon}</div>
@@ -12755,9 +13032,9 @@ ${r.ingredients}`;
         Achievement Unlocked! 🎉
       </div>
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
       toast.style.animation = 'slideOutRight 0.5s ease-in';
@@ -12901,16 +13178,23 @@ ${r.ingredients}`;
     
     rouletteIsSpinning = true;
     rouletteSpeed = 80; // Start fast
-    
+
     // Show stop button, hide spin button
     document.getElementById('rouletteSpinBtn').style.display = 'none';
     document.getElementById('rouletteStopBtn').style.display = 'flex';
-    
+
+    // Play spinning sound
+    const spinSound = document.getElementById('rouletteSpinSound');
+    if (spinSound) {
+      spinSound.currentTime = 0;
+      spinSound.play().catch(e => console.log('Audio play failed:', e));
+    }
+
     // Start spinning
     rouletteInterval = setInterval(() => {
       rouletteCurrentIndex = (rouletteCurrentIndex + 1) % rouletteRecipes.length;
       updateRouletteDisplay();
-      
+
       // Gradually slow down
       if (rouletteSpeed < 300) {
         rouletteSpeed += 5;
@@ -12929,28 +13213,42 @@ ${r.ingredients}`;
 
   function stopRouletteAndCook() {
     if (!rouletteIsSpinning) return;
-    
+
     clearInterval(rouletteInterval);
     rouletteIsSpinning = false;
-    
+
+    // Stop spinning sound
+    const spinSound = document.getElementById('rouletteSpinSound');
+    if (spinSound) {
+      spinSound.pause();
+      spinSound.currentTime = 0;
+    }
+
     // Add dramatic final spin
     let finalSpins = 5;
     const finalSpin = () => {
       rouletteCurrentIndex = (rouletteCurrentIndex + 1) % rouletteRecipes.length;
       updateRouletteDisplay();
       finalSpins--;
-      
+
       if (finalSpins > 0) {
         setTimeout(finalSpin, 100 + (5 - finalSpins) * 50);
       } else {
+        // Play stop/win sound
+        const stopSound = document.getElementById('rouletteStopSound');
+        if (stopSound) {
+          stopSound.currentTime = 0;
+          stopSound.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
         // Show selected recipe with celebration
         const recipe = rouletteRecipes[rouletteCurrentIndex];
         const iconEl = document.getElementById('rouletteRecipeIcon');
         const titleEl = document.getElementById('rouletteRecipeTitle');
-        
+
         iconEl.style.animation = 'bounce 0.5s ease 3';
         titleEl.style.color = 'var(--gold)';
-        
+
         // Add confetti effect
         setTimeout(() => {
           // Find the actual recipe index in allRecipes
