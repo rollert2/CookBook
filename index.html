@@ -841,7 +841,7 @@
     </div>
     <div class="header-chips" id="categoryFilters"></div>
     <div class="category-filter-row" id="sortFilterRow" style="display:flex;align-items:center;gap:8px;padding-left:16px;">
-      <button onclick="openSurpriseMe()" id="surpriseDiceBtn" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Surprise Me">🎲</button>
+      <button onclick="openRecipeRoulette()" id="rouletteBtn" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Recipe Roulette">🎰</button>
       <button class="icon-btn" id="cookTimeToggleBtn" onclick="toggleCookTimeFilterRow()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.85em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Cook Time Filter">⏱</button>
       <button class="icon-btn" id="favFilterBtn2" onclick="toggleFavFilter2()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.9em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Favourites">⭐</button>
       <div class="sort-filter-wrap">
@@ -1357,6 +1357,9 @@
         </button>
         <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openCookbookShowcase()">
           <span>🌐</span><span>Showcase</span>
+        </button>
+        <button id="achievementsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;" onclick="openAchievementsModal()">
+          <span>🏆</span><span>Achievements</span>
         </button>
       </div>
     </div>
@@ -3575,6 +3578,10 @@
       el.className = res.status==='Success'?'ai-result success':'ai-result error';
       el.innerHTML = res.status==='Success'?'✅ Now following '+target:'❌ '+res.message;
       if (res.status === 'Success') {
+        // Track achievement for following users
+        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+        const totalFollowing = (userData.follow_5 || 0) + 1;
+        checkAchievement('follow_5', totalFollowing);
         if (res.requested) {
           // Private account — show pending
           el.className = 'ai-result';
@@ -3982,7 +3989,20 @@
     btn.disabled = true; btn.innerHTML = 'Saving...';
     addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
-      if (res.status==='Success') { el.className='ai-result success'; el.innerHTML='✅ '+title+' added!'; ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); init(); }
+      if (res.status==='Success') { 
+        el.className='ai-result success'; 
+        el.innerHTML='✅ '+title+' added!'; 
+        ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); 
+        
+        // Track achievement for saving recipes
+        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+        const totalRecipes = (userData.recipes_10 || 0) + 1;
+        checkAchievement('recipes_10', totalRecipes);
+        checkAchievement('recipes_50', totalRecipes);
+        checkAchievement('recipes_100', totalRecipes);
+        
+        init(); 
+      }
       else { el.className='ai-result error'; el.innerHTML='❌ '+res.message; }
     });
   }
@@ -5263,6 +5283,13 @@
       if (userSettings.default_scale) localStorage.setItem('rc_default_scale_' + currentUser, String(userSettings.default_scale));
       if (userSettings.default_sort)  localStorage.setItem('rc_default_sort_'  + currentUser, String(userSettings.default_sort));
       if (userSettings.theme)         localStorage.setItem('rc_theme', String(userSettings.theme));
+      
+      // Check if new user needs theme preference (before tutorial)
+      const hasSeenThemePrompt = localStorage.getItem('rc_has_seen_theme_prompt_' + currentUser);
+      if (!hasSeenThemePrompt && !userSettings.theme) {
+        // Show theme preference modal before loading recipes
+        setTimeout(() => showThemePreferenceModal(), 500);
+      }
       allRecipes = await getRecipes(currentUser);
       // Check for any recipes with unknown categories and prompt user
       const unknownCatRecipes = allRecipes.filter(r => r.category && !RC_VALID_CATS.includes(r.category));
@@ -7638,6 +7665,32 @@ ${text}`;
       r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
       document.getElementById('cookCompletionLastCooked').textContent = 'Marked as cooked ✅';
       updateCookStreak();
+      
+      // Track achievement for cooking (same as markCookedFromDetail)
+      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+      const totalCooked = (userData.cook_25 || 0) + 1;
+      checkAchievement('first_cook', 1);
+      checkAchievement('cook_25', totalCooked);
+      checkAchievement('cook_100', totalCooked);
+      checkAchievement('cook_500', totalCooked);
+      
+      // Check for midnight cooking achievement
+      const now = new Date();
+      if (now.getHours() >= 0 && now.getHours() < 4) {
+        checkAchievement('midnight_cook', 1);
+      }
+      
+      // Check for breakfast recipes
+      if (r.category.toLowerCase().includes('breakfast')) {
+        const breakfastCount = (userData.breakfast_king || 0) + 1;
+        checkAchievement('breakfast_king', breakfastCount);
+      }
+      
+      // Check for spicy recipes
+      if (r.title.toLowerCase().includes('spicy') || r.category.toLowerCase().includes('spicy')) {
+        const spicyCount = (userData.spicy_lover || 0) + 1;
+        checkAchievement('spicy_lover', spicyCount);
+      }
     }
   }
   async function saveJournalFromCompletion() {
@@ -7671,6 +7724,33 @@ ${text}`;
     if (res.status === 'Success') {
       r.lastCooked = res.cookedAt; r.cookCount = (r.cookCount||0) + 1;
       updateCookStreak();
+      
+      // Track achievement for cooking
+      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+      const totalCooked = (userData.cook_25 || 0) + 1;
+      checkAchievement('first_cook', 1);
+      checkAchievement('cook_25', totalCooked);
+      checkAchievement('cook_100', totalCooked);
+      checkAchievement('cook_500', totalCooked);
+      
+      // Check for midnight cooking achievement
+      const now = new Date();
+      if (now.getHours() >= 0 && now.getHours() < 4) {
+        checkAchievement('midnight_cook', 1);
+      }
+      
+      // Check for breakfast recipes
+      if (r.category.toLowerCase().includes('breakfast')) {
+        const breakfastCount = (userData.breakfast_king || 0) + 1;
+        checkAchievement('breakfast_king', breakfastCount);
+      }
+      
+      // Check for spicy recipes
+      if (r.title.toLowerCase().includes('spicy') || r.category.toLowerCase().includes('spicy')) {
+        const spicyCount = (userData.spicy_lover || 0) + 1;
+        checkAchievement('spicy_lover', spicyCount);
+      }
+      
       if (btn) {
         btn.querySelector('.detail-action-b-icon').textContent = '✅';
         btn.querySelector('.detail-action-b-icon').style.filter = 'none';
@@ -12522,6 +12602,559 @@ ${r.ingredients}`;
     `;
     document.body.appendChild(testModal);
   }
+
+  // ═══ ACHIEVEMENT SYSTEM ═══
+  const ACHIEVEMENTS = {
+    // Cooking Streaks
+    streak_7: { id: 'streak_7', icon: '🔥', title: 'Week Warrior', desc: 'Cook for 7 days in a row', category: 'streak', threshold: 7 },
+    streak_30: { id: 'streak_30', icon: '🏆', title: 'Monthly Master', desc: 'Cook for 30 days in a row', category: 'streak', threshold: 30 },
+    streak_100: { id: 'streak_100', icon: '💎', title: 'Century Chef', desc: 'Cook for 100 days in a row', category: 'streak', threshold: 100 },
+    streak_365: { id: 'streak_365', icon: '👑', title: 'Year of Cooking', desc: 'Cook for 365 days in a row', category: 'streak', threshold: 365 },
+    
+    // Recipe Count
+    recipes_10: { id: 'recipes_10', icon: '📖', title: 'Recipe Collector', desc: 'Save 10 recipes to your cookbook', category: 'recipes', threshold: 10 },
+    recipes_50: { id: 'recipes_50', icon: '📚', title: 'Recipe Librarian', desc: 'Save 50 recipes to your cookbook', category: 'recipes', threshold: 50 },
+    recipes_100: { id: 'recipes_100', icon: '🏛️', title: 'Recipe Archivist', desc: 'Save 100 recipes to your cookbook', category: 'recipes', threshold: 100 },
+    
+    // Cooking Stats
+    cook_25: { id: 'cook_25', icon: '👨‍🍳', title: 'Home Cook', desc: 'Cook 25 recipes', category: 'cooking', threshold: 25 },
+    cook_100: { id: 'cook_100', icon: '👩‍🍳', title: 'Sous Chef', desc: 'Cook 100 recipes', category: 'cooking', threshold: 100 },
+    cook_500: { id: 'cook_500', icon: '🧑‍🍳', title: 'Executive Chef', desc: 'Cook 500 recipes', category: 'cooking', threshold: 500 },
+    
+    // Social
+    follow_5: { id: 'follow_5', icon: '🤝', title: 'Social Butterfly', desc: 'Follow 5 other cooks', category: 'social', threshold: 5 },
+    followers_10: { id: 'followers_10', icon: '🌟', title: 'Kitchen Influencer', desc: 'Get 10 followers', category: 'social', threshold: 10 },
+    share_10: { id: 'share_10', icon: '📤', title: 'Recipe Sharer', desc: 'Share 10 recipes with friends', category: 'social', threshold: 10 },
+    
+    // Special
+    first_cook: { id: 'first_cook', icon: '🎉', title: 'First Meal', desc: 'Cook your first recipe', category: 'special', threshold: 1 },
+    pantry_full: { id: 'pantry_full', icon: '🏪', title: 'Well-Stocked', desc: 'Add 20 items to your pantry', category: 'special', threshold: 20 },
+    planner_week: { id: 'planner_week', icon: '📅', title: 'Meal Planner', desc: 'Plan meals for a full week', category: 'special', threshold: 7 },
+    community_post: { id: 'community_post', icon: '💬', title: 'Community Voice', desc: 'Post in the community forum', category: 'special', threshold: 1 },
+    
+    // Hidden/Fun
+    midnight_cook: { id: 'midnight_cook', icon: '🌙', title: 'Midnight Chef', desc: 'Cook a recipe after midnight', category: 'hidden', threshold: 1 },
+    breakfast_king: { id: 'breakfast_king', icon: '🍳', title: 'Breakfast King/Queen', desc: 'Cook 10 breakfast recipes', category: 'hidden', threshold: 10 },
+    spicy_lover: { id: 'spicy_lover', icon: '🌶️', title: 'Spice Lover', desc: 'Cook 5 spicy recipes', category: 'hidden', threshold: 5 }
+  };
+
+  // Track and check achievements
+  function checkAchievement(achievementId, currentValue) {
+    const achievement = ACHIEVEMENTS[achievementId];
+    if (!achievement) return false;
+    
+    const userAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+    
+    // Update current value
+    userData[achievementId] = Math.max(userData[achievementId] || 0, currentValue);
+    localStorage.setItem('rc_user_achievement_data', JSON.stringify(userData));
+    
+    // Check if achievement is unlocked
+    if (!userAchievements[achievementId] && currentValue >= achievement.threshold) {
+      userAchievements[achievementId] = {
+        unlocked: true,
+        unlockedAt: new Date().toISOString(),
+        progress: 100
+      };
+      localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
+      showAchievementUnlocked(achievement);
+      return true;
+    }
+    
+    // Update progress for in-progress achievements
+    if (!userAchievements[achievementId]) {
+      const progress = Math.min(100, Math.round((currentValue / achievement.threshold) * 100));
+      userAchievements[achievementId] = {
+        unlocked: false,
+        progress: progress
+      };
+      localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
+    }
+    
+    return false;
+  }
+
+  // Show achievement unlocked animation
+  function showAchievementUnlocked(achievement) {
+    const toast = document.createElement('div');
+    toast.className = 'achievement-toast';
+    toast.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: linear-gradient(135deg, var(--surface) 0%, var(--glass) 100%);
+      border: 2px solid var(--gold);
+      color: var(--text);
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 0.9em;
+      font-weight: 600;
+      z-index: 9999;
+      text-align: left;
+      width: 300px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: slideInRight 0.5s ease-out;
+      backdrop-filter: blur(10px);
+    `;
+    
+    toast.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 2em;">${achievement.icon}</div>
+        <div style="flex: 1;">
+          <div style="font-size: 1.1em; font-weight: 700; color: var(--gold);">${achievement.title}</div>
+          <div style="font-size: 0.85em; color: var(--text-dim); margin-top: 4px;">${achievement.desc}</div>
+        </div>
+      </div>
+      <div style="margin-top: 12px; font-size: 0.8em; color: var(--text-dim); text-align: center;">
+        Achievement Unlocked! 🎉
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideOutRight 0.5s ease-in';
+      setTimeout(() => toast.remove(), 500);
+    }, 5000);
+  }
+
+  // Get user's achievements
+  function getUserAchievements() {
+    const achievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+    
+    // Convert to array with progress data
+    const result = [];
+    for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
+      const userAchievement = achievements[id] || { unlocked: false, progress: 0 };
+      const currentValue = userData[id] || 0;
+      
+      result.push({
+        ...achievement,
+        unlocked: userAchievement.unlocked || false,
+        progress: userAchievement.progress || 0,
+        currentValue: currentValue,
+        threshold: achievement.threshold
+      });
+    }
+    
+    return result.sort((a, b) => {
+      // Show unlocked first, then by category
+      if (a.unlocked && !b.unlocked) return -1;
+      if (!a.unlocked && b.unlocked) return 1;
+      return a.category.localeCompare(b.category);
+    });
+  }
+
+  // Open achievements modal
+  function openAchievementsModal() {
+    const achievements = getUserAchievements();
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;';
+    
+    modal.innerHTML = `
+      <div class="modal-content" style="background:var(--surface);border-radius:20px;width:90%;max-width:500px;max-height:80vh;overflow:hidden;border:1px solid var(--glass-border);">
+        <div style="padding:20px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;font-size:1.5em;">🏆 Achievements</h2>
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background:none;border:none;font-size:1.5em;cursor:pointer;color:var(--text-dim);">×</button>
+        </div>
+        <div style="padding:20px;overflow-y:auto;max-height:calc(80vh - 80px);">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;">
+            ${achievements.map(ach => `
+              <div class="achievement-card" style="background:${ach.unlocked ? 'var(--glass)' : 'rgba(255,255,255,0.05)'};border:1px solid ${ach.unlocked ? 'var(--gold)' : 'var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};">
+                <div style="font-size:2em;margin-bottom:8px;">${ach.icon}</div>
+                <div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">${ach.title}</div>
+                <div style="font-size:0.75em;color:var(--text-dim);margin-bottom:8px;">${ach.desc}</div>
+                ${!ach.unlocked ? `
+                  <div style="background:var(--glass-border);height:4px;border-radius:2px;overflow:hidden;margin-top:8px;">
+                    <div style="background:var(--gold);height:100%;width:${ach.progress}%;"></div>
+                  </div>
+                  <div style="font-size:0.7em;color:var(--text-dim);margin-top:4px;">${ach.currentValue}/${ach.threshold}</div>
+                ` : '<div style="font-size:0.7em;color:var(--gold);margin-top:4px;">✓ Unlocked</div>'}
+              </div>
+            `).join('')}
+          </div>
+          <div style="text-align:center;margin-top:20px;color:var(--text-dim);font-size:0.85em;">
+            ${achievements.filter(a => a.unlocked).length} of ${achievements.length} achievements unlocked
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove();
+    };
+  }
+
+  // Add CSS animations for achievements
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+    .achievement-card {
+      transition: all 0.3s ease;
+    }
+    .achievement-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ═══ RECIPE ROULETTE ═══
+  let rouletteInterval = null;
+  let rouletteSpeed = 100;
+  let rouletteRecipes = [];
+  let rouletteCurrentIndex = 0;
+  let rouletteIsSpinning = false;
+
+  function openRecipeRoulette() {
+    if (rouletteIsSpinning) return;
+    
+    // Get random subset of recipes for roulette
+    rouletteRecipes = [...allRecipes].sort(() => Math.random() - 0.5).slice(0, 20);
+    if (rouletteRecipes.length < 5) {
+      alert('Need at least 5 recipes for roulette!');
+      return;
+    }
+    
+    rouletteCurrentIndex = 0;
+    rouletteIsSpinning = true;
+    
+    // Create roulette modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
+    
+    modal.innerHTML = `
+      <div class="roulette-container" style="background:var(--surface);border-radius:24px;width:90%;max-width:400px;overflow:hidden;border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="padding:24px;text-align:center;background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);">
+          <div style="font-size:3em;margin-bottom:8px;">🎰</div>
+          <h2 style="margin:0;color:var(--bg);font-size:1.8em;">Recipe Roulette</h2>
+          <div style="color:rgba(0,0,0,0.8);font-size:0.9em;margin-top:4px;">Spin to find your next meal!</div>
+        </div>
+        
+        <div style="padding:24px;">
+          <div id="rouletteDisplay" style="background:var(--glass);border:2px solid var(--glass-border);border-radius:16px;padding:20px;text-align:center;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-bottom:20px;">
+            <div id="rouletteRecipeIcon" style="font-size:3em;margin-bottom:12px;">🍳</div>
+            <div id="rouletteRecipeTitle" style="font-size:1.3em;font-weight:700;margin-bottom:8px;">Loading...</div>
+            <div id="rouletteRecipeMeta" style="font-size:0.9em;color:var(--text-dim);"></div>
+          </div>
+          
+          <div style="display:flex;gap:12px;justify-content:center;">
+            <button id="rouletteSpinBtn" onclick="spinRoulette()" style="flex:1;padding:16px;background:var(--gold);border:none;border-radius:16px;color:var(--bg);font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span>🎰</span><span>SPIN!</span>
+            </button>
+            <button onclick="stopRouletteAndCook()" id="rouletteStopBtn" style="flex:1;padding:16px;background:var(--red);border:none;border-radius:16px;color:white;font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:none;align-items:center;justify-content:center;gap:8px;">
+              <span>🛑</span><span>STOP & COOK</span>
+            </button>
+          </div>
+          
+          <div style="text-align:center;margin-top:20px;">
+            <button onclick="closeRoulette()" style="padding:12px 24px;background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;color:var(--text-dim);font-weight:600;font-size:0.9em;cursor:pointer;font-family:inherit;">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.onclick = (e) => {
+      if (e.target === modal && !rouletteIsSpinning) modal.remove();
+    };
+    
+    // Initialize display
+    updateRouletteDisplay();
+  }
+
+  function updateRouletteDisplay() {
+    const recipe = rouletteRecipes[rouletteCurrentIndex];
+    if (!recipe) return;
+    
+    const iconEl = document.getElementById('rouletteRecipeIcon');
+    const titleEl = document.getElementById('rouletteRecipeTitle');
+    const metaEl = document.getElementById('rouletteRecipeMeta');
+    
+    // Fun food emojis based on category
+    const emojiMap = {
+      'pasta': '🍝', 'pizza': '🍕', 'burger': '🍔', 'sushi': '🍣', 'taco': '🌮',
+      'salad': '🥗', 'soup': '🍲', 'steak': '🥩', 'chicken': '🍗', 'fish': '🐟',
+      'dessert': '🍰', 'breakfast': '🍳', 'lunch': '🥪', 'dinner': '🍽️',
+      'vegan': '🌱', 'vegetarian': '🥦', 'gluten-free': '🌾', 'spicy': '🌶️'
+    };
+    
+    let emoji = '🍳';
+    for (const [key, value] of Object.entries(emojiMap)) {
+      if (recipe.category.toLowerCase().includes(key)) {
+        emoji = value;
+        break;
+      }
+    }
+    
+    iconEl.textContent = emoji;
+    titleEl.textContent = recipe.title;
+    metaEl.textContent = recipe.category + (recipe.cookTime ? ' · ⏱ ' + recipe.cookTime : '');
+  }
+
+  function spinRoulette() {
+    if (rouletteIsSpinning && rouletteInterval) return; // Already spinning
+    
+    rouletteIsSpinning = true;
+    rouletteSpeed = 80; // Start fast
+    
+    // Show stop button, hide spin button
+    document.getElementById('rouletteSpinBtn').style.display = 'none';
+    document.getElementById('rouletteStopBtn').style.display = 'flex';
+    
+    // Start spinning
+    rouletteInterval = setInterval(() => {
+      rouletteCurrentIndex = (rouletteCurrentIndex + 1) % rouletteRecipes.length;
+      updateRouletteDisplay();
+      
+      // Gradually slow down
+      if (rouletteSpeed < 300) {
+        rouletteSpeed += 5;
+        clearInterval(rouletteInterval);
+        rouletteInterval = setInterval(arguments.callee, rouletteSpeed);
+      }
+    }, rouletteSpeed);
+    
+    // Auto-stop after 5-8 seconds
+    setTimeout(() => {
+      if (rouletteIsSpinning) {
+        stopRouletteAndCook();
+      }
+    }, 5000 + Math.random() * 3000);
+  }
+
+  function stopRouletteAndCook() {
+    if (!rouletteIsSpinning) return;
+    
+    clearInterval(rouletteInterval);
+    rouletteIsSpinning = false;
+    
+    // Add dramatic final spin
+    let finalSpins = 5;
+    const finalSpin = () => {
+      rouletteCurrentIndex = (rouletteCurrentIndex + 1) % rouletteRecipes.length;
+      updateRouletteDisplay();
+      finalSpins--;
+      
+      if (finalSpins > 0) {
+        setTimeout(finalSpin, 100 + (5 - finalSpins) * 50);
+      } else {
+        // Show selected recipe with celebration
+        const recipe = rouletteRecipes[rouletteCurrentIndex];
+        const iconEl = document.getElementById('rouletteRecipeIcon');
+        const titleEl = document.getElementById('rouletteRecipeTitle');
+        
+        iconEl.style.animation = 'bounce 0.5s ease 3';
+        titleEl.style.color = 'var(--gold)';
+        
+        // Add confetti effect
+        setTimeout(() => {
+          // Find the actual recipe index in allRecipes
+          const actualIndex = allRecipes.findIndex(r => r.id === recipe.id);
+          if (actualIndex !== -1) {
+            // Close roulette and open recipe
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) modal.remove();
+            
+            // Track achievement for using roulette
+            checkAchievement('first_cook', 1); // This will trigger if first cook
+            
+            // Open the recipe
+            if (document.getElementById('detailModal').classList.contains('active')) {
+              closeDetailsAnimated();
+              setTimeout(() => openDetails(actualIndex), 300);
+            } else {
+              openDetails(actualIndex);
+            }
+          }
+        }, 1500);
+      }
+    };
+    
+    setTimeout(finalSpin, 100);
+  }
+
+  function closeRoulette() {
+    if (rouletteIsSpinning) {
+      clearInterval(rouletteInterval);
+    }
+    rouletteIsSpinning = false;
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) modal.remove();
+  }
+
+  // Add bounce animation for roulette
+  const rouletteStyle = document.createElement('style');
+  rouletteStyle.textContent = `
+    @keyframes bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    @keyframes rouletteSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    #rouletteRecipeIcon {
+      transition: transform 0.1s ease;
+    }
+  `;
+  document.head.appendChild(rouletteStyle);
+
+  // ═══ THEME PREFERENCE FOR NEW USERS ═══
+  function showThemePreferenceModal() {
+    // Mark that user has seen this prompt
+    localStorage.setItem('rc_has_seen_theme_prompt_' + currentUser, 'true');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    
+    modal.innerHTML = `
+      <div class="theme-preference-modal" style="background:var(--surface);border-radius:24px;width:90%;max-width:500px;overflow:hidden;border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,0.7);">
+        <div style="padding:30px;text-align:center;">
+          <div style="font-size:4em;margin-bottom:16px;">🎨</div>
+          <h2 style="margin:0 0 12px 0;font-size:2em;color:var(--text);">Welcome to Roll Cookbook!</h2>
+          <div style="color:var(--text-dim);font-size:1.1em;line-height:1.5;margin-bottom:30px;">
+            Before you start cooking, choose your preferred theme.<br>
+            You can always change this later in settings.
+          </div>
+          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px;">
+            <div class="theme-option" onclick="selectTheme('light')" style="background:linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);border:3px solid var(--glass-border);border-radius:20px;padding:24px;text-align:center;cursor:pointer;transition:all 0.3s ease;">
+              <div style="font-size:3em;margin-bottom:12px;">☀️</div>
+              <div style="font-size:1.3em;font-weight:700;color:#333;margin-bottom:8px;">Light Mode</div>
+              <div style="color:#666;font-size:0.95em;">Clean, bright interface</div>
+            </div>
+            
+            <div class="theme-option" onclick="selectTheme('dark')" style="background:linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);border:3px solid var(--glass-border);border-radius:20px;padding:24px;text-align:center;cursor:pointer;transition:all 0.3s ease;">
+              <div style="font-size:3em;margin-bottom:12px;">🌙</div>
+              <div style="font-size:1.3em;font-weight:700;color:#fff;margin-bottom:8px;">Dark Mode</div>
+              <div style="color:#aaa;font-size:0.95em;">Easy on the eyes</div>
+            </div>
+          </div>
+          
+          <div style="color:var(--text-dim);font-size:0.9em;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+              <span>💡</span>
+              <span>Tip: Dark mode is great for late-night cooking sessions!</span>
+            </div>
+          </div>
+          
+          <button onclick="skipThemeSelection()" style="padding:12px 24px;background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;color:var(--text-dim);font-weight:600;font-size:0.95em;cursor:pointer;font-family:inherit;">
+            I'll decide later
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add hover effects
+    setTimeout(() => {
+      const options = modal.querySelectorAll('.theme-option');
+      options.forEach(opt => {
+        opt.addEventListener('mouseenter', () => {
+          opt.style.transform = 'translateY(-4px)';
+          opt.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+          opt.style.borderColor = 'var(--gold)';
+        });
+        opt.addEventListener('mouseleave', () => {
+          opt.style.transform = 'translateY(0)';
+          opt.style.boxShadow = 'none';
+          opt.style.borderColor = 'var(--glass-border)';
+        });
+      });
+    }, 100);
+  }
+
+  function selectTheme(theme) {
+    // Save theme preference
+    localStorage.setItem('rc_theme', theme);
+    
+    // Update user settings in database
+    updateUserSettings(currentUser, { theme: theme }).then(() => {
+      // Apply theme immediately
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Close modal
+      const modal = document.querySelector('.modal-overlay');
+      if (modal) modal.remove();
+      
+      // Show confirmation
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--gold);
+        color: var(--bg);
+        padding: 12px 24px;
+        border-radius: 20px;
+        font-weight: 700;
+        z-index: 9999;
+        animation: fadeInOut 3s ease;
+      `;
+      toast.textContent = `🎨 ${theme === 'dark' ? 'Dark' : 'Light'} mode activated!`;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => toast.remove(), 3000);
+    });
+  }
+
+  function skipThemeSelection() {
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) modal.remove();
+    
+    // Show hint that they can change it later
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-weight: 600;
+      z-index: 9999;
+      animation: fadeInOut 3s ease;
+      border: 1px solid var(--glass-border);
+    `;
+    toast.textContent = 'You can change theme anytime in Settings ⚙️';
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  // Add fade animation for theme toast
+  const themeStyle = document.createElement('style');
+  themeStyle.textContent = `
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+  `;
+  document.head.appendChild(themeStyle);
 
   function showMilestoneModal(days) {
     const messages = {
