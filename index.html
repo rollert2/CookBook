@@ -1412,6 +1412,44 @@
     <div id="friendRecipeModalBody" class="modal-body" style="padding-top:0;"></div>
   </div>
 
+  <!-- ACHIEVEMENTS MODAL -->
+  <div id="achievementsModal" class="modal-overlay">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('achievementsModal')">← Back</button>
+      <h2>🏆 Achievements</h2>
+    </div>
+    <div class="modal-body">
+      <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;margin-bottom:20px;"></div>
+      <div id="achievementsSummary" style="text-align:center;color:var(--text-dim);font-size:0.85em;"></div>
+    </div>
+  </div>
+
+  <!-- RECIPE ROULETTE MODAL -->
+  <div id="rouletteModal" class="modal-overlay">
+    <div class="modal-header" style="background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);">
+      <button class="modal-back" onclick="closeModalAnimated('rouletteModal')">← Back</button>
+      <h2 style="color:var(--bg);">🎰 Recipe Roulette</h2>
+    </div>
+    <div class="modal-body">
+      <div id="rouletteDisplay" style="background:var(--glass);border:2px solid var(--glass-border);border-radius:16px;padding:20px;text-align:center;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-bottom:20px;">
+        <div id="rouletteRecipeIcon" style="font-size:3em;margin-bottom:12px;">🍳</div>
+        <div id="rouletteRecipeTitle" style="font-size:1.3em;font-weight:700;margin-bottom:8px;">Loading...</div>
+        <div id="rouletteRecipeMeta" style="font-size:0.9em;color:var(--text-dim);"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <button id="rouletteSpinBtn" onclick="spinRoulette()" style="flex:1;padding:16px;background:var(--gold);border:none;border-radius:16px;color:var(--bg);font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span>🎰</span><span>SPIN!</span>
+        </button>
+        <button onclick="stopRouletteAndCook()" id="rouletteStopBtn" style="flex:1;padding:16px;background:var(--red);border:none;border-radius:16px;color:white;font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:none;align-items:center;justify-content:center;gap:8px;">
+          <span>⏹️</span><span>STOP & COOK</span>
+        </button>
+      </div>
+      <div style="text-align:center;color:var(--text-dim);font-size:0.9em;margin-bottom:20px;">
+        Spin to randomly pick a recipe from your collection!
+      </div>
+    </div>
+  </div>
+
   <!-- ADD MODAL -->
   <div id="syncModal" class="modal-overlay">
     <div class="modal-header">
@@ -2368,6 +2406,8 @@
     saveSetting('theme', theme);
     const userThemeKey = 'rc_theme_user_' + currentUser;
     localStorage.setItem(userThemeKey, theme);
+    // Mark that user has seen theme prompt
+    localStorage.setItem('rc_has_seen_theme_prompt_' + currentUser, 'true');
     document.getElementById('themeSelectionModal')?.remove();
   };
 
@@ -9097,16 +9137,16 @@ ${text}`;
     if (tabId === 'personal') {
       if (personal) personal.style.display = 'block';
       if (shared) shared.style.display = 'none';
-      if (shareBtn) { shareBtn.style.display = ''; shareBtn.textContent = '📤 Share as Text'; }
+      if (shareBtn) { shareBtn.style.display = 'inline-block'; shareBtn.textContent = '📤 Share as Text'; }
       if (renameBtn) renameBtn.style.display = 'none';
       if (leaveBtn) leaveBtn.style.display = 'none';
       renderShoppingPagePersonal();
     } else {
       if (personal) personal.style.display = 'none';
       if (shared) shared.style.display = 'flex';
-      if (shareBtn) { shareBtn.style.display = ''; shareBtn.textContent = '📤 Share'; }
-      if (renameBtn) renameBtn.style.display = '';
-      if (leaveBtn) leaveBtn.style.display = '';
+      if (shareBtn) { shareBtn.style.display = 'inline-block'; shareBtn.textContent = '📤 Share'; }
+      if (renameBtn) renameBtn.style.display = 'inline-block';
+      if (leaveBtn) leaveBtn.style.display = 'inline-block';
       renderShoppingPageShared(tabId, tabName || '');
       // Wire action buttons
       const clearChecked = document.getElementById('shopPageClearChecked');
@@ -11928,14 +11968,19 @@ ${r.ingredients}`;
       // Fall back to all non-blank lines if none qualify (e.g. ingredient-only lists)
       const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
       const matchedPantry = [];
+      const matchedIngredients = new Set(); // Track which ingredient lines are matched
+      
       pantryItems.forEach(p => {
-        if (ingLines.some(i => ingredientMatches(p, i))) {
-          matchedPantry.push(p);
-        }
+        ingLines.forEach((i, idx) => {
+          if (ingredientMatches(p, i)) {
+            matchedPantry.push(p);
+            matchedIngredients.add(idx); // Mark this ingredient line as matched
+          }
+        });
       });
-      // % = pantry items that matched / total real ingredient lines, capped at 100
-      const recipePct = ingLines.length > 0 ? Math.min(100, Math.round((matchedPantry.length / ingLines.length) * 100)) : 0;
-      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, pantryTotal: pantryItems.length, recipePct, totalIngredients: ingLines.length };
+      // % = ingredient lines matched / total ingredient lines
+      const recipePct = ingLines.length > 0 ? Math.min(100, Math.round((matchedIngredients.size / ingLines.length) * 100)) : 0;
+      return { recipe: r, matchedPantry, matchCount: matchedPantry.length, matchedIngredientCount: matchedIngredients.size, pantryTotal: pantryItems.length, recipePct, totalIngredients: ingLines.length };
     }).filter(s => {
       // Require minimum pantry items before showing results
       if (pantryItems.length < MIN_PANTRY_ITEMS) return false;
@@ -11945,8 +11990,8 @@ ${r.ingredients}`;
       if (s.recipePct < 30) return false;
       return true;
     }).sort((a, b) => {
-      // Primary: match count (more matches = more useful)
-      if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+      // Primary: ingredient lines matched (more ingredients covered = more useful)
+      if (b.matchedIngredientCount !== a.matchedIngredientCount) return b.matchedIngredientCount - a.matchedIngredientCount;
       // Secondary: recipe percentage
       return b.recipePct - a.recipePct;
     });
@@ -11969,7 +12014,7 @@ ${r.ingredients}`;
       const matchedList = s.matchedPantry.slice(0, 3).join(', ') + (s.matchedPantry.length > 3 ? '...' : '');
       return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
         '<div style="flex:1;"><div style="font-weight:700;font-size:0.92em;">' + escapeHtml(r.title) + '</div>' +
-        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchCount + ' of ' + s.totalIngredients + ' recipe ingredients matched</div>' +
+        '<div style="font-size:0.75em;color:var(--text-dim);margin-top:2px;">' + s.matchedIngredientCount + ' of ' + s.totalIngredients + ' recipe ingredients matched</div>' +
         '<div style="font-size:0.7em;color:var(--text-faint);margin-top:1px;">Matches: ' + matchedList + '</div></div>' +
         '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.recipePct + '%</div>' +
         '</div>';
@@ -12751,44 +12796,26 @@ ${r.ingredients}`;
   // Open achievements modal
   function openAchievementsModal() {
     const achievements = getUserAchievements();
+    const grid = document.getElementById('achievementsGrid');
+    const summary = document.getElementById('achievementsSummary');
     
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;';
-    
-    modal.innerHTML = `
-      <div class="modal-content" style="background:var(--surface);border-radius:20px;width:90%;max-width:500px;max-height:80vh;overflow:hidden;border:1px solid var(--glass-border);">
-        <div style="padding:20px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;">
-          <h2 style="margin:0;font-size:1.5em;">🏆 Achievements</h2>
-          <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background:none;border:none;font-size:1.5em;cursor:pointer;color:var(--text-dim);">×</button>
-        </div>
-        <div style="padding:20px;overflow-y:auto;max-height:calc(80vh - 80px);">
-          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;">
-            ${achievements.map(ach => `
-              <div class="achievement-card" style="background:${ach.unlocked ? 'var(--glass)' : 'rgba(255,255,255,0.05)'};border:1px solid ${ach.unlocked ? 'var(--gold)' : 'var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};">
-                <div style="font-size:2em;margin-bottom:8px;">${ach.icon}</div>
-                <div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">${ach.title}</div>
-                <div style="font-size:0.75em;color:var(--text-dim);margin-bottom:8px;">${ach.desc}</div>
-                ${!ach.unlocked ? `
-                  <div style="background:var(--glass-border);height:4px;border-radius:2px;overflow:hidden;margin-top:8px;">
-                    <div style="background:var(--gold);height:100%;width:${ach.progress}%;"></div>
-                  </div>
-                  <div style="font-size:0.7em;color:var(--text-dim);margin-top:4px;">${ach.currentValue}/${ach.threshold}</div>
-                ` : '<div style="font-size:0.7em;color:var(--gold);margin-top:4px;">✓ Unlocked</div>'}
-              </div>
-            `).join('')}
+    grid.innerHTML = achievements.map(ach => `
+      <div class="achievement-card" style="background:${ach.unlocked ? 'var(--glass)' : 'rgba(255,255,255,0.05)'};border:1px solid ${ach.unlocked ? 'var(--gold)' : 'var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};">
+        <div style="font-size:2em;margin-bottom:8px;">${ach.icon}</div>
+        <div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">${ach.title}</div>
+        <div style="font-size:0.75em;color:var(--text-dim);margin-bottom:8px;">${ach.desc}</div>
+        ${!ach.unlocked ? `
+          <div style="background:var(--glass-border);height:4px;border-radius:2px;overflow:hidden;margin-top:8px;">
+            <div style="background:var(--gold);height:100%;width:${ach.progress}%;"></div>
           </div>
-          <div style="text-align:center;margin-top:20px;color:var(--text-dim);font-size:0.85em;">
-            ${achievements.filter(a => a.unlocked).length} of ${achievements.length} achievements unlocked
-          </div>
-        </div>
+          <div style="font-size:0.7em;color:var(--text-dim);margin-top:4px;">${ach.currentValue}/${ach.threshold}</div>
+        ` : '<div style="font-size:0.7em;color:var(--gold);margin-top:4px;">✓ Unlocked</div>'}
       </div>
-    `;
+    `).join('');
     
-    document.body.appendChild(modal);
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.remove();
-    };
+    summary.textContent = `${achievements.filter(a => a.unlocked).length} of ${achievements.length} achievements unlocked`;
+    
+    openModalAnimated('achievementsModal');
   }
 
   // Add CSS animations for achievements
@@ -12821,62 +12848,23 @@ ${r.ingredients}`;
 
   function openRecipeRoulette() {
     if (rouletteIsSpinning) return;
-    
+
     // Get random subset of recipes for roulette
     rouletteRecipes = [...allRecipes].sort(() => Math.random() - 0.5).slice(0, 20);
     if (rouletteRecipes.length < 5) {
       alert('Need at least 5 recipes for roulette!');
       return;
     }
-    
+
     rouletteCurrentIndex = 0;
-    rouletteIsSpinning = true;
+    rouletteIsSpinning = false; // Start not spinning
+
+    // Reset UI state
+    document.getElementById('rouletteSpinBtn').style.display = 'flex';
+    document.getElementById('rouletteStopBtn').style.display = 'none';
     
-    // Create roulette modal
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;';
-    
-    modal.innerHTML = `
-      <div class="roulette-container" style="background:var(--surface);border-radius:24px;width:90%;max-width:400px;overflow:hidden;border:2px solid var(--gold);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-        <div style="padding:24px;text-align:center;background:linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);">
-          <div style="font-size:3em;margin-bottom:8px;">🎰</div>
-          <h2 style="margin:0;color:var(--bg);font-size:1.8em;">Recipe Roulette</h2>
-          <div style="color:rgba(0,0,0,0.8);font-size:0.9em;margin-top:4px;">Spin to find your next meal!</div>
-        </div>
-        
-        <div style="padding:24px;">
-          <div id="rouletteDisplay" style="background:var(--glass);border:2px solid var(--glass-border);border-radius:16px;padding:20px;text-align:center;min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-bottom:20px;">
-            <div id="rouletteRecipeIcon" style="font-size:3em;margin-bottom:12px;">🍳</div>
-            <div id="rouletteRecipeTitle" style="font-size:1.3em;font-weight:700;margin-bottom:8px;">Loading...</div>
-            <div id="rouletteRecipeMeta" style="font-size:0.9em;color:var(--text-dim);"></div>
-          </div>
-          
-          <div style="display:flex;gap:12px;justify-content:center;">
-            <button id="rouletteSpinBtn" onclick="spinRoulette()" style="flex:1;padding:16px;background:var(--gold);border:none;border-radius:16px;color:var(--bg);font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
-              <span>🎰</span><span>SPIN!</span>
-            </button>
-            <button onclick="stopRouletteAndCook()" id="rouletteStopBtn" style="flex:1;padding:16px;background:var(--red);border:none;border-radius:16px;color:white;font-weight:700;font-size:1.1em;cursor:pointer;font-family:inherit;display:none;align-items:center;justify-content:center;gap:8px;">
-              <span>🛑</span><span>STOP & COOK</span>
-            </button>
-          </div>
-          
-          <div style="text-align:center;margin-top:20px;">
-            <button onclick="closeRoulette()" style="padding:12px 24px;background:var(--glass);border:1px solid var(--glass-border);border-radius:12px;color:var(--text-dim);font-weight:600;font-size:0.9em;cursor:pointer;font-family:inherit;">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.onclick = (e) => {
-      if (e.target === modal && !rouletteIsSpinning) modal.remove();
-    };
-    
-    // Initialize display
     updateRouletteDisplay();
+    openModalAnimated('rouletteModal');
   }
 
   function updateRouletteDisplay() {
@@ -12969,12 +12957,11 @@ ${r.ingredients}`;
           const actualIndex = allRecipes.findIndex(r => r.id === recipe.id);
           if (actualIndex !== -1) {
             // Close roulette and open recipe
-            const modal = document.querySelector('.modal-overlay');
-            if (modal) modal.remove();
-            
+            closeModalAnimated('rouletteModal');
+
             // Track achievement for using roulette
             checkAchievement('first_cook', 1); // This will trigger if first cook
-            
+
             // Open the recipe
             if (document.getElementById('detailModal').classList.contains('active')) {
               closeDetailsAnimated();
@@ -12993,10 +12980,9 @@ ${r.ingredients}`;
   function closeRoulette() {
     if (rouletteIsSpinning) {
       clearInterval(rouletteInterval);
+      rouletteIsSpinning = false;
     }
-    rouletteIsSpinning = false;
-    const modal = document.querySelector('.modal-overlay');
-    if (modal) modal.remove();
+    closeModalAnimated('rouletteModal');
   }
 
   // Add bounce animation for roulette
@@ -13018,9 +13004,14 @@ ${r.ingredients}`;
 
   // ═══ THEME PREFERENCE FOR NEW USERS ═══
   function showThemePreferenceModal() {
+    // Check if theme selection popup is already showing
+    if (document.getElementById('themeSelectionModal')) {
+      return; // Don't show both modals
+    }
+    
     // Mark that user has seen this prompt
     localStorage.setItem('rc_has_seen_theme_prompt_' + currentUser, 'true');
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;';
@@ -13086,12 +13077,14 @@ ${r.ingredients}`;
   function selectTheme(theme) {
     // Save theme preference
     localStorage.setItem('rc_theme', theme);
-    
+    // Mark that user has seen theme prompt
+    localStorage.setItem('rc_has_seen_theme_prompt_' + currentUser, 'true');
+
     // Update user settings in database
     updateUserSettings(currentUser, { theme: theme }).then(() => {
       // Apply theme immediately
       document.documentElement.setAttribute('data-theme', theme);
-      
+
       // Close modal
       const modal = document.querySelector('.modal-overlay');
       if (modal) modal.remove();
@@ -13119,6 +13112,9 @@ ${r.ingredients}`;
   }
 
   function skipThemeSelection() {
+    // Mark that user has seen theme prompt (even if they skipped)
+    localStorage.setItem('rc_has_seen_theme_prompt_' + currentUser, 'true');
+    
     const modal = document.querySelector('.modal-overlay');
     if (modal) modal.remove();
     
