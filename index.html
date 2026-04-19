@@ -10151,7 +10151,7 @@ ${text}`;
 
     const session = loginRes.data?.session || loginRes.data;
     localStorage.setItem('rc_session', JSON.stringify(session));
-    enterApp(username);
+    await enterApp(username);
   }
 
   // ── Legacy guest login (username only, no password) ─────────
@@ -10192,19 +10192,19 @@ ${text}`;
         }
       } else {
         // New user — create without email (guest)
-        createUser(username).then(r => {
+        createUser(username).then(async r => {
           if (r.status === 'Error') { showLoginError(r.message); return; }
-          enterApp(username);
+          await enterApp(username);
         });
       }
     }).catch(e => showLoginError(e.message));
   }
 
   // Keep old attemptLogin for compatibility
-  function attemptLogin() {
+  async function attemptLogin() {
     const raw = (document.getElementById('authUsername')?.value || document.getElementById('loginInput')?.value || '').trim();
     if (!raw) return;
-    attemptLegacyLogin(raw.toLowerCase());
+    await attemptLegacyLogin(raw.toLowerCase());
   }
 
   // ── Google OAuth ────────────────────────────────────────────
@@ -13169,17 +13169,17 @@ ${r.ingredients}`;
   };
 
   // Track and check achievements
-  function checkAchievement(achievementId, currentValue) {
+  async function checkAchievement(achievementId, currentValue) {
     const achievement = ACHIEVEMENTS[achievementId];
     if (!achievement) return false;
-    
+
     const userAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
     const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
-    
+
     // Update current value
     userData[achievementId] = Math.max(userData[achievementId] || 0, currentValue);
     localStorage.setItem('rc_user_achievement_data', JSON.stringify(userData));
-    
+
     // Check if achievement is unlocked
     if (!userAchievements[achievementId] && currentValue >= achievement.threshold) {
       userAchievements[achievementId] = {
@@ -13200,10 +13200,10 @@ ${r.ingredients}`;
       } else {
         console.log('currentUser not defined, cannot auto-add achievement');
       }
-      
+
       return true;
     }
-    
+
     // Update progress for in-progress achievements
     if (!userAchievements[achievementId]) {
       const progress = Math.min(100, Math.round((currentValue / achievement.threshold) * 100));
@@ -13213,7 +13213,7 @@ ${r.ingredients}`;
       };
       localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
     }
-    
+
     return false;
   }
 
