@@ -2793,27 +2793,23 @@
     const grid = document.getElementById('editProfileAchievementsGrid');
     if (!grid) return;
 
-    // Define all achievements if not already defined
-    const allAchievements = [
-      { id: 'streak_7', icon: '🔥', title: 'Week Warrior' },
-      { id: 'streak_30', icon: '🏆', title: 'Monthly Master' },
-      { id: 'streak_100', icon: '💎', title: 'Century Chef' },
-      { id: 'streak_365', icon: '👑', title: 'Year of Cooking' },
-      { id: 'recipes_10', icon: '📖', title: 'Recipe Collector' },
-      { id: 'recipes_50', icon: '📚', title: 'Recipe Librarian' },
-      { id: 'recipes_100', icon: '🏛️', title: 'Recipe Archivist' },
-      { id: 'cook_25', icon: '👨‍🍳', title: 'Home Cook' },
-      { id: 'cook_100', icon: '👩‍🍳', title: 'Sous Chef' },
-      { id: 'cook_500', icon: '🧑‍🍳', title: 'Executive Chef' },
-      { id: 'follow_5', icon: '🤝', title: 'Social Butterfly' },
-      { id: 'followers_10', icon: '🌟', title: 'Kitchen Influencer' },
-      { id: 'share_10', icon: '📤', title: 'Recipe Sharer' }
-    ];
+    // Get user's unlocked achievements
+    const userAchievements = getUserAchievements();
+    const unlockedAchievements = userAchievements.filter(ach => ach.unlocked);
 
-    grid.innerHTML = allAchievements.map(ach => {
+    console.log('Unlocked achievements:', unlockedAchievements.map(a => a.id));
+    console.log('Displayed IDs:', displayedIds);
+
+    if (unlockedAchievements.length === 0) {
+      grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">No achievements unlocked yet!</div>';
+      return;
+    }
+
+    grid.innerHTML = unlockedAchievements.map(ach => {
       const isSelected = displayedIds.includes(ach.id);
-      return '<div class="achievement-item ' + (isSelected ? 'selected' : '') + '" onclick="toggleAchievementSelection(\'' + ach.id + '\', this)" style="padding:8px;background:var(--glass);border:1px solid ' + (isSelected ? 'var(--gold)' : 'var(--glass-border)') + ';border-radius:10px;text-align:center;cursor:pointer;">' +
+      return '<div class="achievement-item ' + (isSelected ? 'selected' : '') + '" data-achievement-id="' + ach.id + '" onclick="toggleAchievementSelection(\'' + ach.id + '\', this)" style="padding:8px;background:var(--glass);border:1px solid ' + (isSelected ? 'var(--gold)' : 'var(--glass-border)') + ';border-radius:10px;text-align:center;cursor:pointer;position:relative;" title="' + ach.title + '">' +
         '<div style="font-size:1.5em;">' + ach.icon + '</div>' +
+        '<div style="font-size:0.7em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ach.title + '</div>' +
         '</div>';
     }).join('');
   }
@@ -2823,20 +2819,42 @@
     el.style.borderColor = el.classList.contains('selected') ? 'var(--gold)' : 'var(--glass-border)';
   }
 
-  function saveEditProfileChanges() {
-    // Collect selected achievements
-    const selected = Array.from(document.querySelectorAll('#editProfileAchievementsGrid .achievement-item.selected'))
-      .map(el => el.getAttribute('onclick').match(/'([^']+)'/)[1]);
-    
-    // Save to database
-    supabase.from('profiles').upsert({
-      username: currentUser,
-      displayed_achievements: selected,
-      updated_at: new Date().toISOString()
-    }).then(() => {
-      rcAlert('Profile updated!');
-      closeModalAnimated('editProfileModal');
-    });
+  async function saveEditProfileChanges() {
+    try {
+      // Collect selected achievements
+      const selected = Array.from(document.querySelectorAll('#editProfileAchievementsGrid .achievement-item.selected'))
+        .map(el => el.dataset.achievementId);
+
+      console.log('Saving profile with achievements:', selected);
+
+      // Also get bio from textarea
+      const bioEl = document.getElementById('editProfileBio');
+      const bio = bioEl ? bioEl.value : '';
+
+      // Get private account toggle state
+      const isPrivate = getToggle('editProfileTogglePrivateAccount');
+
+      // Save to database using updateUserProfile function
+      const updates = {
+        bio: bio,
+        is_private: isPrivate,
+        displayed_achievements: selected
+      };
+
+      console.log('Updating profile with:', updates);
+
+      const result = await updateUserProfile(currentUser, updates);
+      
+      if (result.status === 'Success') {
+        rcAlert('Profile updated!');
+        closeModalAnimated('editProfileModal');
+      } else {
+        rcAlert('Error saving profile');
+      }
+    } catch (err) {
+      console.error('Error in saveEditProfileChanges:', err);
+      rcAlert('Error: ' + err.message);
+    }
   }
   
   async function renderProfileActivity() {

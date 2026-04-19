@@ -45,7 +45,7 @@ async function getUserId(username) {
 
 async function getUserProfile(username) {
   const data = await sbFetch('GET', 'users', null,
-    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at`);
+    `username=eq.${username.toLowerCase()}&select=id,username,avatar_url,bio,is_private,created_at,displayed_achievements`);
   return data && data[0] ? data[0] : null;
 }
 
@@ -55,6 +55,7 @@ async function updateUserProfile(username, updates) {
   const allowed = {};
   if (updates.bio !== undefined) allowed.bio = updates.bio;
   if (updates.is_private !== undefined) allowed.is_private = updates.is_private;
+  if (updates.displayed_achievements !== undefined) allowed.displayed_achievements = updates.displayed_achievements;
   await sbFetch('PATCH', `users?id=eq.${userId}`, allowed);
   return { status: 'Success' };
 }
