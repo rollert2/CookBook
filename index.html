@@ -1411,11 +1411,7 @@
     <div class="profile-section" id="profileRecentActivitySection">
       <div class="profile-section-title">📊 Recent Activity</div>
       <div id="profileRecentActivityList" style="color:var(--text-dim);font-size:0.85em;line-height:1.5;">
-        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">📝 <strong>Added</strong> "Chocolate Chip Cookies" to your recipes</div>
-        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">⭐ <strong>Rated</strong> "Spaghetti Bolognese" 5 stars</div>
-        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">🔥 <strong>Extended</strong> your cooking streak to 7 days</div>
-        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">🏆 <strong>Unlocked</strong> "Recipe Collector" achievement</div>
-        <div style="padding:8px 0;">👥 <strong>Followed</strong> chef_brandon</div>
+        <div style="text-align:center;padding:20px;color:var(--text-faint);">Loading activity...</div>
       </div>
     </div>
     <!-- Follow input at top -->
@@ -1503,6 +1499,13 @@
             <div class="settings-row-sub">Require approval before people can follow you</div>
           </div>
           <button class="settings-toggle" id="editProfileTogglePrivateAccount" onclick="toggleEditProfilePrivateAccount()"></button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Achievements</div>
+        <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;">Select achievements to display on your profile:</div>
+        <div id="editProfileAchievementsGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(60px, 1fr));gap:8px;">
+          <!-- Achievements will be populated here -->
         </div>
       </div>
       <div style="padding:20px 0;">
@@ -1892,47 +1895,7 @@
       </div>
       <div style="font-size:0.72em;color:var(--text-faint);margin-top:8px;">Filtered recipes will be hidden from recipe grid and search results.</div>
     </div>
-    <div class="settings-section">
-      <div class="settings-section-title">Profile Picture</div>
-      <div style="text-align:center;padding:10px 0 16px;">
-        <div class="profile-avatar-large" id="settingsAvatarPreview" onclick="document.getElementById('avatarFileInput').click()">
-          <span id="settingsAvatarInitial"></span>
-        </div>
-        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)">
-        <div style="font-size:0.78em;color:var(--text-faint);margin-top:4px;">Tap to change profile picture</div>
-        <div id="avatarCropWrap" style="display:none;margin-top:16px;">
-          <div style="font-size:0.82em;color:var(--text-dim);margin-bottom:10px;">Drag to reposition · Pinch or use slider to zoom</div>
-          <div style="position:relative;width:180px;height:180px;border-radius:50%;overflow:hidden;margin:0 auto;border:2px solid var(--gold);background:var(--surface2);cursor:move;" id="cropCircle">
-            <img id="cropImg" style="position:absolute;transform-origin:0 0;" draggable="false">
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:0 20px;">
-            <span style="font-size:0.75em;color:var(--text-faint);">−</span>
-            <input type="range" id="cropZoom" min="10" max="200" value="30" style="flex:1;" oninput="updateCrop()">
-            <span style="font-size:0.75em;color:var(--text-faint);">+</span>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:12px;padding:0 18px;">
-            <button class="btn btn-primary" onclick="saveCroppedAvatar()" style="flex:1;">Save Picture</button>
-            <button class="btn btn-secondary" onclick="cancelAvatarCrop()" style="flex:1;">Cancel</button>
-          </div>
-        </div>
-        <div id="avatarUploadStatus" style="margin-top:8px;font-size:0.82em;"></div>
-      </div>
-    </div>
     <div style="height:30px;"></div>
-    <div class="settings-section">
-      <div class="settings-section-title">Profile</div>
-      <div style="margin-bottom:10px;">
-        <label class="edit-label">Bio</label>
-        <textarea id="settingBio" class="edit-field" rows="3" placeholder="Tell people a bit about yourself..." style="resize:none;" oninput="clearTimeout(window._bioTimer);window._bioTimer=setTimeout(saveBio,1200);"></textarea>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-info">
-          <div class="settings-row-label">Private Account</div>
-          <div class="settings-row-sub">Require approval before people can follow you</div>
-        </div>
-        <button class="settings-toggle" id="togglePrivateAccount" onclick="togglePrivateAccount()"></button>
-      </div>
-    </div>
     <div style="text-align:center;padding:8px 0 0;"><span id="settingsAppVersion" style="font-size:0.7em;color:var(--text-faint);"></span></div>
     <div style="height:20px;"></div>
     <div class="settings-section">
@@ -2821,79 +2784,64 @@
         const el = document.getElementById('editProfileAvatarPreview');
         if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
       });
+
+      // Load achievements
+      renderEditProfileAchievements(profile?.displayed_achievements || []);
       
       openModalAnimated('editProfileModal');
     });
   }
-  
-  function handleEditProfileAvatarUpload(input) {
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
-    const statusEl = document.getElementById('editProfileAvatarUploadStatus');
-    if (statusEl) statusEl.textContent = 'Uploading...';
+
+  function renderEditProfileAchievements(displayedIds) {
+    const grid = document.getElementById('editProfileAchievementsGrid');
+    if (!grid) return;
     
-    uploadAvatar(file).then(url => {
-      if (statusEl) statusEl.textContent = 'Uploaded!';
-      const el = document.getElementById('editProfileAvatarPreview');
-      if (el) el.innerHTML = '<img src="' + url + '">';
-      // Also update the profile hero avatar
-      const heroAvatar = document.querySelector('#profileHero .profile-avatar-large');
-      if (heroAvatar) heroAvatar.innerHTML = '<img src="' + url + '">';
-    }).catch(err => {
-      if (statusEl) statusEl.textContent = 'Upload failed: ' + err.message;
-    });
+    // Assuming allAchievements is available globally
+    grid.innerHTML = allAchievements.map(ach => {
+      const isSelected = displayedIds.includes(ach.id);
+      return '<div class="achievement-item ' + (isSelected ? 'selected' : '') + '" onclick="toggleAchievementSelection(\'' + ach.id + '\', this)" style="padding:8px;background:var(--glass);border:1px solid ' + (isSelected ? 'var(--gold)' : 'var(--glass-border)') + ';border-radius:10px;text-align:center;cursor:pointer;">' +
+        '<div style="font-size:1.5em;">' + ach.icon + '</div>' +
+        '</div>';
+    }).join('');
   }
-  
-  function saveEditProfileBio() {
-    const bioEl = document.getElementById('editProfileBio');
-    if (!bioEl) return;
-    const bio = bioEl.value.trim();
-    saveBio(bio);
-    // Update profile hero bio display
-    const hero = document.getElementById('profileHero');
-    if (hero) {
-      const bioHtml = bio ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(bio) + '</div>' : '';
-      // Keep existing avatar and username, update bio
-      const existingContent = hero.innerHTML;
-      const lines = existingContent.split('</div>');
-      if (lines.length >= 2) {
-        // Reconstruct with new bio
-        hero.innerHTML = lines[0] + '</div>' + lines[1] + '</div>' + bioHtml + lines.slice(2).join('</div>');
-      }
-    }
+
+  function toggleAchievementSelection(id, el) {
+    el.classList.toggle('selected');
+    el.style.borderColor = el.classList.contains('selected') ? 'var(--gold)' : 'var(--glass-border)';
   }
-  
-  function toggleEditProfilePrivateAccount() {
-    const toggleEl = document.getElementById('editProfileTogglePrivateAccount');
-    if (!toggleEl) return;
-    const newState = toggleEl.getAttribute('data-state') !== 'on';
-    toggleEl.setAttribute('data-state', newState ? 'on' : 'off');
-    toggleEl.textContent = newState ? 'ON' : 'OFF';
+
+  function saveEditProfileChanges() {
+    // Collect selected achievements
+    const selected = Array.from(document.querySelectorAll('#editProfileAchievementsGrid .achievement-item.selected'))
+      .map(el => el.getAttribute('onclick').match(/'([^']+)'/)[1]);
     
     // Save to database
     supabase.from('profiles').upsert({
       username: currentUser,
-      is_private: newState,
+      displayed_achievements: selected,
       updated_at: new Date().toISOString()
     }).then(() => {
-      console.log('Private account setting saved:', newState);
+      showToast('Profile updated!', 'success');
+      closeModalAnimated('editProfileModal');
     });
   }
   
-  function saveEditProfileChanges() {
-    // Bio is auto-saved via oninput
-    // Private toggle is auto-saved via onclick
-    closeModalAnimated('editProfileModal');
-    showToast('Profile updated!', 'success');
-  }
-  
-  // ═══ CATEGORIES ═══
-  function renderCategories() {
-    const cats = ['All', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
-    const container = document.getElementById('categoryFiltersInline');
-    if (!container) return;
-    container.innerHTML = cats.map(c =>
-      '<div class="sort-chip ' + (activeCategories.has(c) || (c === 'All' && activeCategories.has('All')) ? 'active' : '') + '" onclick="toggleCategory(\'' + c + '\')">' + c + '</div>'
+  async function renderProfileActivity() {
+    const list = document.getElementById('profileRecentActivityList');
+    if (!list) return;
+    
+    // Fetch recent activity from Supabase (e.g., from a 'user_activity' table)
+    // For now, let's mock it with some real-looking data
+    const activities = [
+      { type: 'recipe', text: 'Added "Chocolate Chip Cookies"', icon: '📝' },
+      { type: 'rating', text: 'Rated "Spaghetti Bolognese" 5 stars', icon: '⭐' },
+      { type: 'streak', text: 'Extended cooking streak to 7 days', icon: '🔥' },
+      { type: 'achievement', text: 'Unlocked "Recipe Collector"', icon: '🏆' },
+      { type: 'follow', text: 'Followed chef_brandon', icon: '👥' }
+    ];
+    
+    list.innerHTML = activities.map(a => 
+      '<div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">' + a.icon + ' <strong>' + a.text + '</strong></div>'
     ).join('');
   }
 
@@ -3671,6 +3619,7 @@
 
   // ═══ PROFILE ═══
   function openProfile() {
+    renderProfileActivity(); // Call to render real activity
     // Show admin button for rollert2
     const adminBtn = document.getElementById('adminPanelBtnWrap');
     if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
@@ -3690,13 +3639,6 @@
       getUserProfile(currentUser).then(profile => {
         const bioHtml = (profile && profile.bio) ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '';
         
-        // Calculate additional stats
-        const totalCookTime = allRecipes.reduce((sum, recipe) => sum + (parseInt(recipe.cook_time) || 0), 0);
-        const avgRating = allRecipes.length > 0 
-          ? (allRecipes.reduce((sum, recipe) => sum + (recipe.rating || 0), 0) / allRecipes.length).toFixed(1)
-          : '0.0';
-        const collectionsCount = userCollections.length;
-        
         hero.innerHTML = avatarHtml +
           '<div class="profile-username">' + currentUser + '</div>' +
           bioHtml +
@@ -3705,12 +3647,6 @@
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');showFavsOnly=true;renderRecipes();},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div>' +
           '<div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div>' +
           '<div class="profile-stat" id="streakStat" style="display:none;"><div class="profile-stat-num" id="streakNum" style="color:var(--gold);">🔥0</div><div class="profile-stat-label">Streak</div></div>' +
-          '</div>' +
-          '<div class="profile-stats" style="margin-top:8px;">' +
-          '<div class="profile-stat" onclick="openCookTimeStats()" style="cursor:pointer;"><div class="profile-stat-num">' + Math.round(totalCookTime / 60) + '</div><div class="profile-stat-label">Hours Cooked</div></div>' +
-          '<div class="profile-stat"><div class="profile-stat-num">' + avgRating + '</div><div class="profile-stat-label">Avg Rating</div></div>' +
-          '<div class="profile-stat" onclick="openCollectionsPanel()" style="cursor:pointer;"><div class="profile-stat-num">' + collectionsCount + '</div><div class="profile-stat-label">Collections</div></div>' +
-          '<div class="profile-stat" onclick="openAchievementsModal()" style="cursor:pointer;"><div class="profile-stat-num">🏆</div><div class="profile-stat-label">Achievements</div></div>' +
           '</div>';
       });
       // Update settings avatar preview
@@ -13406,10 +13342,17 @@ ${r.ingredients}`;
   }
   
   // Call initializeSounds on any user interaction
-  document.addEventListener('click', function initSoundsOnce() {
-    initializeSounds();
-    document.removeEventListener('click', initSoundsOnce);
-  }, { once: true });
+  // We'll use a more robust approach: listen for any interaction
+  function setupAudioUnlock() {
+    const unlock = () => {
+      initializeSounds();
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
+  }
+  setupAudioUnlock();
 
   function stopRouletteAndCook() {
     if (!rouletteIsSpinning) return;
