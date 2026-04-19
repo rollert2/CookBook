@@ -102,9 +102,10 @@ async function saveUnlockedAchievements(username, achievements) {
 async function loadUnlockedAchievements(username) {
   try {
     const settings = await getUserSettings(username);
+    console.log('Settings loaded in loadUnlockedAchievements:', settings);
     return { 
       status: 'Success', 
-      achievements: settings.settings?.achievements || {} 
+      achievements: (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {} 
     };
   } catch (error) {
     console.error('Error loading achievements from Supabase:', error);

@@ -2510,26 +2510,30 @@
       if (_shopRes.settings && _shopRes.settings.achievements) {
         console.log('Loading achievements from Supabase:', _shopRes.settings.achievements);
         const supabaseAchievements = _shopRes.settings.achievements;
-        const localAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
         
-        // Merge Supabase achievements with local achievements
-        // Supabase takes precedence for unlocked status, but keep local progress
-        const mergedAchievements = { ...localAchievements };
-        
-        for (const [achievementId, supabaseData] of Object.entries(supabaseAchievements)) {
-          if (supabaseData.unlocked) {
-            // If achievement is unlocked in Supabase, ensure it's unlocked locally
-            mergedAchievements[achievementId] = {
-              ...(mergedAchievements[achievementId] || {}),
-              unlocked: true,
-              unlockedAt: supabaseData.unlockedAt || mergedAchievements[achievementId]?.unlockedAt,
-              progress: Math.max(supabaseData.progress || 0, mergedAchievements[achievementId]?.progress || 0)
-            };
+        // Ensure supabaseAchievements is an object
+        if (typeof supabaseAchievements === 'object' && supabaseAchievements !== null) {
+          const localAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+
+          // Merge Supabase achievements with local achievements
+          // Supabase takes precedence for unlocked status, but keep local progress
+          const mergedAchievements = { ...localAchievements };
+
+          for (const [achievementId, supabaseData] of Object.entries(supabaseAchievements)) {
+            if (supabaseData && supabaseData.unlocked) {
+              // If achievement is unlocked in Supabase, ensure it's unlocked locally
+              mergedAchievements[achievementId] = {
+                ...(mergedAchievements[achievementId] || {}),
+                unlocked: true,
+                unlockedAt: supabaseData.unlockedAt || mergedAchievements[achievementId]?.unlockedAt,
+                progress: Math.max(supabaseData.progress || 0, mergedAchievements[achievementId]?.progress || 0)
+              };
+            }
           }
+
+          localStorage.setItem('rc_achievements', JSON.stringify(mergedAchievements));
+          console.log('Merged achievements saved to localStorage:', mergedAchievements);
         }
-        
-        localStorage.setItem('rc_achievements', JSON.stringify(mergedAchievements));
-        console.log('Merged achievements saved to localStorage:', mergedAchievements);
       }
     } catch(e) {
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
