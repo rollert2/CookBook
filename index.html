@@ -2829,7 +2829,7 @@
   async function renderProfileActivity() {
     const list = document.getElementById('profileRecentActivityList');
     if (!list) return;
-    
+
     // Fetch recent activity from Supabase (e.g., from a 'user_activity' table)
     // For now, let's mock it with some real-looking data
     const activities = [
@@ -2839,9 +2839,19 @@
       { type: 'achievement', text: 'Unlocked "Recipe Collector"', icon: '🏆' },
       { type: 'follow', text: 'Followed chef_brandon', icon: '👥' }
     ];
-    
-    list.innerHTML = activities.map(a => 
+
+    list.innerHTML = activities.map(a =>
       '<div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">' + a.icon + ' <strong>' + a.text + '</strong></div>'
+    ).join('');
+  }
+
+  // ═══ CATEGORIES ═══
+  function renderCategories() {
+    const cats = ['All', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
+    const container = document.getElementById('categoryFiltersInline');
+    if (!container) return;
+    container.innerHTML = cats.map(c =>
+      '<div class="sort-chip ' + (activeCategories.has(c) || (c === 'All' && activeCategories.has('All')) ? 'active' : '') + '" onclick="toggleCategory(\'' + c + '\')">' + c + '</div>'
     ).join('');
   }
 
