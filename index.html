@@ -1367,7 +1367,7 @@
     <div class="modal-header">
       <button class="modal-back" onclick="closeProfileAnimated()">← Back</button>
       <h2>Profile</h2>
-      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">❓ Tutorial</button>
+      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:1.1em;">❓</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
       <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="forceAppReviewTest()">Test</button>
@@ -1398,10 +1398,25 @@
       </div>
     </div>
     <div id="profileHero" class="profile-hero"></div>
+    <!-- Edit Profile Button -->
+    <div style="padding:12px 16px 8px;">
+      <button class="btn btn-primary" onclick="openEditProfileModal()" style="width:100%;padding:12px;border-radius:20px;font-weight:600;font-size:0.9em;">✏️ Edit Profile</button>
+    </div>
     <!-- Notifications -->
     <div class="profile-section" id="profileNotifSection" style="display:none;">
       <div class="profile-section-title">🔔 Notifications</div>
       <div id="profileNotifList"></div>
+    </div>
+    <!-- Recent Activity -->
+    <div class="profile-section" id="profileRecentActivitySection">
+      <div class="profile-section-title">📊 Recent Activity</div>
+      <div id="profileRecentActivityList" style="color:var(--text-dim);font-size:0.85em;line-height:1.5;">
+        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">📝 <strong>Added</strong> "Chocolate Chip Cookies" to your recipes</div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">⭐ <strong>Rated</strong> "Spaghetti Bolognese" 5 stars</div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">🔥 <strong>Extended</strong> your cooking streak to 7 days</div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--glass-border);">🏆 <strong>Unlocked</strong> "Recipe Collector" achievement</div>
+        <div style="padding:8px 0;">👥 <strong>Followed</strong> chef_brandon</div>
+      </div>
     </div>
     <!-- Follow input at top -->
     <div style="padding:10px 16px 6px;display:flex;gap:8px;">
@@ -1455,6 +1470,44 @@
     <div class="modal-body">
       <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;margin-bottom:20px;"></div>
       <div id="achievementsSummary" style="text-align:center;color:var(--text-dim);font-size:0.85em;"></div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE MODAL -->
+  <div id="editProfileModal" class="modal-overlay">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('editProfileModal')">← Back</button>
+      <h2>✏️ Edit Profile</h2>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <div class="settings-section-title">Profile Picture</div>
+        <div style="text-align:center;padding:10px 0 16px;">
+          <div class="profile-avatar-large" id="editProfileAvatarPreview" onclick="document.getElementById('editProfileAvatarFileInput').click()" style="cursor:pointer;">
+            <span id="editProfileAvatarInitial"></span>
+          </div>
+          <input type="file" id="editProfileAvatarFileInput" accept="image/*" style="display:none;" onchange="handleEditProfileAvatarUpload(this)">
+          <div style="font-size:0.78em;color:var(--text-faint);margin-top:4px;">Tap to change profile picture</div>
+          <div id="editProfileAvatarUploadStatus" style="margin-top:8px;font-size:0.82em;"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Profile Info</div>
+        <div style="margin-bottom:10px;">
+          <label class="edit-label">Bio</label>
+          <textarea id="editProfileBio" class="edit-field" rows="3" placeholder="Tell people a bit about yourself..." style="resize:none;" oninput="clearTimeout(window._editBioTimer);window._editBioTimer=setTimeout(saveEditProfileBio,1200);"></textarea>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-info">
+            <div class="settings-row-label">Private Account</div>
+            <div class="settings-row-sub">Require approval before people can follow you</div>
+          </div>
+          <button class="settings-toggle" id="editProfileTogglePrivateAccount" onclick="toggleEditProfilePrivateAccount()"></button>
+        </div>
+      </div>
+      <div style="padding:20px 0;">
+        <button class="btn btn-primary" onclick="saveEditProfileChanges()" style="width:100%;padding:14px;border-radius:20px;font-weight:600;font-size:1em;">💾 Save Changes</button>
+      </div>
     </div>
   </div>
 
@@ -2313,7 +2366,7 @@
     const modals = [
       'communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal',
       'communityPostModal','adminModal','settingsModal','cookModeModal',
-      'detailModal','syncModal','profileModal','friendRecipeModal'
+      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -2752,6 +2805,88 @@
     });
   }
   function closeProfileAnimated() { closeModalAnimated('profileModal'); }
+  
+  // ═══ EDIT PROFILE FUNCTIONS ═══
+  function openEditProfileModal() {
+    getUserProfile(currentUser).then(profile => {
+      // Load bio
+      const bioEl = document.getElementById('editProfileBio');
+      if (bioEl && profile) bioEl.value = profile.bio || '';
+      
+      // Load private account toggle
+      setToggle('editProfileTogglePrivateAccount', profile?.is_private === true);
+      
+      // Load avatar
+      getUserAvatar(currentUser).then(url => {
+        const el = document.getElementById('editProfileAvatarPreview');
+        if (el) el.innerHTML = url ? '<img src="' + url + '">' : currentUser.charAt(0).toUpperCase();
+      });
+      
+      openModalAnimated('editProfileModal');
+    });
+  }
+  
+  function handleEditProfileAvatarUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const statusEl = document.getElementById('editProfileAvatarUploadStatus');
+    if (statusEl) statusEl.textContent = 'Uploading...';
+    
+    uploadAvatar(file).then(url => {
+      if (statusEl) statusEl.textContent = 'Uploaded!';
+      const el = document.getElementById('editProfileAvatarPreview');
+      if (el) el.innerHTML = '<img src="' + url + '">';
+      // Also update the profile hero avatar
+      const heroAvatar = document.querySelector('#profileHero .profile-avatar-large');
+      if (heroAvatar) heroAvatar.innerHTML = '<img src="' + url + '">';
+    }).catch(err => {
+      if (statusEl) statusEl.textContent = 'Upload failed: ' + err.message;
+    });
+  }
+  
+  function saveEditProfileBio() {
+    const bioEl = document.getElementById('editProfileBio');
+    if (!bioEl) return;
+    const bio = bioEl.value.trim();
+    saveBio(bio);
+    // Update profile hero bio display
+    const hero = document.getElementById('profileHero');
+    if (hero) {
+      const bioHtml = bio ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(bio) + '</div>' : '';
+      // Keep existing avatar and username, update bio
+      const existingContent = hero.innerHTML;
+      const lines = existingContent.split('</div>');
+      if (lines.length >= 2) {
+        // Reconstruct with new bio
+        hero.innerHTML = lines[0] + '</div>' + lines[1] + '</div>' + bioHtml + lines.slice(2).join('</div>');
+      }
+    }
+  }
+  
+  function toggleEditProfilePrivateAccount() {
+    const toggleEl = document.getElementById('editProfileTogglePrivateAccount');
+    if (!toggleEl) return;
+    const newState = toggleEl.getAttribute('data-state') !== 'on';
+    toggleEl.setAttribute('data-state', newState ? 'on' : 'off');
+    toggleEl.textContent = newState ? 'ON' : 'OFF';
+    
+    // Save to database
+    supabase.from('profiles').upsert({
+      username: currentUser,
+      is_private: newState,
+      updated_at: new Date().toISOString()
+    }).then(() => {
+      console.log('Private account setting saved:', newState);
+    });
+  }
+  
+  function saveEditProfileChanges() {
+    // Bio is auto-saved via oninput
+    // Private toggle is auto-saved via onclick
+    closeModalAnimated('editProfileModal');
+    showToast('Profile updated!', 'success');
+  }
+  
   // ═══ CATEGORIES ═══
   function renderCategories() {
     const cats = ['All', ...new Set(allRecipes.map(r => r.category).filter(Boolean))];
@@ -3554,6 +3689,14 @@
       // Load bio for hero
       getUserProfile(currentUser).then(profile => {
         const bioHtml = (profile && profile.bio) ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '';
+        
+        // Calculate additional stats
+        const totalCookTime = allRecipes.reduce((sum, recipe) => sum + (parseInt(recipe.cook_time) || 0), 0);
+        const avgRating = allRecipes.length > 0 
+          ? (allRecipes.reduce((sum, recipe) => sum + (recipe.rating || 0), 0) / allRecipes.length).toFixed(1)
+          : '0.0';
+        const collectionsCount = userCollections.length;
+        
         hero.innerHTML = avatarHtml +
           '<div class="profile-username">' + currentUser + '</div>' +
           bioHtml +
@@ -3562,6 +3705,12 @@
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');showFavsOnly=true;renderRecipes();},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.favCount + '</div><div class="profile-stat-label">Favourites</div></div>' +
           '<div class="profile-stat"><div class="profile-stat-num">' + following.length + '</div><div class="profile-stat-label">Following</div></div>' +
           '<div class="profile-stat" id="streakStat" style="display:none;"><div class="profile-stat-num" id="streakNum" style="color:var(--gold);">🔥0</div><div class="profile-stat-label">Streak</div></div>' +
+          '</div>' +
+          '<div class="profile-stats" style="margin-top:8px;">' +
+          '<div class="profile-stat" onclick="openCookTimeStats()" style="cursor:pointer;"><div class="profile-stat-num">' + Math.round(totalCookTime / 60) + '</div><div class="profile-stat-label">Hours Cooked</div></div>' +
+          '<div class="profile-stat"><div class="profile-stat-num">' + avgRating + '</div><div class="profile-stat-label">Avg Rating</div></div>' +
+          '<div class="profile-stat" onclick="openCollectionsPanel()" style="cursor:pointer;"><div class="profile-stat-num">' + collectionsCount + '</div><div class="profile-stat-label">Collections</div></div>' +
+          '<div class="profile-stat" onclick="openAchievementsModal()" style="cursor:pointer;"><div class="profile-stat-num">🏆</div><div class="profile-stat-label">Achievements</div></div>' +
           '</div>';
       });
       // Update settings avatar preview
@@ -13001,7 +13150,14 @@ ${r.ingredients}`;
     const achievementSound = document.getElementById('achievementUnlockSound');
     if (achievementSound) {
       achievementSound.currentTime = 0;
-      achievementSound.play().catch(e => console.log('Achievement sound play failed:', e));
+      achievementSound.play().catch(e => {
+        console.log('Achievement sound play failed:', e);
+        // Try to initialize sounds and retry
+        initializeSounds();
+        setTimeout(() => {
+          achievementSound.play().catch(e2 => console.log('Retry also failed:', e2));
+        }, 100);
+      });
     }
     
     const toast = document.createElement('div');
@@ -13192,7 +13348,14 @@ ${r.ingredients}`;
     const spinSound = document.getElementById('rouletteSpinSound');
     if (spinSound) {
       spinSound.currentTime = 0;
-      spinSound.play().catch(e => console.log('Audio play failed:', e));
+      spinSound.play().catch(e => {
+        console.log('Audio play failed:', e);
+        // Try to initialize sounds and retry
+        initializeSounds();
+        setTimeout(() => {
+          spinSound.play().catch(e2 => console.log('Retry also failed:', e2));
+        }, 100);
+      });
     }
 
     // Start spinning
@@ -13215,6 +13378,38 @@ ${r.ingredients}`;
       }
     }, 5000 + Math.random() * 3000);
   }
+
+  // Initialize sounds after user interaction
+  function initializeSounds() {
+    // Preload and play a silent sound to unlock audio
+    const audioElements = [
+      'rouletteSpinSound',
+      'rouletteStopSound', 
+      'achievementUnlockSound'
+    ];
+    
+    audioElements.forEach(id => {
+      const audio = document.getElementById(id);
+      if (audio) {
+        // Set volume to 0 and play a silent sound
+        audio.volume = 0;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 1; // Reset volume for actual playback
+          console.log('Audio initialized:', id);
+        }).catch(e => {
+          console.log('Audio initialization failed for', id, ':', e);
+        });
+      }
+    });
+  }
+  
+  // Call initializeSounds on any user interaction
+  document.addEventListener('click', function initSoundsOnce() {
+    initializeSounds();
+    document.removeEventListener('click', initSoundsOnce);
+  }, { once: true });
 
   function stopRouletteAndCook() {
     if (!rouletteIsSpinning) return;
@@ -13243,7 +13438,14 @@ ${r.ingredients}`;
         const stopSound = document.getElementById('rouletteStopSound');
         if (stopSound) {
           stopSound.currentTime = 0;
-          stopSound.play().catch(e => console.log('Audio play failed:', e));
+          stopSound.play().catch(e => {
+            console.log('Stop sound play failed:', e);
+            // Try to initialize sounds and retry
+            initializeSounds();
+            setTimeout(() => {
+              stopSound.play().catch(e2 => console.log('Retry also failed:', e2));
+            }, 100);
+          });
         }
         
         // Show selected recipe with celebration
