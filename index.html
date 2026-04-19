@@ -1532,7 +1532,7 @@
       </div>
       <!-- Audio elements for sounds -->
       <audio id="rouletteSpinSound" preload="auto">
-        <source src="https://rollcookbook.com/sounds/roulette-spin.mp3" type="audio/mpeg">
+        <source src="bike.wav" type="audio/wav">
       </audio>
       <audio id="rouletteStopSound" preload="auto">
         <source src="https://rollcookbook.com/sounds/roulette-stop.mp3" type="audio/mpeg">
@@ -2785,15 +2785,31 @@
       openModalAnimated('editProfileModal');
     }).catch(err => {
       console.error('Error opening edit profile modal:', err);
-      showToast('Error loading profile', 'error');
+      rcAlert('Error loading profile');
     });
   }
 
   function renderEditProfileAchievements(displayedIds) {
     const grid = document.getElementById('editProfileAchievementsGrid');
     if (!grid) return;
-    
-    // Assuming allAchievements is available globally
+
+    // Define all achievements if not already defined
+    const allAchievements = [
+      { id: 'streak_7', icon: '🔥', title: 'Week Warrior' },
+      { id: 'streak_30', icon: '🏆', title: 'Monthly Master' },
+      { id: 'streak_100', icon: '💎', title: 'Century Chef' },
+      { id: 'streak_365', icon: '👑', title: 'Year of Cooking' },
+      { id: 'recipes_10', icon: '📖', title: 'Recipe Collector' },
+      { id: 'recipes_50', icon: '📚', title: 'Recipe Librarian' },
+      { id: 'recipes_100', icon: '🏛️', title: 'Recipe Archivist' },
+      { id: 'cook_25', icon: '👨‍🍳', title: 'Home Cook' },
+      { id: 'cook_100', icon: '👩‍🍳', title: 'Sous Chef' },
+      { id: 'cook_500', icon: '🧑‍🍳', title: 'Executive Chef' },
+      { id: 'follow_5', icon: '🤝', title: 'Social Butterfly' },
+      { id: 'followers_10', icon: '🌟', title: 'Kitchen Influencer' },
+      { id: 'share_10', icon: '📤', title: 'Recipe Sharer' }
+    ];
+
     grid.innerHTML = allAchievements.map(ach => {
       const isSelected = displayedIds.includes(ach.id);
       return '<div class="achievement-item ' + (isSelected ? 'selected' : '') + '" onclick="toggleAchievementSelection(\'' + ach.id + '\', this)" style="padding:8px;background:var(--glass);border:1px solid ' + (isSelected ? 'var(--gold)' : 'var(--glass-border)') + ';border-radius:10px;text-align:center;cursor:pointer;">' +
@@ -2818,7 +2834,7 @@
       displayed_achievements: selected,
       updated_at: new Date().toISOString()
     }).then(() => {
-      showToast('Profile updated!', 'success');
+      rcAlert('Profile updated!');
       closeModalAnimated('editProfileModal');
     });
   }
@@ -8614,7 +8630,7 @@ ${text}`;
     if (res.status === 'Success') {
       document.getElementById('plannerTemplatesModal')?.remove();
       openPlannerTemplates();
-      showToast('Template shared to marketplace!');
+      rcAlert('Template shared to marketplace!');
     }
   }
 
@@ -8656,9 +8672,9 @@ ${text}`;
     if (res.status === 'Success') {
       document.getElementById('templateMarketplaceModal')?.remove();
       openPlannerTemplates();
-      showToast('Template downloaded: ' + res.name);
+      rcAlert('Template downloaded: ' + res.name);
     } else {
-      showToast('Failed to download template.');
+      rcAlert('Failed to download template.');
     }
   }
 
