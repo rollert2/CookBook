@@ -1370,7 +1370,6 @@
       <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:1.1em;">❓</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
-      <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="forceAppReviewTest()">Test</button>
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
     <div style="padding:12px 16px 8px;">
@@ -1538,7 +1537,7 @@
         <source src="https://rollcookbook.com/sounds/roulette-stop.mp3" type="audio/mpeg">
       </audio>
       <audio id="achievementUnlockSound" preload="auto">
-        <source src="https://rollcookbook.com/sounds/achievement-unlock.mp3" type="audio/mpeg">
+        <source src="https://rxedycriglsypezlpdrz.supabase.co/storage/v1/object/public/sounds/achive.wav" type="audio/wav">
       </audio>
     </div>
   </div>
@@ -3726,8 +3725,7 @@
     // Show admin button for rollert2
     const adminBtn = document.getElementById('adminPanelBtnWrap');
     if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-flex' : 'none';
-    const testBtn = document.getElementById('testBtn');
-    if (testBtn) testBtn.style.display = currentUser === 'rollert2' ? 'inline-block' : 'none';
+    // Removed test button logic
 
     Promise.all([getProfileStats(currentUser), getFriends(currentUser), getUserAvatar(currentUser), getUnreadMessageCount(currentUser), getUserSettings(currentUser)]).then(([stats, friendsRes, avatarUrl, unreadCount, settingsRes]) => {
       const streak = (settingsRes.settings && settingsRes.settings.cook_streak) || 0;
@@ -13515,15 +13513,8 @@ ${r.ingredients}`;
     rouletteInterval = setInterval(() => {
       rouletteCurrentIndex = (rouletteCurrentIndex + 1) % rouletteRecipes.length;
       updateRouletteDisplay();
-
-      // Gradually slow down
-      if (rouletteSpeed < 300) {
-        rouletteSpeed += 5;
-        clearInterval(rouletteInterval);
-        rouletteInterval = setInterval(arguments.callee, rouletteSpeed);
-      }
     }, rouletteSpeed);
-    
+
     // Auto-stop after 5-8 seconds
     setTimeout(() => {
       if (rouletteIsSpinning) {
