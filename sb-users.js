@@ -86,6 +86,13 @@ async function saveUnlockedAchievements(username, achievements) {
     return { status: 'Success' };
   } catch (error) {
     console.error('Error saving achievements to Supabase:', error);
+    
+    // Check if error is about missing column
+    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Achievements column does not exist in user_settings table. Please add "achievements" column (type: jsonb) to user_settings table.');
+      return { status: 'Error', message: 'Achievements column missing in database' };
+    }
+    
     return { status: 'Error', message: error.message };
   }
 }
@@ -100,6 +107,13 @@ async function loadUnlockedAchievements(username) {
     };
   } catch (error) {
     console.error('Error loading achievements from Supabase:', error);
+    
+    // Check if error is about missing column
+    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Achievements column does not exist in user_settings table. Please add "achievements" column (type: jsonb) to user_settings table.');
+      return { status: 'Error', message: 'Achievements column missing in database', achievements: {} };
+    }
+    
     return { status: 'Error', message: error.message, achievements: {} };
   }
 }
