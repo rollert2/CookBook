@@ -2536,8 +2536,14 @@
         }
       }
     } catch(e) {
-      shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
       console.error('Error loading achievements from Supabase:', e);
+      // Fallback to local storage if Supabase load fails
+      shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+    }
+
+    // ALWAYS ensure shopItems is loaded if not already
+    if (!shopItems || shopItems.length === 0) {
+      shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
     }
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('userBadgeName').textContent = currentUser;
