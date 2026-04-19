@@ -2851,7 +2851,7 @@
       const updates = {
         bio: bio,
         is_private: isPrivate,
-        displayed_achievements: selected
+        displayed_achievements: enabled
       };
 
       console.log('Updating profile with:', updates);
@@ -13056,6 +13056,34 @@ ${r.ingredients}`;
     document.body.appendChild(testModal);
   }
 
+  // Test function to check displayed_achievements column
+  async function testDisplayedAchievements() {
+    console.log('Testing displayed_achievements column...');
+    try {
+      const profile = await getUserProfile(currentUser);
+      console.log('Profile data:', profile);
+      console.log('displayed_achievements:', profile?.displayed_achievements);
+      console.log('Type of displayed_achievements:', typeof profile?.displayed_achievements);
+      
+      // Try to update with a test achievement
+      const testAchievements = ['test_achievement_1', 'test_achievement_2'];
+      const result = await updateUserProfile(currentUser, {
+        displayed_achievements: testAchievements
+      });
+      console.log('Update result:', result);
+      
+      // Read back to verify
+      const updatedProfile = await getUserProfile(currentUser);
+      console.log('Updated profile:', updatedProfile);
+      console.log('Updated displayed_achievements:', updatedProfile?.displayed_achievements);
+      
+      rcAlert('Test complete - check console for results');
+    } catch (error) {
+      console.error('Test failed:', error);
+      rcAlert('Test failed: ' + error.message);
+    }
+  }
+
   // ═══ ACHIEVEMENT SYSTEM ═══
   const ACHIEVEMENTS = {
     // Cooking Streaks
@@ -13115,7 +13143,10 @@ ${r.ingredients}`;
       
       // Auto-add unlocked achievement to displayed_achievements in Supabase
       if (currentUser) {
+        console.log('Auto-adding achievement for user:', currentUser, 'achievement:', achievementId);
         addAchievementToDisplayed(achievementId);
+      } else {
+        console.log('currentUser not defined, cannot auto-add achievement');
       }
       
       return true;
@@ -13137,26 +13168,33 @@ ${r.ingredients}`;
   // Add unlocked achievement to displayed_achievements in Supabase
   async function addAchievementToDisplayed(achievementId) {
     try {
+      console.log('addAchievementToDisplayed called for:', achievementId, 'user:', currentUser);
+      
       // Get current user profile to see existing displayed achievements
       const profile = await getUserProfile(currentUser);
+      console.log('Profile fetched:', profile);
       const currentDisplayed = profile?.displayed_achievements || [];
-      
+      console.log('Current displayed achievements:', currentDisplayed);
+
       // Add achievement if not already in the list
       if (!currentDisplayed.includes(achievementId)) {
         const newDisplayed = [...currentDisplayed, achievementId];
-        
+        console.log('New displayed achievements to save:', newDisplayed);
+
         // Update in Supabase
         await updateUserProfile(currentUser, {
           displayed_achievements: newDisplayed
         });
-        
+
         console.log(`Auto-added achievement "${achievementId}" to displayed achievements`);
-        
+
         // Update UI if edit profile modal is open
         const checkbox = document.getElementById('achievement-toggle-' + achievementId);
         if (checkbox) {
           checkbox.checked = true;
         }
+      } else {
+        console.log('Achievement already in displayed list');
       }
     } catch (error) {
       console.error('Failed to auto-add achievement to displayed_achievements:', error);
