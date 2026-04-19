@@ -1367,29 +1367,34 @@
     <div class="modal-header">
       <button class="modal-back" onclick="closeProfileAnimated()">← Back</button>
       <h2>Profile</h2>
-      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">❓ Tutorial</button>
+      <button class="icon-btn" onclick="closeProfileAnimated(); setTimeout(startTour,200);" title="App Tour" style="font-size:0.72em;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;">❓ Tutorial</button>
       <button class="icon-btn" onclick="openSettingsModal();" title="Settings" style="margin-left:4px;font-size:1.1em;">⚙️</button>
       <div id="adminPanelBtnWrap" style="display:none;margin-left:4px;"><button class="icon-btn" onclick="openAdminModal();" title="Admin" style="font-size:1.1em;color:var(--red);">🛡️</button></div>
       <button id="testBtn" class="btn btn-secondary" style="display:none;border:1px solid var(--red);background:rgba(224,85,85,0.15);color:var(--red);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="forceAppReviewTest()">Test</button>
       <button class="btn-secondary" style="border:1px solid var(--glass-border);background:var(--glass);color:var(--text-dim);border-radius:10px;padding:7px 12px;font-size:0.78em;font-weight:600;cursor:pointer;width:auto;margin-left:4px;" onclick="logout()">Log out</button>
     </div>
-    <div style="padding:0 16px 4px;">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="nutritionDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openNutritionDashboard()">
-          <span style="flex-shrink:0;">📊</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Nutrition</span>
-        </button>
-        <button id="streakDashboardBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openStreakDashboard()">
-          <span style="flex-shrink:0;">🔥</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Streaks</span>
-        </button>
-        <button id="cooktimeStatsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openCookTimeStats()">
-          <span style="flex-shrink:0;">⏱</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Stats</span>
-        </button>
-        <button id="showcaseBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openCookbookShowcase()">
-          <span style="flex-shrink:0;">🌐</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Showcase</span>
-        </button>
-        <button id="achievementsBtn" class="btn btn-secondary" style="flex:1;min-width:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 10px;font-size:0.78em;white-space:nowrap;line-height:32px;height:32px;box-sizing:border-box;overflow:hidden;" onclick="openAchievementsModal()">
-          <span style="flex-shrink:0;">🏆</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Achievements</span>
-        </button>
+    <div style="padding:12px 16px 8px;">
+      <div class="detail-actions-b" style="justify-content:space-around;padding:0;">
+        <div class="detail-action-b" onclick="openNutritionDashboard()">
+          <div class="detail-action-b-icon">📊</div>
+          <div class="detail-action-b-label">Nutrition</div>
+        </div>
+        <div class="detail-action-b" onclick="openStreakDashboard()">
+          <div class="detail-action-b-icon">🔥</div>
+          <div class="detail-action-b-label">Streaks</div>
+        </div>
+        <div class="detail-action-b" onclick="openCookTimeStats()">
+          <div class="detail-action-b-icon">⏱</div>
+          <div class="detail-action-b-label">Stats</div>
+        </div>
+        <div class="detail-action-b" onclick="openCookbookShowcase()">
+          <div class="detail-action-b-icon">🌐</div>
+          <div class="detail-action-b-label">Showcase</div>
+        </div>
+        <div class="detail-action-b" onclick="openAchievementsModal()">
+          <div class="detail-action-b-icon">🏆</div>
+          <div class="detail-action-b-label">Achievements</div>
+        </div>
       </div>
     </div>
     <div id="profileHero" class="profile-hero"></div>
