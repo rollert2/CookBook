@@ -9783,15 +9783,10 @@ ${text}`;
       const achievementsEl = document.getElementById('pubProfileAchievements');
       if (achievementsEl) {
         try {
-          // Fetch user's achievements
-          const { data: achievementsData, error } = await supabase
-            .from('user_achievements')
-            .select('achievement_id, unlocked_at')
-            .eq('user_id', profile.id)
-            .order('unlocked_at', { ascending: false })
-            .limit(6);
-          
-          if (!error && achievementsData && achievementsData.length > 0) {
+          // Use displayed_achievements from users table
+          const achievementsData = profile.displayed_achievements || [];
+
+          if (achievementsData && achievementsData.length > 0) {
             // Get achievement definitions
             const achievementDefs = {
               'first_cook': { icon: '🍳', title: 'First Cook', desc: 'Cooked your first recipe' },
@@ -9813,8 +9808,8 @@ ${text}`;
             let achievementsHtml = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>';
             achievementsHtml += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">';
             
-            achievementsData.forEach(ach => {
-              const def = achievementDefs[ach.achievement_id];
+            achievementsData.forEach(achievementId => {
+              const def = achievementDefs[achievementId];
               if (def) {
                 achievementsHtml += '<div style="flex-shrink:0;width:80px;text-align:center;">' +
                   '<div style="width:50px;height:50px;border-radius:12px;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:1.5em;">' + def.icon + '</div>' +
@@ -11249,15 +11244,10 @@ ${text}`;
       const achievementsEl = document.getElementById('pubProfileAchievements');
       if (achievementsEl) {
         try {
-          // Fetch user's achievements
-          const { data: achievementsData, error } = await supabase
-            .from('user_achievements')
-            .select('achievement_id, unlocked_at')
-            .eq('user_id', profile.id)
-            .order('unlocked_at', { ascending: false })
-            .limit(6);
-          
-          if (!error && achievementsData && achievementsData.length > 0) {
+          // Use displayed_achievements from users table
+          const achievementsData = profile.displayed_achievements || [];
+
+          if (achievementsData && achievementsData.length > 0) {
             // Get achievement definitions
             const achievementDefs = {
               'first_cook': { icon: '🍳', title: 'First Cook', desc: 'Cooked your first recipe' },
@@ -11279,8 +11269,8 @@ ${text}`;
             let achievementsHtml = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">🏆 Achievements</div>';
             achievementsHtml += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">';
             
-            achievementsData.forEach(ach => {
-              const def = achievementDefs[ach.achievement_id];
+            achievementsData.forEach(achievementId => {
+              const def = achievementDefs[achievementId];
               if (def) {
                 achievementsHtml += '<div style="flex-shrink:0;width:80px;text-align:center;">' +
                   '<div style="width:50px;height:50px;border-radius:12px;background:var(--gold-dim);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:1.5em;">' + def.icon + '</div>' +
