@@ -2487,6 +2487,7 @@
   };
 
   async function enterApp(username) {
+    console.log('enterApp called for:', username);
     currentUser = username.toLowerCase();
     localStorage.setItem('currentUser', currentUser);
     const allSaved = JSON.parse(localStorage.getItem('savedUsers') || '[]');
@@ -2494,7 +2495,9 @@
     // Load shopping list and theme — Supabase first, localStorage fallback
     let dbTheme = null;
     try {
+      console.log('Fetching user settings for:', currentUser);
       const _shopRes = await getUserSettings(currentUser);
+      console.log('User settings result:', _shopRes);
       const _dbList = _shopRes.settings && _shopRes.settings.shopping_list;
       if (_shopRes.settings && _shopRes.settings.theme) {
         dbTheme = _shopRes.settings.theme;
@@ -2505,7 +2508,7 @@
       } else {
         shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
       }
-      
+
       // Load achievements from Supabase for cross-device sync
       if (_shopRes.settings && _shopRes.settings.achievements) {
         console.log('Loading achievements from Supabase:', _shopRes.settings.achievements);
@@ -2536,7 +2539,7 @@
         }
       }
     } catch(e) {
-      console.error('Error loading achievements from Supabase:', e);
+      console.error('Error in enterApp:', e);
       // Fallback to local storage if Supabase load fails
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
     }
@@ -2545,6 +2548,8 @@
     if (!shopItems || shopItems.length === 0) {
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
     }
+    
+    console.log('Setting UI to appScreen');
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('userBadgeName').textContent = currentUser;
     // Load avatar into header badge
@@ -2555,6 +2560,7 @@
     });
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
+    console.log('UI set to appScreen');
     
     const userThemeKey = 'rc_theme_user_' + currentUser;
     if (dbTheme) {
