@@ -2799,6 +2799,7 @@
 
     console.log('Unlocked achievements:', unlockedAchievements.map(a => a.id));
     console.log('Displayed IDs:', displayedIds);
+    console.log('Type of displayedIds:', typeof displayedIds, 'Is array?', Array.isArray(displayedIds));
 
     if (unlockedAchievements.length === 0) {
       grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">No achievements unlocked yet!</div>';
