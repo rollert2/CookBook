@@ -1407,13 +1407,6 @@
       <div class="profile-section-title">🔔 Notifications</div>
       <div id="profileNotifList"></div>
     </div>
-    <!-- Recent Activity -->
-    <div class="profile-section" id="profileRecentActivitySection">
-      <div class="profile-section-title">📊 Recent Activity</div>
-      <div id="profileRecentActivityList" style="color:var(--text-dim);font-size:0.85em;line-height:1.5;">
-        <div style="text-align:center;padding:20px;color:var(--text-faint);">Loading activity...</div>
-      </div>
-    </div>
     <!-- Follow input at top -->
     <div style="padding:10px 16px 6px;display:flex;gap:8px;">
       <input type="text" id="followInput" placeholder="Add friend by username..." autocomplete="off" autocorrect="off" autocapitalize="off" style="flex:1;padding:9px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.85em;font-family:inherit;">
@@ -1539,13 +1532,13 @@
       </div>
       <!-- Audio elements for sounds -->
       <audio id="rouletteSpinSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-spin-1079.mp3" type="audio/mpeg">
+        <source src="https://rollcookbook.com/sounds/roulette-spin.mp3" type="audio/mpeg">
       </audio>
       <audio id="rouletteStopSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+        <source src="https://rollcookbook.com/sounds/roulette-stop.mp3" type="audio/mpeg">
       </audio>
       <audio id="achievementUnlockSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" type="audio/mpeg">
+        <source src="https://rollcookbook.com/sounds/achievement-unlock.mp3" type="audio/mpeg">
       </audio>
     </div>
   </div>
@@ -2771,14 +2764,15 @@
   
   // ═══ EDIT PROFILE FUNCTIONS ═══
   function openEditProfileModal() {
+    console.log('Opening edit profile modal for:', currentUser);
     getUserProfile(currentUser).then(profile => {
       // Load bio
       const bioEl = document.getElementById('editProfileBio');
       if (bioEl && profile) bioEl.value = profile.bio || '';
-      
+
       // Load private account toggle
       setToggle('editProfileTogglePrivateAccount', profile?.is_private === true);
-      
+
       // Load avatar
       getUserAvatar(currentUser).then(url => {
         const el = document.getElementById('editProfileAvatarPreview');
@@ -2787,8 +2781,11 @@
 
       // Load achievements
       renderEditProfileAchievements(profile?.displayed_achievements || []);
-      
+
       openModalAnimated('editProfileModal');
+    }).catch(err => {
+      console.error('Error opening edit profile modal:', err);
+      showToast('Error loading profile', 'error');
     });
   }
 
