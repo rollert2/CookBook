@@ -16,7 +16,7 @@ async function createUser(username) {
   if (!userRes || !userRes[0]) return { status: 'Error', message: 'Failed to create user' };
   const userId = userRes[0].id;
 
-  await sbFetch('POST', 'user_settings', { user_id: userId });
+  await sbFetch('POST', 'user_settings', { user_id: userId, theme: 'light' });
 
   // Copy template recipes
   try {
@@ -66,7 +66,7 @@ async function getUserSettings(username) {
   if (!userId) return { status: 'Success', settings: {} };
   const data = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=*`);
   if (!data || data.length === 0) {
-    await sbFetch('POST', 'user_settings', { user_id: userId });
+    await sbFetch('POST', 'user_settings', { user_id: userId, theme: 'light' });
     return { status: 'Success', settings: {} };
   }
   return { status: 'Success', settings: data[0] };
