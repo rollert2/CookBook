@@ -78,6 +78,32 @@ async function updateUserSettings(username, settings) {
   return { status: 'Success' };
 }
 
+// Save unlocked achievements to Supabase for cross-device sync
+async function saveUnlockedAchievements(username, achievements) {
+  try {
+    // Save achievements to user_settings table
+    await updateUserSettings(username, { achievements: achievements });
+    return { status: 'Success' };
+  } catch (error) {
+    console.error('Error saving achievements to Supabase:', error);
+    return { status: 'Error', message: error.message };
+  }
+}
+
+// Load unlocked achievements from Supabase
+async function loadUnlockedAchievements(username) {
+  try {
+    const settings = await getUserSettings(username);
+    return { 
+      status: 'Success', 
+      achievements: settings.settings?.achievements || {} 
+    };
+  } catch (error) {
+    console.error('Error loading achievements from Supabase:', error);
+    return { status: 'Error', message: error.message, achievements: {} };
+  }
+}
+
 async function uploadProfilePicture(base64Data, fileName, username) {
   try {
     const parts = base64Data.split(',');

@@ -2505,8 +2505,35 @@
       } else {
         shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
       }
+      
+      // Load achievements from Supabase for cross-device sync
+      if (_shopRes.settings && _shopRes.settings.achievements) {
+        console.log('Loading achievements from Supabase:', _shopRes.settings.achievements);
+        const supabaseAchievements = _shopRes.settings.achievements;
+        const localAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+        
+        // Merge Supabase achievements with local achievements
+        // Supabase takes precedence for unlocked status, but keep local progress
+        const mergedAchievements = { ...localAchievements };
+        
+        for (const [achievementId, supabaseData] of Object.entries(supabaseAchievements)) {
+          if (supabaseData.unlocked) {
+            // If achievement is unlocked in Supabase, ensure it's unlocked locally
+            mergedAchievements[achievementId] = {
+              ...(mergedAchievements[achievementId] || {}),
+              unlocked: true,
+              unlockedAt: supabaseData.unlockedAt || mergedAchievements[achievementId]?.unlockedAt,
+              progress: Math.max(supabaseData.progress || 0, mergedAchievements[achievementId]?.progress || 0)
+            };
+          }
+        }
+        
+        localStorage.setItem('rc_achievements', JSON.stringify(mergedAchievements));
+        console.log('Merged achievements saved to localStorage:', mergedAchievements);
+      }
     } catch(e) {
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+      console.error('Error loading achievements from Supabase:', e);
     }
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
     document.getElementById('userBadgeName').textContent = currentUser;
@@ -2780,6 +2807,8 @@
       });
 
       // Load achievements
+      console.log('Profile data in openEditProfileModal:', profile);
+      console.log('displayed_achievements from profile:', profile?.displayed_achievements);
       renderEditProfileAchievements(profile?.displayed_achievements || []);
 
       openModalAnimated('editProfileModal');
@@ -2808,6 +2837,7 @@
 
     grid.innerHTML = unlockedAchievements.map(ach => {
       const isEnabled = displayedIds.includes(ach.id);
+      console.log(`Achievement ${ach.id}: isEnabled = ${isEnabled}, displayedIds =`, displayedIds);
       return '<div class="achievement-item" data-achievement-id="' + ach.id + '" style="padding:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;text-align:center;position:relative;">' +
         '<div style="font-size:1.5em;">' + ach.icon + '</div>' +
         '<div style="font-size:0.7em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ach.title + '</div>' +
@@ -13141,11 +13171,14 @@ ${r.ingredients}`;
       };
       localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
       showAchievementUnlocked(achievement);
-      
+
       // Auto-add unlocked achievement to displayed_achievements in Supabase
       if (currentUser) {
         console.log('Auto-adding achievement for user:', currentUser, 'achievement:', achievementId);
         addAchievementToDisplayed(achievementId);
+        
+        // Save unlocked achievements to Supabase for cross-device sync
+        saveUnlockedAchievementsToSupabase();
       } else {
         console.log('currentUser not defined, cannot auto-add achievement');
       }
@@ -13166,39 +13199,89 @@ ${r.ingredients}`;
     return false;
   }
 
+  // Save unlocked achievements to Supabase for cross-device sync
+  async function saveUnlockedAchievementsToSupabase() {
+    try {
+      if (!currentUser) {
+        console.log('No current user, cannot save achievements to Supabase');
+        return;
+      }
+      
+      const userAchievements = getUserAchievements();
+      console.log('Saving achievements to Supabase:', userAchievements);
+      
+      const result = await saveUnlockedAchievements(currentUser, userAchievements);
+      if (result.status === 'Success') {
+        console.log('Achievements saved to Supabase successfully');
+      } else {
+        console.error('Failed to save achievements to Supabase:', result.message);
+      }
+    } catch (error) {
+      console.error('Error saving achievements to Supabase:', error);
+    }
+  }
+
   // Add unlocked achievement to displayed_achievements in Supabase
   async function addAchievementToDisplayed(achievementId) {
     try {
       console.log('addAchievementToDisplayed called for:', achievementId, 'user:', currentUser);
-      
+
+      if (!currentUser) {
+        console.error('No current user, cannot add achievement to displayed');
+        return;
+      }
+
       // Get current user profile to see existing displayed achievements
       const profile = await getUserProfile(currentUser);
       console.log('Profile fetched:', profile);
       const currentDisplayed = profile?.displayed_achievements || [];
-      console.log('Current displayed achievements:', currentDisplayed);
+      console.log('Current displayed achievements:', currentDisplayed, 'Type:', typeof currentDisplayed);
+
+      // Ensure currentDisplayed is an array
+      let displayedArray = [];
+      if (Array.isArray(currentDisplayed)) {
+        displayedArray = currentDisplayed;
+      } else if (currentDisplayed && typeof currentDisplayed === 'object') {
+        // Handle case where it might be stored as object instead of array
+        displayedArray = Object.values(currentDisplayed);
+      }
+      
+      console.log('Processed displayed array:', displayedArray);
 
       // Add achievement if not already in the list
-      if (!currentDisplayed.includes(achievementId)) {
-        const newDisplayed = [...currentDisplayed, achievementId];
+      if (!displayedArray.includes(achievementId)) {
+        const newDisplayed = [...displayedArray, achievementId];
         console.log('New displayed achievements to save:', newDisplayed);
 
         // Update in Supabase
-        await updateUserProfile(currentUser, {
+        const result = await updateUserProfile(currentUser, {
           displayed_achievements: newDisplayed
         });
+        
+        console.log('Update result:', result);
 
-        console.log(`Auto-added achievement "${achievementId}" to displayed achievements`);
+        if (result && result.status === 'Success') {
+          console.log(`✅ Auto-added achievement "${achievementId}" to displayed achievements`);
+          
+          // Force refresh profile cache by fetching again
+          const updatedProfile = await getUserProfile(currentUser);
+          console.log('Updated profile after save:', updatedProfile?.displayed_achievements);
+        } else {
+          console.error(`❌ Failed to auto-add achievement "${achievementId}"`);
+        }
 
         // Update UI if edit profile modal is open
         const checkbox = document.getElementById('achievement-toggle-' + achievementId);
         if (checkbox) {
           checkbox.checked = true;
+          console.log('Updated checkbox in UI');
         }
       } else {
-        console.log('Achievement already in displayed list');
+        console.log(`Achievement "${achievementId}" already in displayed achievements`);
       }
     } catch (error) {
-      console.error('Failed to auto-add achievement to displayed_achievements:', error);
+      console.error('❌ Error auto-adding achievement to displayed:', error);
+      console.error('Error details:', error.message, error.stack);
     }
   }
 
