@@ -2888,10 +2888,12 @@
       console.log('Updating profile with:', updates);
 
       const result = await updateUserProfile(currentUser, updates);
-      
+
       if (result.status === 'Success') {
         rcAlert('Profile updated!');
         closeModalAnimated('editProfileModal');
+        // Refresh profile view
+        openProfile(currentUser);
       } else {
         rcAlert('Error saving profile');
       }
@@ -13175,10 +13177,10 @@ ${r.ingredients}`;
       // Auto-add unlocked achievement to displayed_achievements in Supabase
       if (currentUser) {
         console.log('Auto-adding achievement for user:', currentUser, 'achievement:', achievementId);
-        addAchievementToDisplayed(achievementId);
-        
+        await addAchievementToDisplayed(achievementId);
+
         // Save unlocked achievements to Supabase for cross-device sync
-        saveUnlockedAchievementsToSupabase();
+        await saveUnlockedAchievementsToSupabase();
       } else {
         console.log('currentUser not defined, cannot auto-add achievement');
       }
@@ -13257,28 +13259,25 @@ ${r.ingredients}`;
         const result = await updateUserProfile(currentUser, {
           displayed_achievements: newDisplayed
         });
-        
+
         console.log('Update result:', result);
 
         if (result && result.status === 'Success') {
           console.log(`✅ Auto-added achievement "${achievementId}" to displayed achievements`);
           
-          // Force refresh profile cache by fetching again
-          const updatedProfile = await getUserProfile(currentUser);
-          console.log('Updated profile after save:', updatedProfile?.displayed_achievements);
+          // Update UI if edit profile modal is open
+          const checkbox = document.getElementById('achievement-toggle-' + achievementId);
+          if (checkbox) {
+            checkbox.checked = true;
+          }
+          
+          return true;
         } else {
           console.error(`❌ Failed to auto-add achievement "${achievementId}"`);
+          return false;
         }
-
-        // Update UI if edit profile modal is open
-        const checkbox = document.getElementById('achievement-toggle-' + achievementId);
-        if (checkbox) {
-          checkbox.checked = true;
-          console.log('Updated checkbox in UI');
-        }
-      } else {
-        console.log(`Achievement "${achievementId}" already in displayed achievements`);
       }
+      return true; // Already exists
     } catch (error) {
       console.error('❌ Error auto-adding achievement to displayed:', error);
       console.error('Error details:', error.message, error.stack);

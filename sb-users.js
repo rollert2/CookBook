@@ -56,6 +56,7 @@ async function updateUserProfile(username, updates) {
   if (updates.bio !== undefined) allowed.bio = updates.bio;
   if (updates.is_private !== undefined) allowed.is_private = updates.is_private;
   if (updates.displayed_achievements !== undefined) allowed.displayed_achievements = updates.displayed_achievements;
+  console.log('Updating user profile with:', allowed);
   await sbFetch('PATCH', `users?id=eq.${userId}`, allowed);
   return { status: 'Success' };
 }
