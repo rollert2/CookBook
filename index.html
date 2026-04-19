@@ -2806,26 +2806,39 @@
     }
 
     grid.innerHTML = unlockedAchievements.map(ach => {
-      const isSelected = displayedIds.includes(ach.id);
-      return '<div class="achievement-item ' + (isSelected ? 'selected' : '') + '" data-achievement-id="' + ach.id + '" onclick="toggleAchievementSelection(\'' + ach.id + '\', this)" style="padding:8px;background:var(--glass);border:1px solid ' + (isSelected ? 'var(--gold)' : 'var(--glass-border)') + ';border-radius:10px;text-align:center;cursor:pointer;position:relative;" title="' + ach.title + '">' +
+      const isEnabled = displayedIds.includes(ach.id);
+      return '<div class="achievement-item" data-achievement-id="' + ach.id + '" style="padding:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;text-align:center;position:relative;">' +
         '<div style="font-size:1.5em;">' + ach.icon + '</div>' +
         '<div style="font-size:0.7em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ach.title + '</div>' +
+        '<div style="position:absolute;top:4px;right:4px;">' +
+        '<input type="checkbox" id="achievement-toggle-' + ach.id + '" ' + (isEnabled ? 'checked' : '') + ' style="cursor:pointer;" onchange="toggleAchievementEnabled(\'' + ach.id + '\', this.checked)">' +
+        '</div>' +
         '</div>';
     }).join('');
   }
 
-  function toggleAchievementSelection(id, el) {
-    el.classList.toggle('selected');
-    el.style.borderColor = el.classList.contains('selected') ? 'var(--gold)' : 'var(--glass-border)';
+  function toggleAchievementEnabled(achievementId, enabled) {
+    // Update visual feedback
+    const checkbox = document.getElementById('achievement-toggle-' + achievementId);
+    if (checkbox) {
+      checkbox.checked = enabled;
+    }
   }
 
   async function saveEditProfileChanges() {
     try {
-      // Collect selected achievements
-      const selected = Array.from(document.querySelectorAll('#editProfileAchievementsGrid .achievement-item.selected'))
-        .map(el => el.dataset.achievementId);
+      // Collect enabled achievements from checkboxes
+      const enabled = [];
+      const unlockedAchievements = getUserAchievements().filter(ach => ach.unlocked);
+      
+      unlockedAchievements.forEach(ach => {
+        const checkbox = document.getElementById('achievement-toggle-' + ach.id);
+        if (checkbox && checkbox.checked) {
+          enabled.push(ach.id);
+        }
+      });
 
-      console.log('Saving profile with achievements:', selected);
+      console.log('Saving profile with enabled achievements:', enabled);
 
       // Also get bio from textarea
       const bioEl = document.getElementById('editProfileBio');
@@ -13099,6 +13112,12 @@ ${r.ingredients}`;
       };
       localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
       showAchievementUnlocked(achievement);
+      
+      // Auto-add unlocked achievement to displayed_achievements in Supabase
+      if (currentUser) {
+        addAchievementToDisplayed(achievementId);
+      }
+      
       return true;
     }
     
@@ -13113,6 +13132,35 @@ ${r.ingredients}`;
     }
     
     return false;
+  }
+
+  // Add unlocked achievement to displayed_achievements in Supabase
+  async function addAchievementToDisplayed(achievementId) {
+    try {
+      // Get current user profile to see existing displayed achievements
+      const profile = await getUserProfile(currentUser);
+      const currentDisplayed = profile?.displayed_achievements || [];
+      
+      // Add achievement if not already in the list
+      if (!currentDisplayed.includes(achievementId)) {
+        const newDisplayed = [...currentDisplayed, achievementId];
+        
+        // Update in Supabase
+        await updateUserProfile(currentUser, {
+          displayed_achievements: newDisplayed
+        });
+        
+        console.log(`Auto-added achievement "${achievementId}" to displayed achievements`);
+        
+        // Update UI if edit profile modal is open
+        const checkbox = document.getElementById('achievement-toggle-' + achievementId);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to auto-add achievement to displayed_achievements:', error);
+    }
   }
 
   // Show achievement unlocked animation
