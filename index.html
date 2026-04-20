@@ -2768,7 +2768,9 @@
     requestAnimationFrame(() => { el.style.transition = 'opacity 0.15s ease, transform 0.15s ease'; el.style.opacity = '1'; el.style.transform = 'translateX(0)'; });
     el.classList.add('active');
     // Push history state so back gesture closes the modal
-    history.pushState({ modal: id }, '');
+    if (!history.state || history.state.modal !== id) {
+      history.pushState({ modal: id }, '');
+    }
   }
 
   function closeModalAnimated(id, cb) {
@@ -13192,7 +13194,11 @@ ${r.ingredients}`;
     // Hidden/Fun
     midnight_cook: { id: 'midnight_cook', icon: '🌙', title: 'Midnight Chef', desc: 'Cook a recipe after midnight', category: 'hidden', threshold: 1 },
     breakfast_king: { id: 'breakfast_king', icon: '🍳', title: 'Breakfast King/Queen', desc: 'Cook 10 breakfast recipes', category: 'hidden', threshold: 10 },
-    spicy_lover: { id: 'spicy_lover', icon: '🌶️', title: 'Spice Lover', desc: 'Cook 5 spicy recipes', category: 'hidden', threshold: 5 }
+    spicy_lover: { id: 'spicy_lover', icon: '🌶️', title: 'Spice Lover', desc: 'Cook 5 spicy recipes', category: 'hidden', threshold: 5 },
+    streak_200: { id: 'streak_200', icon: '👑', title: '200 Day Streak', desc: '200-day cooking streak', category: 'hidden', threshold: 200 },
+    pantry_perfect: { id: 'pantry_perfect', icon: '📦', title: 'Pantry Perfect', desc: 'Found 10 perfect pantry matches', category: 'hidden', threshold: 10 },
+    shopping_list: { id: 'shopping_list', icon: '🛒', title: 'Shopping Pro', desc: 'Created 10 shopping lists', category: 'hidden', threshold: 10 },
+    community_contributor: { id: 'community_contributor', icon: '🌍', title: 'Community Contributor', desc: 'Shared 10 recipes to community', category: 'hidden', threshold: 10 }
   };
 
   // Track and check achievements
