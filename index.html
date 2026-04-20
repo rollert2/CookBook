@@ -8388,22 +8388,26 @@ ${text}`;
   }
 
   async function openQuickAddModal(ingredient) {
+    console.log('openQuickAddModal called with:', ingredient);
     const lists = await getMySharedLists(currentUser).catch(() => []);
+    console.log('Lists found:', lists);
     const listOptions = lists.map(l => `<button onclick="addIngredientToSharedList('${l.id}', '${ingredient.replace(/'/g, "\\'")}')" style="display:block;width:100%;padding:12px;margin-bottom:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);text-align:left;color:var(--text);font-family:inherit;">${escapeHtml(l.name)}</button>`).join('');
     const content = '<div style="padding:16px;">' +
       '<div style="font-weight:700;margin-bottom:12px;">Add to which list?</div>' +
       listOptions +
       '<button onclick="closeModalAnimated(\'quickAddModal\')" style="display:block;width:100%;padding:12px;margin-top:8px;background:none;border:1px solid var(--text-dim);border-radius:var(--radius);color:var(--text-dim);font-family:inherit;">Cancel</button>' +
       '</div>';
-    
+
     let modal = document.getElementById('quickAddModal');
     if (!modal) {
+      console.log('Creating new modal element');
       modal = document.createElement('div');
       modal.id = 'quickAddModal';
       modal.className = 'modal';
       document.body.appendChild(modal);
     }
     modal.innerHTML = '<div class="modal-content">' + content + '</div>';
+    console.log('Calling openModalAnimated');
     openModalAnimated('quickAddModal');
   }
 
