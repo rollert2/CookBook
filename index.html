@@ -2526,7 +2526,7 @@
         
         // Ensure supabaseAchievements is an object
         if (typeof supabaseAchievements === 'object' && supabaseAchievements !== null) {
-          const localAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
+          const localAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
 
           // Merge Supabase achievements with local achievements
           // Supabase takes precedence for unlocked status, but keep local progress
@@ -2544,7 +2544,7 @@
             }
           }
 
-          localStorage.setItem('rc_achievements', JSON.stringify(mergedAchievements));
+          localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(mergedAchievements));
           console.log('Merged achievements saved to localStorage:', mergedAchievements);
         }
       }
@@ -3883,7 +3883,7 @@
       el.innerHTML = res.status==='Success'?'✅ Now following '+target:'❌ '+res.message;
       if (res.status === 'Success') {
         // Track achievement for following users
-        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
         const totalFollowing = (userData.follow_5 || 0) + 1;
         checkAchievement('follow_5', totalFollowing);
         if (res.requested) {
@@ -4299,7 +4299,7 @@
         ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); 
         
         // Track achievement for saving recipes
-        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+        const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
         const totalRecipes = (userData.recipes_10 || 0) + 1;
         checkAchievement('recipes_10', totalRecipes);
         checkAchievement('recipes_50', totalRecipes);
@@ -5402,15 +5402,15 @@
       rcAlert('This feature is only available for rollert2.');
       return;
     }
-    
+
     if (!rcConfirm('Reset ALL achievements? This will clear all your achievement progress.', {icon:'🗑',title:'Reset Achievements',confirmText:'Reset',danger:true})) {
       return;
     }
-    
-    // Clear achievement data
-    localStorage.removeItem('rc_achievements');
-    localStorage.removeItem('rc_user_achievement_data');
-    
+
+    // Clear achievement data for current user
+    localStorage.removeItem('rc_achievements_' + currentUser);
+    localStorage.removeItem('rc_user_achievement_data_' + currentUser);
+
     rcAlert('✅ All achievements have been reset.');
   }
 
@@ -8038,7 +8038,7 @@ ${text}`;
       updateCookStreak();
       
       // Track achievement for cooking (same as markCookedFromDetail)
-      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
       const totalCooked = (userData.cook_25 || 0) + 1;
       checkAchievement('first_cook', 1);
       checkAchievement('cook_25', totalCooked);
@@ -8100,7 +8100,7 @@ ${text}`;
       updateCookStreak();
 
       // Track achievement for cooking
-      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
+      const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
       const totalCooked = (userData.cook_25 || 0) + 1;
       checkAchievement('first_cook', 1);
       checkAchievement('cook_25', totalCooked);
@@ -13290,10 +13290,10 @@ ${r.ingredients}`;
         console.log('No current user, cannot save achievements to Supabase');
         return;
       }
-      
-      const userAchievements = await getUserAchievements();
+
+      const userAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
       console.log('Saving achievements to Supabase:', userAchievements);
-      
+
       const result = await saveUnlockedAchievements(currentUser, userAchievements);
       if (result.status === 'Success') {
         console.log('Achievements saved to Supabase successfully');
@@ -13442,17 +13442,48 @@ ${r.ingredients}`;
 
     // Always fetch from Supabase as the source of truth
     const settings = await getUserSettings(currentUser);
-    const achievements = (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {};
-    
-    // Update local cache
-    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(achievements));
-    
+    let supabaseAchievements = (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {};
+
+    // Ensure supabaseAchievements is an object (not an array from previous bug)
+    if (Array.isArray(supabaseAchievements)) {
+      console.warn('Supabase achievements is an array, converting to object');
+      const obj = {};
+      supabaseAchievements.forEach(ach => {
+        if (ach && ach.id) {
+          obj[ach.id] = { unlocked: ach.unlocked || false, progress: ach.progress || 0, unlockedAt: ach.unlockedAt };
+        }
+      });
+      supabaseAchievements = obj;
+    }
+
+    // Get local achievements
+    const localAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
+
+    // Merge Supabase achievements with local achievements
+    // Supabase takes precedence for unlocked status, but keep local progress
+    const mergedAchievements = { ...localAchievements };
+
+    for (const [achievementId, supabaseData] of Object.entries(supabaseAchievements)) {
+      if (supabaseData && supabaseData.unlocked) {
+        // If achievement is unlocked in Supabase, ensure it's unlocked locally
+        mergedAchievements[achievementId] = {
+          ...(mergedAchievements[achievementId] || {}),
+          unlocked: true,
+          unlockedAt: supabaseData.unlockedAt || mergedAchievements[achievementId]?.unlockedAt,
+          progress: Math.max(supabaseData.progress || 0, mergedAchievements[achievementId]?.progress || 0)
+        };
+      }
+    }
+
+    // Save merged achievements to localStorage
+    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(mergedAchievements));
+
     const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
 
     // Convert to array with progress data
     const result = [];
     for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
-      const userAchievement = achievements[id] || { unlocked: false, progress: 0 };
+      const userAchievement = mergedAchievements[id] || { unlocked: false, progress: 0 };
       const currentValue = userData[id] || 0;
 
       result.push({
