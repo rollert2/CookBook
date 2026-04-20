@@ -2842,17 +2842,20 @@
     });
   }
 
-  function renderEditProfileAchievements(displayedIds) {
+  async function renderEditProfileAchievements(displayedIds) {
     const grid = document.getElementById('editProfileAchievementsGrid');
     if (!grid) return;
 
     // Get user's unlocked achievements
-    const userAchievements = getUserAchievements();
+    const userAchievements = await getUserAchievements();
     const unlockedAchievements = userAchievements.filter(ach => ach.unlocked);
 
     console.log('Unlocked achievements:', unlockedAchievements.map(a => a.id));
     console.log('Displayed IDs:', displayedIds);
     console.log('Type of displayedIds:', typeof displayedIds, 'Is array?', Array.isArray(displayedIds));
+
+    // Ensure displayedIds is an array
+    const displayedArray = Array.isArray(displayedIds) ? displayedIds : [];
 
     if (unlockedAchievements.length === 0) {
       grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">No achievements unlocked yet!</div>';
@@ -2860,8 +2863,8 @@
     }
 
     grid.innerHTML = unlockedAchievements.map(ach => {
-      const isEnabled = displayedIds.includes(ach.id);
-      console.log(`Achievement ${ach.id}: isEnabled = ${isEnabled}, displayedIds =`, displayedIds);
+      const isEnabled = displayedArray.includes(ach.id);
+      console.log(`Achievement ${ach.id}: isEnabled = ${isEnabled}, displayedIds =`, displayedArray);
       return '<div class="achievement-item" data-achievement-id="' + ach.id + '" style="padding:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;text-align:center;position:relative;">' +
         '<div style="font-size:1.5em;">' + ach.icon + '</div>' +
         '<div style="font-size:0.7em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ach.title + '</div>' +
@@ -2884,7 +2887,7 @@
     try {
       // Collect enabled achievements from checkboxes
       const enabled = [];
-      const unlockedAchievements = getUserAchievements().filter(ach => ach.unlocked);
+      const unlockedAchievements = (await getUserAchievements()).filter(ach => ach.unlocked);
       
       unlockedAchievements.forEach(ach => {
         const checkbox = document.getElementById('achievement-toggle-' + ach.id);
@@ -8435,6 +8438,7 @@ ${text}`;
     
     // Refresh local shop items if on personal list
     if (listId === 'personal' && typeof renderShopList === 'function') {
+      shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
       renderShopList();
     }
     
@@ -13283,7 +13287,7 @@ ${r.ingredients}`;
         return;
       }
       
-      const userAchievements = getUserAchievements();
+      const userAchievements = await getUserAchievements();
       console.log('Saving achievements to Supabase:', userAchievements);
       
       const result = await saveUnlockedAchievements(currentUser, userAchievements);
@@ -13429,18 +13433,18 @@ ${r.ingredients}`;
   }
 
   // Get user's achievements
-  function getUserAchievements() {
-    if (!currentUser) return [];
+  async function getUserAchievements() {
+    if (!currentUser) return {};
+
+    // Always fetch from Supabase as the source of truth
+    const settings = await getUserSettings(currentUser);
+    const supabaseAchievements = (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {};
     
-    // Attempt to load from localStorage first for speed
-    let achievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
-    let userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
-
-    // If empty, try fetching from Supabase (this would be the "source of truth" sync)
-    // Note: In a real app, you'd want to fetch this on login and cache it.
-    // For now, we keep the existing structure but ensure we return what we have.
-
-    // Convert to array with progress data
+    // Update local cache
+    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(supabaseAchievements));
+    
+    return supabaseAchievements;
+  }    // Convert to array with progress data
     const result = [];
     for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
       const userAchievement = achievements[id] || { unlocked: false, progress: 0 };
