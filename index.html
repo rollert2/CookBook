@@ -5364,22 +5364,22 @@
     }
     
     // Get current achievements
-    const userAchievements = JSON.parse(localStorage.getItem('rc_achievements') || '{}');
-    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data') || '{}');
-    
+    const userAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
+    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
+
     // Unlock the achievement
     userAchievements[achievementId] = {
       unlocked: true,
       unlockedAt: new Date().toISOString(),
       progress: 100
     };
-    
+
     // Set the achievement data to the threshold
     userData[achievementId] = achievement.threshold;
-    
+
     // Save back to localStorage
-    localStorage.setItem('rc_achievements', JSON.stringify(userAchievements));
-    localStorage.setItem('rc_user_achievement_data', JSON.stringify(userData));
+    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(userAchievements));
+    localStorage.setItem('rc_user_achievement_data_' + currentUser, JSON.stringify(userData));
     
     // Show the achievement unlocked toast
     showAchievementUnlocked(achievement);
@@ -8393,7 +8393,7 @@ ${text}`;
     const content = '<div style="padding:16px;">' +
       '<div style="font-weight:700;margin-bottom:12px;">Add to which list?</div>' +
       listOptions +
-      '<button onclick="closeModal(\'quickAddModal\')" style="display:block;width:100%;padding:12px;margin-top:8px;background:none;border:1px solid var(--text-dim);border-radius:var(--radius);color:var(--text-dim);font-family:inherit;">Cancel</button>' +
+      '<button onclick="closeModalAnimated(\'quickAddModal\')" style="display:block;width:100%;padding:12px;margin-top:8px;background:none;border:1px solid var(--text-dim);border-radius:var(--radius);color:var(--text-dim);font-family:inherit;">Cancel</button>' +
       '</div>';
     
     let modal = document.getElementById('quickAddModal');
@@ -8409,7 +8409,7 @@ ${text}`;
 
   async function addIngredientToSharedList(listId, ingredient) {
     await addSharedListItem(listId, ingredient, 'Other', null, null, currentUser);
-    closeModal('quickAddModal');
+    closeModalAnimated('quickAddModal');
     rcAlert('Added to shopping list!', {icon:'🛒'});
   }
 
