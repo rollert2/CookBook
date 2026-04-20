@@ -13467,13 +13467,13 @@ ${r.ingredients}`;
       return a.category.localeCompare(b.category);
     });
   }
-
+    
   // Open achievements modal
-  function openAchievementsModal() {
-    const achievements = getUserAchievements();
+  async function openAchievementsModal() {
+    const achievements = await getUserAchievements();
     const grid = document.getElementById('achievementsGrid');
     const summary = document.getElementById('achievementsSummary');
-    
+
     grid.innerHTML = achievements.map(ach => `
       <div class="achievement-card" style="background:${ach.unlocked ? 'var(--glass)' : 'rgba(255,255,255,0.05)'};border:1px solid ${ach.unlocked ? 'var(--gold)' : 'var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};">
         <div style="font-size:2em;margin-bottom:8px;">${ach.icon}</div>
@@ -13487,9 +13487,8 @@ ${r.ingredients}`;
         ` : '<div style="font-size:0.7em;color:var(--gold);margin-top:4px;">✓ Unlocked</div>'}
       </div>
     `).join('');
-    
+
     summary.textContent = `${achievements.filter(a => a.unlocked).length} of ${achievements.length} achievements unlocked`;
-    
     openModalAnimated('achievementsModal');
   }
 
