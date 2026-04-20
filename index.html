@@ -666,9 +666,10 @@
   .modal {
     display:none; position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.85); z-index:10000;
-    align-items:center; justify-content:center; padding:24px;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    opacity:0; pointer-events:none; transition:opacity 0.2s;
   }
-  .modal.active { display:flex; }
+  .modal.active { opacity:1; pointer-events:auto; }
   .modal-content {
     background:var(--surface); border-radius:20px;
     border:1px solid var(--glass-border);
@@ -8408,7 +8409,13 @@ ${text}`;
     console.log('openQuickAddModal called with:', ingredient);
     const lists = await getMySharedLists(currentUser).catch(() => []);
     console.log('Lists found:', lists);
-    const listOptions = lists.map(l => `<button onclick="addIngredientToSharedList('${l.id}', '${ingredient.replace(/'/g, "\\'")}')" style="display:block;width:100%;padding:12px;margin-bottom:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);text-align:left;color:var(--text);font-family:inherit;">${escapeHtml(l.name)}</button>`).join('');
+    
+    // Add personal list option
+    const listOptions = [
+      { id: 'personal', name: 'Personal List' },
+      ...lists
+    ].map(l => `<button onclick="addIngredientToShoppingList('${l.id}', '${ingredient.replace(/'/g, "\\'")}')" style="display:block;width:100%;padding:12px;margin-bottom:8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius);text-align:left;color:var(--text);font-family:inherit;">${escapeHtml(l.name)}</button>`).join('');
+    
     const content = '<div style="padding:16px;">' +
       '<div style="font-weight:700;margin-bottom:12px;">Add to which list?</div>' +
       listOptions +
@@ -8417,19 +8424,25 @@ ${text}`;
 
     let modal = document.getElementById('quickAddModal');
     if (!modal) {
-      console.log('Creating new modal element');
       modal = document.createElement('div');
       modal.id = 'quickAddModal';
       modal.className = 'modal';
       document.body.appendChild(modal);
     }
     modal.innerHTML = '<div class="modal-content">' + content + '</div>';
-    console.log('Calling openModalAnimated');
     openModalAnimated('quickAddModal');
   }
 
-  async function addIngredientToSharedList(listId, ingredient) {
-    await addSharedListItem(listId, ingredient, 'Other', null, null, currentUser);
+  async function addIngredientToShoppingList(listId, ingredient) {
+    if (listId === 'personal') {
+      // Add to personal list (localStorage)
+      const currentItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+      currentItems.push({ text: ingredient, checked: false, group: 'Other' });
+      localStorage.setItem('shopItems_' + currentUser, JSON.stringify(currentItems));
+    } else {
+      // Add to shared list
+      await addSharedListItem(listId, ingredient, 'Other', null, null, currentUser);
+    }
     closeModalAnimated('quickAddModal');
     rcAlert('Added to shopping list!', {icon:'🛒'});
   }
