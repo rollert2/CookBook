@@ -7591,7 +7591,7 @@
       div.className = 'ingredient-line';
       div.style.display = 'flex';
       div.style.alignItems = 'center';
-      div.innerHTML = '<div class="quick-add-btn" onclick="event.preventDefault(); event.stopPropagation(); openQuickAddModal(\'' + scaled.replace(/'/g, "\\'") + '\')" style="cursor:pointer;margin-right:8px;color:var(--gold);font-weight:bold;font-size:1.2em;z-index:10;padding:4px;">+</div><div class="ingredient-line-dot"></div><span>' + scaled + '</span>';
+      div.innerHTML = '<div class="quick-add-btn" onclick="console.log(\'Plus clicked\'); event.preventDefault(); event.stopPropagation(); openQuickAddModal(\'' + scaled.replace(/'/g, "\\'") + '\')" style="cursor:pointer;margin-right:8px;color:var(--gold);font-weight:bold;font-size:1.2em;z-index:100;padding:4px;border:1px solid red;">+</div><div class="ingredient-line-dot"></div><span>' + scaled + '</span>';
       return div.outerHTML;    }).join('');
 
     // Init servings slider
@@ -13320,6 +13320,11 @@ ${r.ingredients}`;
           const profile = await getUserProfile(currentUser);
           if (profile) {
               profile.displayed_achievements = newDisplayed;
+          }
+
+          // Force refresh the public profile display if open
+          if (typeof openPublicProfile === 'function' && document.getElementById('publicProfileModal')?.style.display === 'block') {
+              openPublicProfile(currentUser);
           }
 
           return true;
