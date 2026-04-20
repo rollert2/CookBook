@@ -1467,7 +1467,7 @@
       <h2>🏆 Achievements</h2>
     </div>
     <div class="modal-body">
-      <div id="achievementsGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:12px;margin-bottom:20px;"></div>
+      <div id="achievementsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"></div>
       <div id="achievementsSummary" style="text-align:center;color:var(--text-dim);font-size:0.85em;"></div>
     </div>
   </div>
@@ -13245,6 +13245,10 @@ ${r.ingredients}`;
     // Update current value
     userData[achievementId] = Math.max(userData[achievementId] || 0, currentValue);
     localStorage.setItem('rc_user_achievement_data_' + currentUser, JSON.stringify(userData));
+
+    // Check if achievement is already unlocked in Supabase
+    const existingAchievements = (await getUserAchievements()).filter(a => a.id === achievementId && a.unlocked);
+    if (existingAchievements.length > 0) return false;
 
     // Check if achievement is unlocked
     if (!userAchievements[achievementId] && currentValue >= achievement.threshold) {
