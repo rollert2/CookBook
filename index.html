@@ -664,16 +664,17 @@
   /* ─────────────────────────────────────────────────── */
 
   .modal {
-    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    position:fixed; top:0; left:0; width:100%; height:100%;
     background:rgba(0,0,0,0.85); z-index:10000;
-    display:flex; align-items:center; justify-content:center; padding:24px;
-    opacity:0; pointer-events:none; transition:opacity 0.2s;
+    display:none; align-items:center; justify-content:center; padding:24px;
+    animation:rcFadeIn 0.15s ease;
   }
-  .modal.active { opacity:1; pointer-events:auto; }
+  .modal.active { display:flex; }
   .modal-content {
     background:var(--surface); border-radius:20px;
     border:1px solid var(--glass-border);
     padding:24px; width:100%; max-width:320px;
+    animation:rcSlideUp 0.2s ease;
   }
 
   /* ── SHOWCASE VIEW ── */
@@ -2773,18 +2774,8 @@
   // ═══ ANIMATED MODAL OPEN/CLOSE ═══
   function openModalAnimated(id) {
     const el = document.getElementById(id);
-    console.log('openModalAnimated: element found:', el);
-    el.style.display = 'block';
-    el.style.opacity = '0'; el.style.transform = 'translateX(60px)';
-    console.log('openModalAnimated: setting styles');
-    requestAnimationFrame(() => { 
-        console.log('openModalAnimated: animating');
-        el.style.transition = 'opacity 0.15s ease, transform 0.15s ease'; 
-        el.style.opacity = '1'; 
-        el.style.transform = 'translateX(0)'; 
-    });
+    el.style.display = 'flex';
     el.classList.add('active');
-    console.log('openModalAnimated: class active added');
     // Push history state so back gesture closes the modal
     if (!history.state || history.state.modal !== id) {
       history.pushState({ modal: id }, '');
@@ -2793,11 +2784,9 @@
 
   function closeModalAnimated(id, cb) {
     const el = document.getElementById(id);
-    el.style.transition = 'opacity 0.12s ease, transform 0.12s ease';
-    el.style.opacity = '0'; el.style.transform = 'translateX(60px)';
+    el.classList.remove('active');
     setTimeout(() => {
-      el.style.display = 'none'; el.classList.remove('active');
-      el.style.opacity = ''; el.style.transform = ''; el.style.transition = '';
+      el.style.display = 'none';
       if (id === 'messagingModal' && typeof clearMsgPoll === 'function') clearMsgPoll();
       if (cb) cb();
     }, 130);
