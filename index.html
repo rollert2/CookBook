@@ -2763,10 +2763,18 @@
   // ═══ ANIMATED MODAL OPEN/CLOSE ═══
   function openModalAnimated(id) {
     const el = document.getElementById(id);
+    console.log('openModalAnimated: element found:', el);
     el.style.display = 'block';
     el.style.opacity = '0'; el.style.transform = 'translateX(60px)';
-    requestAnimationFrame(() => { el.style.transition = 'opacity 0.15s ease, transform 0.15s ease'; el.style.opacity = '1'; el.style.transform = 'translateX(0)'; });
+    console.log('openModalAnimated: setting styles');
+    requestAnimationFrame(() => { 
+        console.log('openModalAnimated: animating');
+        el.style.transition = 'opacity 0.15s ease, transform 0.15s ease'; 
+        el.style.opacity = '1'; 
+        el.style.transform = 'translateX(0)'; 
+    });
     el.classList.add('active');
+    console.log('openModalAnimated: class active added');
     // Push history state so back gesture closes the modal
     if (!history.state || history.state.modal !== id) {
       history.pushState({ modal: id }, '');
@@ -13406,8 +13414,14 @@ ${r.ingredients}`;
   // Get user's achievements
   function getUserAchievements() {
     if (!currentUser) return [];
-    const achievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
-    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
+    
+    // Attempt to load from localStorage first for speed
+    let achievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
+    let userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
+
+    // If empty, try fetching from Supabase (this would be the "source of truth" sync)
+    // Note: In a real app, you'd want to fetch this on login and cache it.
+    // For now, we keep the existing structure but ensure we return what we have.
 
     // Convert to array with progress data
     const result = [];
