@@ -13434,17 +13434,18 @@ ${r.ingredients}`;
 
   // Get user's achievements
   async function getUserAchievements() {
-    if (!currentUser) return {};
+    if (!currentUser) return [];
 
     // Always fetch from Supabase as the source of truth
     const settings = await getUserSettings(currentUser);
-    const supabaseAchievements = (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {};
+    const achievements = (settings.settings && settings.settings.achievements) ? settings.settings.achievements : {};
     
     // Update local cache
-    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(supabaseAchievements));
+    localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(achievements));
     
-    return supabaseAchievements;
-  }    // Convert to array with progress data
+    const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
+
+    // Convert to array with progress data
     const result = [];
     for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
       const userAchievement = achievements[id] || { unlocked: false, progress: 0 };
