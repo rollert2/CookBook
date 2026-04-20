@@ -8432,6 +8432,12 @@ ${text}`;
       // Add to shared list
       await addSharedListItem(listId, ingredient, 'Other', null, null, currentUser);
     }
+    
+    // Refresh local shop items if on personal list
+    if (listId === 'personal' && typeof renderShopList === 'function') {
+      renderShopList();
+    }
+    
     closeModalAnimated('quickAddModal');
     rcAlert('Added to shopping list!', {icon:'🛒'});
   }
