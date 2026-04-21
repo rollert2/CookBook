@@ -1,6 +1,17 @@
 // ═══ RECIPE MANAGEMENT MODULE ═══
 
 /**
+ * Gets the collection name for a recipe ID.
+ * @param {string} recipeId 
+ * @returns {string|null}
+ */
+function getRecipeCollection(recipeId) {
+  if (typeof userCollections === 'undefined') return null;
+  for (const col of userCollections) { if (col.recipeIds.includes(recipeId)) return col.name; }
+  return null;
+}
+
+/**
  * Renders the recipe list in the main container.
  */
 function renderRecipes() {
