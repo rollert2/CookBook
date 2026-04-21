@@ -13457,7 +13457,18 @@ ${r.ingredients}`;
     }
 
     // Get local achievements
-    const localAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
+    let localAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
+    // Ensure localAchievements is an object (not an array from previous bug)
+    if (Array.isArray(localAchievements)) {
+      console.warn('Local achievements is an array, converting to object');
+      const obj = {};
+      localAchievements.forEach(ach => {
+        if (ach && ach.id) {
+          obj[ach.id] = { unlocked: ach.unlocked || false, progress: ach.progress || 0, unlockedAt: ach.unlockedAt };
+        }
+      });
+      localAchievements = obj;
+    }
 
     // Merge Supabase achievements with local achievements
     // Supabase takes precedence for unlocked status, but keep local progress
@@ -13481,6 +13492,7 @@ ${r.ingredients}`;
     const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
 
     // Convert to array with progress data
+    console.log('Merged achievements:', mergedAchievements);
     const result = [];
     for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
       const userAchievement = mergedAchievements[id] || { unlocked: false, progress: 0 };
@@ -13506,13 +13518,14 @@ ${r.ingredients}`;
   // Open achievements modal
   async function openAchievementsModal() {
     const achievements = await getUserAchievements();
+    console.log('Achievements:', achievements.map(a => ({id:a.id, unlocked:a.unlocked, category:a.category})));
     const grid = document.getElementById('achievementsGrid');
     const summary = document.getElementById('achievementsSummary');
 
     grid.innerHTML = achievements.map(ach => `
-      <div class="achievement-card" style="background:${ach.unlocked ? 'var(--glass)' : 'rgba(255,255,255,0.05)'};border:1px solid ${ach.unlocked ? 'var(--gold)' : 'var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};">
+      <div class="achievement-card" style="background:${ach.unlocked ? 'var(--gold-dim)' : 'rgba(255,255,255,0.05)'};border:${ach.unlocked ? '2px solid var(--gold)' : '1px solid var(--glass-border)'};border-radius:12px;padding:12px;text-align:center;position:relative;opacity:${ach.unlocked ? '1' : '0.7'};box-shadow:${ach.unlocked ? '0 0 12px var(--gold-dim)' : 'none'};">
         <div style="font-size:2em;margin-bottom:8px;">${ach.icon}</div>
-        <div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">${ach.title}</div>
+        <div style="font-weight:700;font-size:0.9em;margin-bottom:4px;${ach.unlocked ? 'color:var(--gold);' : ''}">${ach.title}</div>
         <div style="font-size:0.75em;color:var(--text-dim);margin-bottom:8px;">${ach.desc}</div>
         ${!ach.unlocked ? `
           <div style="background:var(--glass-border);height:4px;border-radius:2px;overflow:hidden;margin-top:8px;">
