@@ -14,6 +14,7 @@
   <script src="sb-planner.js"></script>
   <script src="sb-community.js"></script>
   <script src="sb-shop.js"></script>
+  <script src="utils.js"></script>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── TRANSITIONS ── */
@@ -3015,22 +3016,6 @@
   function getRecipeCollection(recipeId) {
     for (const col of userCollections) { if (col.recipeIds.includes(recipeId)) return col.name; }
     return null;
-  }
-
-  function parseCookMinutes(cookTime) {
-    if (!cookTime) return Infinity;
-    const h = cookTime.match(/(\d+)\s*(h|hr|hour)/i);
-    const m = cookTime.match(/(\d+)\s*(m|min|minute)/i);
-    let total = 0;
-    if (h) total += parseInt(h[1]) * 60;
-    if (m) total += parseInt(m[1]);
-    return total || Infinity;
-  }
-
-  let _searchDebounceTimer = null;
-  function debouncedSearch() {
-    clearTimeout(_searchDebounceTimer);
-    _searchDebounceTimer = setTimeout(renderRecipes, 180);
   }
 
   function renderRecipes() {
