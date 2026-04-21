@@ -5361,18 +5361,18 @@
   }
 
   // ═══ ADMIN ACHIEVEMENT UNLOCKER ═══
-  function adminUnlockAchievement(achievementId) {
+  async function adminUnlockAchievement(achievementId) {
     if (currentUser !== 'rollert2') {
       rcAlert('This feature is only available for rollert2.');
       return;
     }
-    
+
     const achievement = ACHIEVEMENTS[achievementId];
     if (!achievement) {
       rcAlert('Achievement not found: ' + achievementId);
       return;
     }
-    
+
     // Get current achievements
     const userAchievements = JSON.parse(localStorage.getItem('rc_achievements_' + currentUser) || '{}');
     const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
@@ -5390,10 +5390,15 @@
     // Save back to localStorage
     localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(userAchievements));
     localStorage.setItem('rc_user_achievement_data_' + currentUser, JSON.stringify(userData));
-    
+
     // Show the achievement unlocked toast
     showAchievementUnlocked(achievement);
-    
+
+    // Auto-add to displayed achievements and sync to Supabase
+    console.log('Admin-unlocked achievement, adding to displayed achievements:', achievementId);
+    await addAchievementToDisplayed(achievementId);
+    await saveUnlockedAchievementsToSupabase();
+
     rcAlert('✅ Achievement "' + achievement.title + '" unlocked!');
   }
   
@@ -13246,12 +13251,15 @@ ${r.ingredients}`;
     userData[achievementId] = Math.max(userData[achievementId] || 0, currentValue);
     localStorage.setItem('rc_user_achievement_data_' + currentUser, JSON.stringify(userData));
 
-    // Check if achievement is already unlocked in Supabase
-    const existingAchievements = (await getUserAchievements()).filter(a => a.id === achievementId && a.unlocked);
-    if (existingAchievements.length > 0) return false;
+    // Determine if achievement is already unlocked locally
+    const alreadyUnlocked = userAchievements[achievementId]?.unlocked === true;
 
-    // Check if achievement is unlocked
-    if (!userAchievements[achievementId] && currentValue >= achievement.threshold) {
+    // Check if threshold is met
+    const thresholdMet = currentValue >= achievement.threshold;
+
+    // If threshold met and not already unlocked, unlock it
+    let newlyUnlocked = false;
+    if (thresholdMet && !alreadyUnlocked) {
       userAchievements[achievementId] = {
         unlocked: true,
         unlockedAt: new Date().toISOString(),
@@ -13259,19 +13267,11 @@ ${r.ingredients}`;
       };
       localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(userAchievements));
       showAchievementUnlocked(achievement);
-
-      // Auto-add unlocked achievement to displayed_achievements in Supabase
-      console.log('Auto-adding achievement for user:', currentUser, 'achievement:', achievementId);
-      await addAchievementToDisplayed(achievementId);
-
-      // Save unlocked achievements to Supabase for cross-device sync
-      await saveUnlockedAchievementsToSupabase();
-
-      return true;
+      newlyUnlocked = true;
     }
 
-    // Update progress for in-progress achievements
-    if (!userAchievements[achievementId]) {
+    // Update progress for in-progress achievements (if not unlocked)
+    if (!alreadyUnlocked && !thresholdMet) {
       const progress = Math.min(100, Math.round((currentValue / achievement.threshold) * 100));
       userAchievements[achievementId] = {
         unlocked: false,
@@ -13280,7 +13280,19 @@ ${r.ingredients}`;
       localStorage.setItem('rc_achievements_' + currentUser, JSON.stringify(userAchievements));
     }
 
-    return false;
+    // If achievement is unlocked (either newly or already), ensure it's added to displayed_achievements
+    const isUnlocked = alreadyUnlocked || newlyUnlocked;
+    if (isUnlocked) {
+      console.log('Auto-adding achievement for user:', currentUser, 'achievement:', achievementId);
+      await addAchievementToDisplayed(achievementId);
+    }
+
+    // Save unlocked achievements to Supabase for cross-device sync (if any changes)
+    if (newlyUnlocked) {
+      await saveUnlockedAchievementsToSupabase();
+    }
+
+    return newlyUnlocked;
   }
 
   // Save unlocked achievements to Supabase for cross-device sync
@@ -13497,10 +13509,11 @@ ${r.ingredients}`;
     for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
       const userAchievement = mergedAchievements[id] || { unlocked: false, progress: 0 };
       const currentValue = userData[id] || 0;
-
+      const unlocked = userAchievement.unlocked || false;
+      console.log(`Achievement ${id}: unlocked=${unlocked}, progress=${userAchievement.progress}, currentValue=${currentValue}`);
       result.push({
         ...achievement,
-        unlocked: userAchievement.unlocked || false,
+        unlocked: unlocked,
         progress: userAchievement.progress || 0,
         currentValue: currentValue,
         threshold: achievement.threshold
