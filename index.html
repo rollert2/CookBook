@@ -2098,6 +2098,7 @@
         <button class="btn btn-secondary" onclick="adminUnlockAchievement('pantry_perfect')" style="font-size:0.8em;padding:8px;">📦 Pantry Perfect</button>
         <button class="btn btn-secondary" onclick="adminUnlockAchievement('shopping_list')" style="font-size:0.8em;padding:8px;">🛒 Shopping Pro</button>
         <button class="btn btn-secondary" onclick="adminUnlockAchievement('community_contributor')" style="font-size:0.8em;padding:8px;">🌍 Community Contributor</button>
+        <button class="btn btn-secondary" onclick="adminUnlockAchievement('tutorial_complete')" style="font-size:0.8em;padding:8px;">🎓 Tour Guide</button>
       </div>
       <button class="btn btn-danger" onclick="adminResetAllAchievements()" style="margin-top:8px;">🗑 Reset All Achievements</button>
     </div>
@@ -4864,6 +4865,7 @@
   function finishOnboarding() {
     closeOnboarding();
     updateUserSettings(currentUser, { tutorial_complete: true });
+    checkAchievement('tutorial_complete', 1).catch(e => console.error('Failed to unlock tutorial achievement:', e));
     localStorage.setItem('tourDone_' + currentUser + '_v3', '1');
   }
 
@@ -13228,7 +13230,8 @@ ${r.ingredients}`;
     pantry_full: { id: 'pantry_full', icon: '🏪', title: 'Well-Stocked', desc: 'Add 20 items to your pantry', category: 'special', threshold: 20 },
     planner_week: { id: 'planner_week', icon: '📅', title: 'Meal Planner', desc: 'Plan meals for a full week', category: 'special', threshold: 7 },
     community_post: { id: 'community_post', icon: '💬', title: 'Community Voice', desc: 'Post in the community forum', category: 'special', threshold: 1 },
-    
+    tutorial_complete: { id: 'tutorial_complete', icon: '🎓', title: 'Tour Guide', desc: 'Complete the app tutorial', category: 'special', threshold: 1 },
+
     // Hidden/Fun
     midnight_cook: { id: 'midnight_cook', icon: '🌙', title: 'Midnight Chef', desc: 'Cook a recipe after midnight', category: 'hidden', threshold: 1 },
     breakfast_king: { id: 'breakfast_king', icon: '🍳', title: 'Breakfast King/Queen', desc: 'Cook 10 breakfast recipes', category: 'hidden', threshold: 10 },
