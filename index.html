@@ -7191,7 +7191,7 @@
     activeQuickPickCategory = category;
     // Highlight active button
     document.querySelectorAll('#discoverContent .sort-chip').forEach(b => {
-      b.classList.toggle('active', b.textContent.includes(category));
+      b.classList.remove('active');
     });
     const picks = DISCOVER_QUICK_PICKS[category] || [];
     el.style.display = 'block';
