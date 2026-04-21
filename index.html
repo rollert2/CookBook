@@ -15,6 +15,7 @@
   <script src="sb-community.js"></script>
   <script src="sb-shop.js"></script>
   <script src="utils.js"></script>
+  <script src="ui-interactions.js"></script>
   <link rel="stylesheet" href="styles.css">
   <style>
     /* ── TRANSITIONS ── */
@@ -2752,25 +2753,7 @@
     });
   }
   // ═══ ANIMATED MODAL OPEN/CLOSE ═══
-  function openModalAnimated(id) {
-    const el = document.getElementById(id);
-    el.style.display = 'flex';
-    el.classList.add('active');
-    // Push history state so back gesture closes the modal
-    if (!history.state || history.state.modal !== id) {
-      history.pushState({ modal: id }, '');
-    }
-  }
-
-  function closeModalAnimated(id, cb) {
-    const el = document.getElementById(id);
-    el.classList.remove('active');
-    setTimeout(() => {
-      el.style.display = 'none';
-      if (id === 'messagingModal' && typeof clearMsgPoll === 'function') clearMsgPoll();
-      if (cb) cb();
-    }, 130);
-  }
+  // Moved to ui-interactions.js
 
   function closeDetailsAnimated() {
     closeModalAnimated('detailModal', () => {
