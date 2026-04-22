@@ -2282,6 +2282,20 @@
     }
     // Track app usage for review prompts
     trackAppUsage();
+    
+    // Global error handler
+    window.onerror = function(message, source, lineno, colno, error) {
+      const logData = {
+        event_type: 'error',
+        message: message,
+        metadata: { source, lineno, colno, stack: error ? error.stack : null }
+      };
+      // Use _sbFetch if available, otherwise try to fetch directly
+      if (window._sbFetch) {
+        window._sbFetch('POST', 'app_logs', logData).catch(() => {});
+      }
+    };
+
     // Push initial state so back gesture has somewhere to go
     history.replaceState({ root: true }, '');
     // Check for showcase URL first
@@ -12893,9 +12907,18 @@ ${r.ingredients}`;
     const today = new Date().toISOString().slice(0, 10);
     const lastPromptDate = localStorage.getItem('rc_last_review_prompt');
     const launchCount = parseInt(localStorage.getItem('rc_app_launches') || '0') + 1;
-    
+
     localStorage.setItem('rc_app_launches', launchCount.toString());
-    
+
+    // Log launch to Supabase
+    if (window._sbFetch) {
+      window._sbFetch('POST', 'app_logs', {
+        event_type: 'launch',
+        message: 'App launch count: ' + launchCount,
+        metadata: { launchCount }
+      }).catch(() => {});
+    }
+
     // Only prompt once per month and after certain number of launches
     if (lastPromptDate !== today && launchCount >= 10 && launchCount % 5 === 0) {
       // Wait a bit before showing prompt
