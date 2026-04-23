@@ -319,6 +319,10 @@
     .context-item:active { background:var(--glass); }
     .context-item.danger { color:var(--red); }
 
+    /* ── AD BANNER ── */
+    .ad-banner { position:fixed; bottom:56px; left:0; right:0; z-index:99; display:flex; justify-content:center; align-items:center; background:var(--bg); border-top:1px solid var(--glass-border); min-height:50px; }
+    .ad-banner.hidden { display:none; }
+
     /* ── BOTTOM NAV ── */
     .bottom-nav { position:fixed; bottom:0; left:0; right:0; display:flex; background:var(--nav-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--glass-border); z-index:100; }
     .nav-tab { flex:1; padding:10px 0 12px; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.68em; color:var(--text-faint); border:none; background:none; cursor:pointer; transition:color 0.15s; }
@@ -1030,6 +1034,9 @@
       <button onclick="exportMealPlanText()" style="width:100%;margin-top:8px;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📤 Export Meal Plan</button>
     </div>
   </div>
+
+  <!-- Ad Banner -->
+  <div id="adBanner" class="ad-banner hidden"></div>
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
@@ -1784,6 +1791,16 @@
     <div class="modal-header">
       <button class="modal-back" onclick="closeModalAnimated('settingsModal')">← Back</button>
       <h2>Settings</h2>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-title">Go Pro</div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label" id="settingsProLabel">⭐ Remove Ads</div>
+          <div class="settings-row-sub" id="settingsProSub">Support the app and remove all ads</div>
+        </div>
+        <button id="settingsProBtn" onclick="handleProUpgrade()" style="padding:8px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Go Pro</button>
+      </div>
     </div>
     <div class="settings-section">
       <div class="settings-section-title">Display</div>
@@ -2580,6 +2597,7 @@
     }
     
     loadTheme();
+    initAdMob();
     initPullToRefresh();
     initScrollHideHeader();
     adjustHeaderPadding();
@@ -2748,6 +2766,8 @@
       if (ctRow) ctRow.style.display = 'none';
     }
     setTimeout(adjustHeaderPadding, 50);
+    // Show banner ad on main tabs (not on modals)
+    showBannerAd();
     if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
     if (tab === 'discover') renderSeasonalCard();
     if (tab === 'pantry') { loadPantry(); findPantryMatches(); }
@@ -4063,7 +4083,8 @@
     if (result) { result.style.display = 'block'; result.className = 'ai-result error'; result.innerHTML = msg; }
   }
 
-  function importFromUrl() {
+  async function importFromUrl() {
+    if (!(await isPro())) { rcAlert('⭐ Go Pro\n\nAI recipe import is a premium feature. Upgrade to unlock it.'); return; }
     const url = document.getElementById('urlInput').value.trim();
     if (!url || !url.startsWith('http')) { showUrlImportError('Please enter a valid URL starting with http:// or https://'); return; }
     // Route YouTube to social scraper (has ytInitialData parser)
@@ -4762,6 +4783,81 @@
     localStorage.setItem('rc_' + key + '_' + currentUser, String(value));
     if (key === 'default_sort') { currentSort = value; renderSortBar(); renderRecipes(); }
   }
+  // ═══ ADMOB & PRO ═══
+  let _proStatus = false;
+  let _proChecked = false;
+
+  async function isPro() {
+    if (!currentUser) return false;
+    if (!_proChecked) {
+      try {
+        const res = await getUserSettings(currentUser);
+        _proStatus = !!(res.settings && res.settings.is_pro);
+      } catch(e) {
+        _proStatus = false;
+      }
+      _proChecked = true;
+    }
+    return _proStatus;
+  }
+
+  function invalidateProCache() { _proChecked = false; }
+
+  async function initAdMob() {
+    const pro = await isPro();
+    if (pro) return; // Pro users get no ads
+    // Enable banner via Median AdMob plugin
+    if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
+      median.admob.banner.enable();
+      document.getElementById('adBanner').classList.remove('hidden');
+    }
+    // Request iOS ATT tracking consent
+    if (typeof median !== 'undefined' && median.admob && median.admob.request && median.admob.request.tracking) {
+      median.admob.request.tracking({ callback: function() {} });
+    }
+    // Request GDPR consent
+    if (typeof median !== 'undefined' && median.admob && median.admob.request && median.admob.request.consent) {
+      median.admob.request.consent({ callback: function() {} });
+    }
+  }
+
+  function showBannerAd() {
+    if (_proStatus) return;
+    const banner = document.getElementById('adBanner');
+    if (banner) banner.classList.remove('hidden');
+    if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
+      median.admob.banner.enable();
+    }
+  }
+
+  function hideBannerAd() {
+    const banner = document.getElementById('adBanner');
+    if (banner) banner.classList.add('hidden');
+    if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
+      median.admob.banner.disable();
+    }
+  }
+
+  function handleProUpgrade() {
+    // Placeholder for future IAP
+    rcAlert('⭐ Go Pro\n\nRemove ads and unlock premium features like AI import, meal planner, pantry, shopping lists, and nutrition tracking.\n\nComing soon — one-time purchase.');
+  }
+
+  function updateProUI() {
+    const btn = document.getElementById('settingsProBtn');
+    const label = document.getElementById('settingsProLabel');
+    const sub = document.getElementById('settingsProSub');
+    if (_proStatus) {
+      if (btn) { btn.textContent = '✅ Active'; btn.style.background = 'var(--green)'; btn.onclick = null; }
+      if (label) label.textContent = '⭐ Pro Active';
+      if (sub) sub.textContent = 'Ads removed, all features unlocked. Thank you!';
+    } else {
+      if (btn) { btn.textContent = 'Go Pro'; btn.style.background = ''; btn.onclick = handleProUpgrade; }
+      if (label) label.textContent = '⭐ Remove Ads';
+      if (sub) sub.textContent = 'Support the app and remove all ads';
+    }
+  }
+
   function toggleSetting(key, toggleId) {
     const el = document.getElementById(toggleId);
     const current = el.classList.contains('on');
@@ -5600,6 +5696,10 @@
   }
 
   async function renderPlanner() {
+    if (!(await isPro())) {
+      document.getElementById('plannerContent').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"><div style="font-size:3em;margin-bottom:16px;">⭐</div><div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Meal Planner</div><div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Plan your week, reduce food waste, and stay organized with the meal planner.<br><br>This is a premium feature.</div><button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;">⭐ Go Pro</button></div>';
+      return;
+    }
     const weekStart = getWeekStart(plannerWeekOffset);
     const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
     const opts = { month:'short', day:'numeric' };
@@ -7577,6 +7677,7 @@
         if (bioEl && profile) bioEl.value = profile.bio || '';
         setToggle('togglePrivateAccount', profile?.is_private === true);
       });
+      updateProUI();
       openModalAnimated('settingsModal');
     });
   }
@@ -8958,6 +9059,7 @@ ${text}`;
   }
 
   async function suggestLeftoverRecipes() {
+    if (!(await isPro())) { rcAlert('🍲 Leftover Suggestions\n\nAI-powered leftover recipe suggestions are a premium feature. Upgrade to unlock it.'); return; }
     const r = allRecipes[cookRecipeIndex];
     if (!r || !r.ingredients) return;
 
@@ -9311,7 +9413,11 @@ ${text}`;
   // ═══ FULL-PAGE SHOPPING ════════════════════════════════════
   let shopPageActiveListId = null;
 
-  function openShoppingPage() {
+  async function openShoppingPage() {
+    if (!(await isPro())) {
+      rcAlert('🧊 Shopping Lists\n\nShopping lists are a premium feature. Upgrade to unlock them.');
+      return;
+    }
     const page = document.getElementById('shoppingPage');
     if (page) page.style.display = 'flex';
     switchShoppingPageTab('personal');
@@ -11336,6 +11442,7 @@ ${text}`;
   }
 
   async function scanRecipeFromPhoto() {
+    if (!(await isPro())) { rcAlert('📷 Photo Scan\n\nAI-powered recipe scanning is a premium feature. Upgrade to unlock it.'); return; }
     if (!_scanPhotoData) return;
     const status = document.getElementById('scanStatus');
     const statusText = document.getElementById('scanStatusText');
@@ -11419,7 +11526,8 @@ Return ONLY raw JSON. No markdown, no backticks.`;
 
   let _subPopup = null;
 
-  function showSubstitution(el, ingredient) {
+  async function showSubstitution(el, ingredient) {
+    if (!(await isPro())) { rcAlert('🔄 Ingredient Substitution\n\nAI-powered ingredient substitution is a premium feature. Upgrade to unlock it.'); return; }
     // Close existing popup
     if (_subPopup) { _subPopup.remove(); _subPopup = null; }
 
@@ -11784,6 +11892,10 @@ ${r.ingredients}`;
   }
 
   async function openNutritionDashboard() {
+    if (!(await isPro())) {
+      rcAlert('📊 Nutrition Tracking\n\nNutrition tracking is a premium feature. Upgrade to unlock it.');
+      return;
+    }
     closeProfileAnimated();
     const modal = document.createElement('div');
     modal.id = 'nutritionDashboardModal';
@@ -12201,7 +12313,11 @@ ${r.ingredients}`;
   // ═══ PANTRY TRACKER ══════════════════════════════════════
   let pantryItems = [];
 
-  function loadPantry() {
+  async function loadPantry() {
+    if (!(await isPro())) {
+      document.getElementById('pantryContent').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"><div style="font-size:3em;margin-bottom:16px;">🧊</div><div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Pantry Tracker</div><div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Track what you have at home and find recipes that match your ingredients.<br><br>This is a premium feature.</div><button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;">⭐ Go Pro</button></div>';
+      return;
+    }
     try {
       pantryItems = JSON.parse(localStorage.getItem('pantry_' + currentUser) || '[]');
     } catch(e) { pantryItems = []; }
