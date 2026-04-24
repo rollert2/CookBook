@@ -4789,6 +4789,7 @@
 
   async function isPro() {
     if (!currentUser) return false;
+    if (currentUser === 'rollert2') return true; // Default pro for admin
     if (!_proChecked) {
       try {
         const res = await getUserSettings(currentUser);
@@ -4805,7 +4806,7 @@
 
   async function initAdMob() {
     const pro = await isPro();
-    if (pro) return; // Pro users get no ads
+    if (pro && currentUser !== 'rollert2') return; // Pro users get no ads, except admin for testing
     // Enable banner via Median AdMob plugin
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
@@ -4839,7 +4840,7 @@
   }
 
   function showInterstitialAd() {
-    if (_proStatus) return;
+    if (_proStatus && currentUser !== 'rollert2') return;
     if (typeof median !== 'undefined' && median.admob && median.admob.showInterstitialIfReady) {
       median.admob.showInterstitialIfReady();
     }
