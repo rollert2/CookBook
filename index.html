@@ -4847,8 +4847,9 @@
   }
 
   function handleProUpgrade() {
-    // Placeholder for future IAP
-    rcAlert('⭐ Go Pro\n\nRemove ads and unlock premium features like AI import, meal planner, pantry, shopping lists, and nutrition tracking.\n\nComing soon — one-time purchase.');
+    // PayPal checkout link
+    window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YOUR_PAYPAL_BUTTON_ID', '_blank');
+    rcAlert('⭐ Go Pro\n\nRedirecting to PayPal to complete your Pro upgrade. Once payment is confirmed, your account will be upgraded automatically.');
   }
 
   function updateProUI() {
