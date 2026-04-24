@@ -3033,8 +3033,8 @@
   }
 
   function handleFav() { const r = allRecipes[activeRecipeIndex]; toggleFavourite(r.id, currentUser).then(res => { if (res.status === 'Success') { r.favourite = res.favourite; renderDetailContent(); renderRecipes(); } }); }
-  function handleRating(val) { const r = allRecipes[activeRecipeIndex]; const nv = parseInt(r.rating) === val ? '' : val; setRating(r.id, nv).then(res => { if (res.status === 'Success') { r.rating = nv.toString(); renderDetailContent(); renderRecipes(); } }); }
-  function handleDuplicate() { addRecipe(currentUser, allRecipes[activeRecipeIndex]).then(res => { if (res.status === 'Success') { closeDetailsAnimated(); init(); } }); }
+  function handleRating(val) { const r = allRecipes[activeRecipeIndex]; const nv = parseInt(r.rating) === val ? '' : val; setRating(r.id, nv).then(res => { if (res.status === 'Success') { r.rating = nv.toString(); renderDetailContent(); renderRecipes(); showInterstitialAd(); } }); }
+  function handleDuplicate() { addRecipe(currentUser, allRecipes[activeRecipeIndex]).then(res => { if (res.status === 'Success') { closeDetailsAnimated(); init(); showInterstitialAd(); } }); }
 
   // ── ALARM SOUND — see playAlarm and playAlarmTone below ──
   function scheduleTimerNotification(key, label, seconds) { /* Requires OneSignal plugin — not yet configured */ }
@@ -3226,7 +3226,7 @@
       const reader = new FileReader(); reader.onload = async e => { try { const uploadRes = await uploadImage(e.target.result, file.name, rId, currentUser); if (uploadRes && uploadRes.url && r) r.image = uploadRes.url; } catch(err) {} finish(); }; reader.readAsDataURL(fileIn.files[0]); }
     else { finish(); }
   }
-  async function executeDelete() { if (!await rcConfirm('This recipe will be permanently deleted.', {icon:'🗑',title:'Delete recipe?',confirmText:'Delete',danger:true})) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); }); }
+  async function executeDelete() { if (!await rcConfirm('This recipe will be permanently deleted.', {icon:'🗑',title:'Delete recipe?',confirmText:'Delete',danger:true})) return; deleteRecipe(allRecipes[activeRecipeIndex].id).then(() => { allRecipes.splice(activeRecipeIndex,1); closeDetailsAnimated(); renderRecipes(); showInterstitialAd(); }); }
 
   // ═══ SHARE ═══
   function quickSendToFriend(username) {
@@ -3242,7 +3242,7 @@
   async function doSendRecipe() {
     const toUser = document.getElementById('shareUsernameInput').value.trim().toLowerCase(); if (!toUser) { await rcAlert('Please enter a username.', {icon:'👤'}); return; }
     const el = document.getElementById('shareUserResult'); el.style.display = 'block'; el.className = 'ai-result'; el.innerHTML = 'Sending...';
-    sendRecipe(currentUser, toUser, allRecipes[activeRecipeIndex]).then(res => { el.className = res.status==='Success'?'ai-result success':'ai-result error'; el.innerHTML = res.status==='Success'?'✅ '+res.message:'❌ '+res.message; });
+    sendRecipe(currentUser, toUser, allRecipes[activeRecipeIndex]).then(res => { el.className = res.status==='Success'?'ai-result success':'ai-result error'; el.innerHTML = res.status==='Success'?'✅ '+res.message:'❌ '+res.message; if (res.status==='Success') showInterstitialAd(); });
   }
   function doGenerateLink() {
     const el = document.getElementById('shareLinkResult'); el.style.display = 'block'; el.className = 'ai-result'; el.innerHTML = 'Generating...';
@@ -4120,7 +4120,7 @@
         if (saveRes.status === 'Success') {
           el.className='ai-result success'; el.innerHTML='✅ '+saveRes.message;
           btn.innerHTML='Import Another'; btn.disabled=false;
-          document.getElementById('urlInput').value=''; init();
+          document.getElementById('urlInput').value=''; init(); showInterstitialAd();
         } else {
           el.className='ai-result error'; el.innerHTML='❌ '+saveRes.message;
           btn.innerHTML='✨ Try Again'; btn.disabled=false;
@@ -4139,18 +4139,18 @@
     addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
       if (res.status==='Success') { 
-        el.className='ai-result success'; 
-        el.innerHTML='✅ '+title+' added!'; 
-        ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; }); 
-        
+        el.className='ai-result success';
+        el.innerHTML='✅ '+title+' added!';
+        ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; });
+
         // Track achievement for saving recipes
         const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
         const totalRecipes = (userData.recipes_10 || 0) + 1;
         checkAchievement('recipes_10', totalRecipes);
         checkAchievement('recipes_50', totalRecipes);
         checkAchievement('recipes_100', totalRecipes);
-        
-        init(); 
+
+        init(); showInterstitialAd();
       }
       else { el.className='ai-result error'; el.innerHTML='❌ '+res.message; }
     });
@@ -4835,6 +4835,13 @@
     if (banner) banner.classList.add('hidden');
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.disable();
+    }
+  }
+
+  function showInterstitialAd() {
+    if (_proStatus) return;
+    if (typeof median !== 'undefined' && median.admob && median.admob.showInterstitialIfReady) {
+      median.admob.showInterstitialIfReady();
     }
   }
 
@@ -6526,7 +6533,7 @@
   async function toggleCommunityUpvote(postId, btn) {
     const res = await upvoteCommunityPost(postId, currentUser);
     const countEl = document.getElementById('upvote-count-' + postId);
-    if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; }
+    if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; showInterstitialAd(); }
     else { btn.classList.remove('active'); if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1); }
   }
 
@@ -6581,6 +6588,7 @@
     input.value = '';
     await addCommunityComment(postId, currentUser, content);
     loadCommunityComments(postId);
+    showInterstitialAd();
   }
 
   function showCommentUserOptions(username, btnId) {
@@ -7988,6 +7996,8 @@ ${text}`;
         const spicyCount = (userData.spicy_lover || 0) + 1;
         checkAchievement('spicy_lover', spicyCount);
       }
+
+      showInterstitialAd();
     }
   }
   async function saveJournalFromCompletion() {
@@ -8050,6 +8060,8 @@ ${text}`;
         const spicyCount = (userData.spicy_lover || 0) + 1;
         checkAchievement('spicy_lover', spicyCount);
       }
+
+      showInterstitialAd();
 
       if (btn) {
         const iconSpan = btn.querySelector('span:first-child');
@@ -11514,7 +11526,7 @@ Return ONLY raw JSON. No markdown, no backticks.`;
           ? '✅ ' + saveRes.message + ' — tap Edit to review and add a photo.'
           : '❌ ' + saveRes.message;
       }
-      if (saveRes.status === 'Success') { clearScanPhoto(); init(); }
+      if (saveRes.status === 'Success') { clearScanPhoto(); init(); showInterstitialAd(); }
     } catch(err) {
       clearInterval(interval);
       if (status) status.style.display = 'none';
@@ -13709,6 +13721,9 @@ ${r.ingredients}`;
 
             // Track achievement for using roulette
             checkAchievement('first_cook', 1); // This will trigger if first cook
+
+            // Show interstitial ad
+            showInterstitialAd();
 
             // Open the recipe
             if (document.getElementById('detailModal').classList.contains('active')) {
