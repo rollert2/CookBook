@@ -7214,9 +7214,9 @@
       '</div>';
 
     const actionsEl = document.getElementById('adminUserActions');
-    const isPro = settings?.settings?.is_pro || false;
+    const isPro = proMap[userId] || false; // Use the proMap we built in loadAdminUsers
     if (actionsEl) actionsEl.innerHTML =
-      '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:var(--gold);border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
+      '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isPro ? 'var(--text-faint)' : 'var(--gold)') + ';border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
       '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
       '<div onclick="adminSendMessage(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message ' + username + '</div>' +
       '<div onclick="adminSetEmail(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">📧 Set / Clear Email</div>' +
@@ -7225,8 +7225,12 @@
   }
   async function toggleAdminProStatus(userId, currentStatus) {
     const newStatus = !currentStatus;
+    console.log('Attempting to update user:', userId, 'to Pro status:', newStatus);
+    
     // Update both JSON 'settings' column AND direct 'is_pro' column
+    // Ensure we are patching the correct table: user_settings
     const res = await sbFetch('PATCH', 'user_settings', { is_pro: newStatus, settings: { is_pro: newStatus } }, 'user_id=eq.' + userId);
+    
     console.log('Pro status update result:', res);
     if (res !== null) {
       rcAlert('✅ User status updated to ' + (newStatus ? 'Pro' : 'Free'));
