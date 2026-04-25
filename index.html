@@ -973,7 +973,6 @@
       <!-- Search / filter bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="pantryFilterInput" placeholder="🔍 Filter ingredients..." oninput="renderPantry()" style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.82em;font-family:inherit;">
-        <button onclick="openAddPantryModal()" title="Bulk add" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1em;display:flex;align-items:center;justify-content:center;">📝</button>
       </div>
       <!-- Selection mode + search bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
@@ -12644,7 +12643,7 @@ ${r.ingredients}`;
       'Produce': ['onion','garlic','potato','carrot','tomato','spinach','lettuce','celery','bell pepper','pepper','broccoli','cauliflower','cucumber','zucchini','mushroom','avocado','lemon','lime','banana','apple','orange','berry','grape','melon','pineapple','mango','herb','cilantro','parsley','basil','ginger','jalapeno','kale','cabbage','radish','beet','sweet potato','corn','squash','eggplant','asparagus','green bean','pea pod'],
       'Meat & Seafood': ['chicken','beef','pork','fish','shrimp','salmon','turkey','bacon','sausage','ham','lamb','tuna','crab','lobster','tofu','tempeh','steak','ground','prosciutto','duck','anchovy','sardine','scallop'],
       'Dairy & Eggs': ['milk','cheese','egg','butter','yogurt','cream','sour cream','cottage cheese','ricotta','mozzarella','parmesan','cheddar','feta','cream cheese','half and half','whipped','greek yogurt'],
-      'Spices & Seasonings': ['cinnamon','oregano','thyme','rosemary','cumin','paprika','turmeric','garlic powder','onion powder','chili powder','bay leaf','nutmeg','clove','allspice','coriander','dill','basil','parsley','sage','mint','seasoning','pepper','salt','seasoned salt','celery salt','cayenne'],
+      'Spices & Seasonings': ['cinnamon','oregano','thyme','rosemary','cumin','paprika','turmeric','garlic powder','onion powder','chili powder','bay leaf','nutmeg','clove','allspice','coriander','dill','basil','parsley','sage','mint','seasoning','salt','seasoned salt','celery salt','cayenne'],
       'Pantry': ['oil','rice','pasta','flour','sugar','salt','pepper','spice','bean','sauce','vinegar','broth','stock','soup','cereal','oat','bread','cracker','chip','nut','seed','honey','syrup','jam','jelly','peanut','almond','coconut','chocolate','vanilla','baking','yeast','cornstarch','tortilla','noodle','ramen','salsa','ketchup','mustard','mayo','olive','pickle','caper','raisin','date','couscous','quinoa','lentil','chickpea','canned'],
       'Frozen': ['frozen','ice cream','popsicle','fries','tater','fish stick','frozen vegetable','frozen fruit','frozen dinner','pizza'],
       'Beverages': ['water','juice','soda','coffee','tea','beer','wine','sparkling','seltzer','tonic','sports drink']
@@ -12881,15 +12880,52 @@ ${r.ingredients}`;
       resultsEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
         '<span style="font-size:0.75em;color:var(--text-faint);font-weight:600;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '</span>' +
         '<button onclick="document.getElementById(\'pantryFridgeResults\').style.display=\'none\'" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;font-size:0.85em;">✕ Hide</button></div>' +
-        recipes.map(r => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;" onclick="pantryAddRecipe(' + JSON.stringify(r).replace(/"/g, '&quot;') + ')">' +
-          '<div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
-          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(r.match_reason || 'Uses your ingredients') + '</div>' +
-          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
-        '</div>').join('');
+        recipes.map(r => {
+          const ings = parseIngredients(r.ingredients);
+          return '<div style="padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;">' +
+            '<div style="font-weight:700;font-size:0.85em;margin-bottom:6px;color:var(--gold);">' + escapeHtml(r.title) + '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+              ings.map(ing => {
+                const cleaned = ing.replace(/\*+/g, '').trim();
+                if (!cleaned) return '';
+                return '<div onclick="pantryAddSearchIngredient(\'' + escapeHtml(cleaned) + '\', this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);cursor:pointer;font-size:0.78em;color:var(--text-dim);font-weight:600;transition:all 0.15s;user-select:none;">' + escapeHtml(cleaned) + '</div>';
+              }).join('') +
+            '</div></div>';
+        }).join('');
     } catch(e) {
       statusEl.style.display = 'none';
       resultsEl.style.display = 'block';
       resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + e.message + '</div>';
+    }
+  }
+
+  // ── ADD FROM ONLINE SEARCH ──────────────────────────────
+  function pantryAddSearchIngredient(text, el) {
+    const cleaned = text.replace(/\*+/g, '').trim().toLowerCase();
+    if (!cleaned) return;
+    if (pantryItems.find(p => p.name === cleaned)) {
+      rcAlert('Already in pantry!', {icon:'⚠️'});
+      return;
+    }
+    if (activePantryTab !== 'personal') {
+      addSharedPantryItem(activePantryTab, cleaned, '', '', currentUser)
+        .then(() => switchPantryTab(activePantryTab));
+    } else {
+      pantryItems.push({ name: cleaned, quantity: '', expiry: '' });
+      savePantry();
+      renderPantry();
+      findPantryMatches();
+    }
+    // Flash the chip green briefly
+    if (el) {
+      el.style.borderColor = 'var(--green)';
+      el.style.background = 'rgba(76,175,125,0.15)';
+      el.style.color = 'var(--green)';
+      setTimeout(() => {
+        el.style.borderColor = 'var(--glass-border)';
+        el.style.background = 'var(--glass)';
+        el.style.color = 'var(--text-dim)';
+      }, 600);
     }
   }
 
