@@ -4847,9 +4847,9 @@
   }
 
   function handleProUpgrade() {
-    // PayPal checkout link
-    window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YOUR_PAYPAL_BUTTON_ID', '_blank');
-    rcAlert('⭐ Go Pro\n\nRedirecting to PayPal to complete your Pro upgrade. Once payment is confirmed, your account will be upgraded automatically.');
+    // LemonSqueezy checkout link
+    window.open('https://rollcookbook.lemonsqueezy.com/checkout/buy/0a7eeff0-bb1a-443c-aed1-3eeb4672649c', '_blank');
+    rcAlert('⭐ Go Pro\n\nRedirecting to checkout to complete your Pro upgrade. Once payment is confirmed, your account will be upgraded automatically.');
   }
 
   function updateProUI() {
@@ -7186,12 +7186,24 @@
       '</div>';
 
     const actionsEl = document.getElementById('adminUserActions');
+    const isPro = settings?.settings?.is_pro || false;
     if (actionsEl) actionsEl.innerHTML =
+      '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:var(--gold);border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
       '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
       '<div onclick="adminSendMessage(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message ' + username + '</div>' +
       '<div onclick="adminSetEmail(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">📧 Set / Clear Email</div>' +
       '<div onclick="adminDeleteUser(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid var(--red);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--red);">🗑 Delete account</div>' +
       '<button onclick="this.closest(\'[style*=z-index]\').nextSibling?.remove();this.closest(\'[style*=z-index]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+  }
+  async function toggleAdminProStatus(userId, currentStatus) {
+    const newStatus = !currentStatus;
+    const res = await sbFetch('PATCH', 'user_settings', { settings: { is_pro: newStatus } }, 'user_id=eq.' + userId);
+    if (res !== null) {
+      rcAlert('✅ User status updated to ' + (newStatus ? 'Pro' : 'Free'));
+      document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+    } else {
+      rcAlert('❌ Failed to update status');
+    }
   }
   async function adminFollowUser(username) {
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
