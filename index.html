@@ -7126,14 +7126,21 @@
     const el = document.getElementById('adminUserList');
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
     
-    // Fetch users and their pro status
-    const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at,user_settings(is_pro)&order=created_at.desc');
+    // Fetch users
+    const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at&order=created_at.desc');
     
     if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
     
+    // Fetch all settings to map pro status
+    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro');
+    const proMap = {};
+    if (allSettings) {
+      allSettings.forEach(s => { if (s.is_pro) proMap[s.user_id] = true; });
+    }
+    
     el.innerHTML = (data||[]).map(u => {
       const secIcon = u.is_secured ? '🔒' : '🔓';
-      const proStatus = (u.user_settings && u.user_settings[0] && u.user_settings[0].is_pro) ? ' ⭐' : '';
+      const proStatus = proMap[u.id] ? ' ⭐' : '';
       const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
       
       return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
