@@ -973,7 +973,7 @@
       <!-- Search / filter bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="pantryFilterInput" placeholder="🔍 Filter ingredients..." oninput="renderPantry()" style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.82em;font-family:inherit;">
-        <button onclick="openAddPantryModal()" style="padding:8px 11px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Add item">📝</button>
+        <button onclick="openCommonItemsPicker('pantry')" style="padding:8px 11px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Common items">🧺</button>
       </div>
       <!-- Selection mode + search bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
@@ -11207,7 +11207,8 @@ ${text}`;
     ]
   };
 
-  function openCommonItemsPicker() {
+  function openCommonItemsPicker(target) {
+    const isPantry = target === 'pantry';
     // Track quantities per item: { 'Bananas': 2, 'Eggs': 1 }
     const selected = {};
 
@@ -11222,7 +11223,7 @@ ${text}`;
     // Header
     const header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--glass-border);flex-shrink:0;';
-    header.innerHTML = '<div style="font-size:1em;font-weight:800;">🧺 Common Items</div>' +
+    header.innerHTML = '<div style="font-size:1em;font-weight:800;">' + (isPantry ? '🧺 Add to Pantry' : '🧺 Common Items') + '</div>' +
       '<button onclick="document.getElementById(\'commonItemsModal\').remove();document.getElementById(\'commonItemsOverlay\').remove();" style="background:none;border:none;color:var(--text-faint);font-size:1.2em;cursor:pointer;padding:4px;">✕</button>';
 
     // Search bar
@@ -11332,11 +11333,40 @@ ${text}`;
     const allPlusButtons = () => modal.querySelectorAll('[data-item]');
 
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = '✓ Add to List';
+    confirmBtn.textContent = isPantry ? '✓ Add to Pantry' : '✓ Add to List';
     confirmBtn.style.cssText = 'padding:12px 22px;background:var(--gold);border:none;border-radius:20px;color:var(--bg);font-weight:700;font-size:0.88em;cursor:pointer;font-family:inherit;flex-shrink:0;';
     confirmBtn.onclick = () => {
       const entries = Object.entries(selected);
       if (entries.length === 0) { modal.remove(); overlay.remove(); return; }
+
+      if (isPantry) {
+        // Add to pantry
+        entries.forEach(([item, qty]) => {
+          const name = item.toLowerCase();
+          if (pantryItems.find(p => p.name === name)) return;
+          if (activePantryTab !== 'personal') {
+            addSharedPantryItem(activePantryTab, name, '', '', currentUser);
+          } else {
+            pantryItems.push({ name, quantity: '', expiry: '' });
+          }
+        });
+        if (activePantryTab === 'personal') {
+          savePantry();
+          renderPantry();
+          findPantryMatches();
+        } else {
+          switchPantryTab(activePantryTab);
+        }
+        modal.remove();
+        overlay.remove();
+        const total = entries.length;
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+        toast.textContent = '✅ ' + total + ' item' + (total !== 1 ? 's' : '') + ' added to your pantry!';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+        return;
+      }
 
       // Determine which list is active — check full-page shared list first, then panel tab
       const fullPageSharedId = shopPageActiveListId; // set when shopping page shared tab is open
