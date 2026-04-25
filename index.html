@@ -4854,10 +4854,10 @@
     const isUuid = currentUser.length === 36 && currentUser.includes('-');
     const query = isUuid ? 'id=eq.' + currentUser : 'username=eq.' + currentUser;
     console.log('Querying user with:', query);
-    const { data: user } = await sbFetch('GET', 'users', null, query + '&select=email');
+    const user = await sbFetch('GET', 'users', null, query + '&select=email');
     console.log('User data result:', user);
     
-    if (!user || !user[0] || !user[0].email) {
+    if (!user || !user.length || !user[0].email) {
       rcAlert('⚠️ Email Required\n\nPlease secure your account with an email address in Profile Settings before upgrading to Pro. This ensures your purchase is linked to your account.');
       return;
     }
