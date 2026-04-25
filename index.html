@@ -10260,6 +10260,43 @@ ${text}`;
     await enterApp(username);
   }
 
+  // ── Email/password sign in ──────────────────────────────────
+  async function attemptAuthLogin() {
+    const username = (document.getElementById('authUsername')?.value || '').trim().toLowerCase();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!username) { showLoginError('Please enter your username.'); return; }
+    if (!/^[a-z0-9_]+$/.test(username) || username.length < 2) {
+      showLoginError('Username can only contain letters, numbers, and underscores.'); return;
+    }
+
+    // If no password, use legacy guest flow
+    if (!password) {
+      return attemptLegacyLogin(username);
+    }
+
+    // Look up email from username
+    const userRow = await sbFetch('GET', 'users', null, 'username=eq.' + username + '&select=email,is_secured,auth_id').catch(() => null);
+    const user = userRow && userRow[0];
+
+    if (!user || !user.email) {
+      // User exists but no email — guest login
+      return attemptLegacyLogin(username);
+    }
+
+    // Auth login with email + password via API route
+    const loginRes = await apiAuth('signin', { email: user.email, password });
+
+    if (!loginRes.ok) {
+      showLoginError(loginRes.data?.error || 'Incorrect password.');
+      return;
+    }
+
+    const session = loginRes.data?.session || loginRes.data;
+    localStorage.setItem('rc_session', JSON.stringify(session));
+    await enterApp(username);
+  }
+
   // ── Legacy guest login (username only, no password) ─────────
   async function attemptLegacyLogin(username) {
     const errEl = document.getElementById('loginError');
