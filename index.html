@@ -7789,6 +7789,9 @@
     `;
     document.body.appendChild(sheet);
   }
+
+  // ═══ PROFILE TABS ═════════════════════════════════════════
+  function switchProfileTab(tab) {
     ['profile','friends'].forEach(t => {
       const el = document.getElementById('profileTab_' + t);
       const btn = document.getElementById('profileTabBtn_' + t);
@@ -7801,6 +7804,7 @@
     });
     if (tab === 'friends') loadFollowingAndActivity();
     if (tab === 'profile') renderProfileNotifications();
+  }
   }
 
   // ═══ ACTIVITY FEED ════════════════════════════════════════
