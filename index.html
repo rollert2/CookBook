@@ -1903,8 +1903,13 @@
     <div class="settings-section">
       <div class="settings-section-title">🔒 Account Security</div>
       <div id="accountSecurityStatus" style="font-size:0.82em;color:var(--text-faint);margin-bottom:12px;"></div>
-      <button onclick="openChangePasswordSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;text-align:left;">🔑 Change Password</button>
-      <button onclick="openChangeEmailSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">📧 Change Email</button>
+      <div id="accountSecurityBanner" style="display:none;background:rgba(224,85,85,0.12);border:2px solid var(--red);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+        <div style="font-size:0.85em;font-weight:700;color:var(--red);margin-bottom:4px;">🔓 Account Not Secured</div>
+        <div style="font-size:0.78em;color:var(--text-dim);line-height:1.5;">Add an email and password to protect your account.</div>
+        <button onclick="openSecureAccountSheet()" style="margin-top:10px;width:100%;padding:10px;background:var(--red);border:none;border-radius:var(--radius-sm);color:#fff;font-weight:700;font-size:0.82em;cursor:pointer;font-family:inherit;">🔒 Secure My Account</button>
+      </div>
+      <button id="settingsChangePasswordBtn" onclick="openChangePasswordSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;text-align:left;">🔑 Change Password</button>
+      <button id="settingsChangeEmailBtn" onclick="openChangeEmailSheet()" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">📧 Change Email</button>
     </div>
     <div style="height:16px;"></div>
     <div class="settings-section">
@@ -6411,7 +6416,8 @@
   }
 
   // ═══ ADD TO MEAL PLAN FROM DETAIL VIEW ═══════════════════════
-  function openAddToPlannerSheet() {
+  async function openAddToPlannerSheet() {
+    if (!(await isPro())) { rcAlert('📅 Meal Planning\n\nMeal planning with a calendar view is a premium feature. Upgrade to Pro to plan your meals.'); return; }
     const r = allRecipes[activeRecipeIndex];
     if (!r) return;
 
@@ -7315,8 +7321,9 @@
   }
 
   async function adminDeleteUser(username, userId) {
+    const confirmed = await rcConfirm('Are you sure you want to permanently delete <strong>' + escapeHtml(username) + '</strong>? This will remove all their recipes, settings, and data. This action cannot be undone.', { icon: '⚠️', title: 'Delete Account?', confirmText: 'Delete', danger: true });
+    if (!confirmed) return;
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
-    // Admin delete — no confirmation needed
     // Delete user's recipes, settings, planner, follows
     await sbFetch('DELETE', 'recipes?user_id=eq.'+userId, null);
     await sbFetch('DELETE', 'user_settings?user_id=eq.'+userId, null);
@@ -8220,15 +8227,9 @@ ${text}`;
 
       showInterstitialAd();
 
-      if (btn) {
-        const iconSpan = btn.querySelector('span:first-child');
-        const textSpan = btn.querySelector('span:last-child');
-        if (iconSpan) iconSpan.textContent = '✅';
-        if (textSpan) textSpan.textContent = 'COOKED!';
-        btn.style.background = 'rgba(76,175,125,0.15)';
-        btn.style.color = '#4caf7d';
-        btn.style.opacity = '1';
-      }
+      // Show the cook completion screen (same as after cook mode ends)
+      cookRecipeIndex = activeRecipeIndex;
+      openCookCompletion();
       renderDetailContent();
     } else {
       if (btn) {
@@ -9217,7 +9218,8 @@ ${text}`;
   }
 
   // Add leftovers shortcut to cook completion screen
-  function addLeftoverFromCompletion() {
+  async function addLeftoverFromCompletion() {
+    if (!(await isPro())) { rcAlert('🥡 Log Leftovers\n\nLogging leftovers is a premium feature. Upgrade to Pro to unlock it.'); return; }
     const r = allRecipes[cookRecipeIndex];
     if (!r) return;
     const leftovers = getLeftovers();
@@ -10714,15 +10716,24 @@ ${text}`;
   function refreshAccountSecurityStatus() {
     const el = document.getElementById('accountSecurityStatus');
     if (!el) return;
+    const banner = document.getElementById('accountSecurityBanner');
+    const pwdBtn = document.getElementById('settingsChangePasswordBtn');
+    const emailBtn = document.getElementById('settingsChangeEmailBtn');
     sbFetch('GET', 'users', null, 'username=eq.' + currentUser + '&select=is_secured,email').then(rows => {
       const u = rows && rows[0];
       const isSecured = u && (u.is_secured === true || (u.email && u.email.trim()));
       if (isSecured) {
         el.innerHTML = '🔒 <strong>Secured</strong> — signed in with email and password.' + (u.email ? '<br><span style="color:var(--text-faint);">Email: ' + escapeHtml(u.email) + '</span>' : '');
         el.style.color = 'var(--green)';
+        if (banner) banner.style.display = 'none';
+        if (pwdBtn) pwdBtn.style.display = '';
+        if (emailBtn) emailBtn.style.display = '';
       } else {
         el.innerHTML = '🔓 <strong>Not secured</strong> — no password set. Anyone who knows your username can log in.';
         el.style.color = 'var(--gold)';
+        if (banner) banner.style.display = '';
+        if (pwdBtn) pwdBtn.style.display = 'none';
+        if (emailBtn) emailBtn.style.display = 'none';
       }
     }).catch(() => {});
   }
@@ -11701,6 +11712,8 @@ Return ONLY raw JSON. No markdown, no backticks.`;
     if (_subPopup) { _subPopup.remove(); _subPopup = null; }
 
     const popup = document.createElement('div');
+    const popupId = 'subPopup_' + Date.now();
+    popup.id = popupId;
     popup.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:70vh;overflow-y:auto;';
     _subPopup = popup;
 
@@ -11710,7 +11723,8 @@ Return ONLY raw JSON. No markdown, no backticks.`;
 
     popup.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">SUBSTITUTES FOR</div>' +
       '<div style="font-size:0.95em;font-weight:800;margin-bottom:14px;">' + escapeHtml(ingredient) + '</div>' +
-      '<div id="subContent" style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">Finding substitutes...</div>';
+      '<div id="subContent" style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">Finding substitutes...</div>' +
+      '<button onclick="var p=document.getElementById(\'' + popupId + '\');var o=document.querySelector(\'[style*=\"z-index:699\"]\');if(p)p.remove();if(o)o.remove();_subPopup=null;" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
 
     document.body.appendChild(ov);
     document.body.appendChild(popup);
@@ -11727,14 +11741,19 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
     fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, maxTokens: 400 })
+      body: JSON.stringify({ prompt, maxTokens: 600 })
     }).then(r => r.json()).then(data => {
       const el = document.getElementById('subContent');
       if (!el) return;
       if (data.error) { el.innerHTML = '<span style="color:var(--red);">Could not load substitutes.</span>'; return; }
-      el.innerHTML = (data.text || '').trim().split('\n\n').filter(Boolean).map(p =>
+      let text = (data.text || '').trim();
+      // If the text doesn't end with sentence-ending punctuation, it may have been truncated
+      if (text && !/[.!?…"']\s*$/.test(text)) {
+        text += '…';
+      }
+      el.innerHTML = text.split('\n\n').filter(Boolean).map(p =>
         '<div style="padding:10px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;line-height:1.6;color:var(--text);">' + escapeHtml(p.trim()) + '</div>'
-      ).join('') + '<button onclick="var p=this.parentNode.parentNode;var o=document.querySelector(\'[style*=z-index:699]\');p.remove();if(o)o.remove();_subPopup=null;" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+      ).join('');
     }).catch(() => {
       const el = document.getElementById('subContent');
       if (el) el.innerHTML = '<span style="color:var(--red);">Network error. Try again.</span>';
@@ -11877,6 +11896,7 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
   // ═══ NUTRITION ESTIMATES ════════════════════════════════
 
   async function showNutritionEstimate() {
+    if (!(await isPro())) { rcAlert('🥗 Nutrition Estimates\n\nAI-powered nutrition estimates are a premium feature. Upgrade to Pro to see nutrition info.'); return; }
     const r = allRecipes[activeRecipeIndex];
     if (!r) return;
 
@@ -11899,7 +11919,7 @@ Keep it concise and practical. Format as plain text with each substitute on a ne
     document.body.appendChild(ov);
     document.body.appendChild(sheet);
 
-    const prompt = `Estimate the nutrition for this recipe per serving. Return ONLY valid JSON with these keys: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, disclaimer. All values must be numbers. Example: {"calories":350,"protein_g":25,"carbs_g":30,"fat_g":15,"fiber_g":4,"sodium_mg":600,"disclaimer":"Rough estimate only"}
+    const prompt = `Estimate the nutrition for this recipe per serving. Be careful to distinguish between similar-sounding ingredients — for example, "chicken broth" is mostly water with minimal protein, NOT the same as chicken meat. Similarly, "coconut milk" is different from "coconut oil", "tomato sauce" from "tomato paste", etc. Return ONLY valid JSON with these keys: calories, protein_g, carbs_g, fat_g, fiber_g, sodium_mg, disclaimer. All values must be numbers. Example: {"calories":350,"protein_g":25,"carbs_g":30,"fat_g":15,"fiber_g":4,"sodium_mg":600,"disclaimer":"Rough estimate only"}
 
 Recipe: ${r.title}
 Servings: ${r.servings || 'unknown'}
@@ -12969,17 +12989,42 @@ ${r.ingredients}`;
   }
 
   // ═══ SHOPPING LIST SHARE AS TEXT ══════════════════════════════════════
-  function shareShoppingListAsText() {
+  async function shareShoppingListAsText() {
+
+    // Determine which list to share
+    const isSharedList = !!(activeSharedListId || shopPageActiveListId);
+    const listId = activeSharedListId || shopPageActiveListId;
+
+    // Fetch shared list items if needed (shop page may not have them cached)
+    let sharedItems = null;
+    if (isSharedList) {
+      sharedItems = activeSharedListId ? sharedListItems : (await getSharedListItems(listId).catch(() => []));
+    }
+
+    // Check emptiness EARLY — before building any text
+    if (isSharedList) {
+      if (!sharedItems || sharedItems.filter(i => !i.checked).length === 0) {
+        if (!sharedItems || sharedItems.length === 0) { rcAlert('List is empty!'); return; }
+        rcAlert('All items are checked! Uncheck some items to share.'); return;
+      }
+    } else {
+      const personalItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
+      if (personalItems.filter(i => !i.checked).length === 0) {
+        if (personalItems.length === 0) { rcAlert('List is empty!'); return; }
+        rcAlert('All items are checked! Uncheck some items to share.'); return;
+      }
+    }
+
     let listText = '';
-    
-    if (activeSharedListId) {
-      // Shared list
-      listText = '🛒 Shopping List: ' + activeSharedListName + '\n\n';
-      if (sharedListItems && sharedListItems.length > 0) {
-        const unchecked = sharedListItems.filter(i => !i.checked);
+
+    if (isSharedList) {
+      const listName = activeSharedListName || 'Shared List';
+      listText = '🛒 Shopping List: ' + listName + '\n\n';
+      if (sharedItems && sharedItems.length > 0) {
+        const unchecked = sharedItems.filter(i => !i.checked);
         const groups = {};
         unchecked.forEach(item => {
-          const group = item.item_group || 'Other';
+          const group = item.item_group || item.group || 'Other';
           if (!groups[group]) groups[group] = [];
           groups[group].push(item.text);
         });
@@ -13005,13 +13050,6 @@ ${r.ingredients}`;
         groups[group].forEach(item => { listText += '  • ' + item + '\n'; });
         listText += '\n';
       });
-    }
-    
-    if (activeSharedListId) {
-      if (!sharedListItems || sharedListItems.filter(i => !i.checked).length === 0) { rcAlert('List is empty!'); return; }
-    } else {
-      const personalItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
-      if (personalItems.filter(i => !i.checked).length === 0) { rcAlert('List is empty!'); return; }
     }
     
     // Show share options
