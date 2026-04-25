@@ -10541,11 +10541,11 @@ ${text}`;
     ov.onclick = () => { sheet.remove(); ov.remove(); };
     sheet.innerHTML =
       '<div style="font-size:1em;font-weight:800;margin-bottom:6px;">🔒 Secure Your Account</div>' +
-      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Add an email and password. You need both to protect your account.</div>' +
+      '<div style="font-size:0.82em;color:var(--text-dim);margin-bottom:16px;line-height:1.5;">Add an email and password to protect your account.</div>' +
       '<input type="email" id="secureEmail" class="edit-field" placeholder="Email address" style="margin-bottom:8px;" autocomplete="email">' +
       '<input type="password" id="securePassword" class="edit-field" placeholder="Password (min 6 characters)" style="margin-bottom:8px;" autocomplete="new-password">' +
       '<input type="password" id="securePasswordConfirm" class="edit-field" placeholder="Confirm password" style="margin-bottom:4px;" autocomplete="new-password">' +
-      '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:12px;">Password optional — leave blank to add email only. You can set a password later via Settings → Change Password.</div>' +
+      '<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:12px;">Password must be at least 6 characters.</div>' +
       '<div id="secureError" class="ai-result error" style="display:none;margin-bottom:10px;"></div>' +
       '<button onclick="submitSecureAccount()" style="width:100%;padding:13px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-weight:700;font-size:0.95em;cursor:pointer;font-family:inherit;">Save & Secure</button>';
     document.body.appendChild(ov); document.body.appendChild(sheet);
@@ -10559,14 +10559,11 @@ ${text}`;
     const errEl = document.getElementById('secureError');
     errEl.style.display = 'none';
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email.'; errEl.style.display = 'block'; return; }
-    if (password && password.length > 0 && password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
-    if (password && password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
-
-    // Use a placeholder password if none provided — user can reset via email later
-    const effectivePassword = password || Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    if (!password || password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
 
     // Create Supabase auth user
-    const res = await apiAuth('signup', { email, password: effectivePassword, username: currentUser });
+    const res = await apiAuth('signup', { email, password, username: currentUser });
     if (!res.ok && !res.data?.user) {
       errEl.textContent = res.data?.error || 'Could not secure account. That email may already be used.';
       errEl.style.display = 'block'; return;
@@ -11712,8 +11709,6 @@ Return ONLY raw JSON. No markdown, no backticks.`;
     if (_subPopup) { _subPopup.remove(); _subPopup = null; }
 
     const popup = document.createElement('div');
-    const popupId = 'subPopup_' + Date.now();
-    popup.id = popupId;
     popup.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:70vh;overflow-y:auto;';
     _subPopup = popup;
 
@@ -11723,8 +11718,7 @@ Return ONLY raw JSON. No markdown, no backticks.`;
 
     popup.innerHTML = '<div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:6px;">SUBSTITUTES FOR</div>' +
       '<div style="font-size:0.95em;font-weight:800;margin-bottom:14px;">' + escapeHtml(ingredient) + '</div>' +
-      '<div id="subContent" style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">Finding substitutes...</div>' +
-      '<button onclick="var p=document.getElementById(\'' + popupId + '\');var o=document.querySelector(\'[style*=\"z-index:699\"]\');if(p)p.remove();if(o)o.remove();_subPopup=null;" style="width:100%;padding:12px;margin-top:14px;background:transparent;border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Close</button>';
+      '<div id="subContent" style="color:var(--text-faint);font-size:0.85em;padding:12px 0;">Finding substitutes...</div>';
 
     document.body.appendChild(ov);
     document.body.appendChild(popup);
@@ -11732,25 +11726,17 @@ Return ONLY raw JSON. No markdown, no backticks.`;
     // Call AI
     const prompt = `A cook needs a substitute for: "${ingredient}"
 
-Provide 3-4 practical substitutes. For each, give:
-1. The substitute name and amount adjustment if needed
-2. One sentence on when it works best or any taste difference
-
-Keep it concise and practical. Format as plain text with each substitute on a new paragraph. No bullet symbols, no markdown.`;
+Give 3 quick substitutes. For each: name (with amount), then one short sentence on when to use it. Keep each substitute under 2 lines. Plain text, new paragraph per substitute, no bullet symbols.`;
 
     fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, maxTokens: 600 })
+      body: JSON.stringify({ prompt, maxTokens: 800 })
     }).then(r => r.json()).then(data => {
       const el = document.getElementById('subContent');
       if (!el) return;
       if (data.error) { el.innerHTML = '<span style="color:var(--red);">Could not load substitutes.</span>'; return; }
       let text = (data.text || '').trim();
-      // If the text doesn't end with sentence-ending punctuation, it may have been truncated
-      if (text && !/[.!?…"']\s*$/.test(text)) {
-        text += '…';
-      }
       el.innerHTML = text.split('\n\n').filter(Boolean).map(p =>
         '<div style="padding:10px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;line-height:1.6;color:var(--text);">' + escapeHtml(p.trim()) + '</div>'
       ).join('');
