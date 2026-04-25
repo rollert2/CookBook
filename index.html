@@ -12636,29 +12636,39 @@ ${r.ingredients}`;
       const recipeIngredients = allLines.filter(i => i.match(/^[\d½¼¾⅓⅔⅛]/) || i.match(/^(a |an |pinch|handful|dash|splash|to taste)/i));
       // Fall back to all non-blank lines if none qualify (e.g. ingredient-only lists)
       const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
-      
+
+      // Split each line by commas to handle inline comma-separated lists (e.g. "salmon, oil, lemon")
+      const ingItems = [];
+      ingLines.forEach(line => {
+        const parts = line.split(',').map(i => i.trim()).filter(Boolean);
+        ingItems.push(...parts);
+      });
+      // Use individual items if they give more resolution than raw lines
+      const effectiveIngredients = ingItems.length > ingLines.length ? ingItems : ingLines;
+
       // Count how many of the recipe's ingredients are covered by the pantry
       let matchedCount = 0;
-      ingLines.forEach(ing => {
-        // Check if ANY pantry item matches this specific ingredient line
+      effectiveIngredients.forEach(ing => {
+        // Check if ANY pantry item matches this specific ingredient
         const isMatched = pantryItems.some(p => ingredientMatches(p, ing));
         if (isMatched) matchedCount++;
       });
 
-      // % = ingredient lines matched / total ingredient lines
-      const recipePct = ingLines.length > 0 ? Math.min(100, Math.round((matchedCount / ingLines.length) * 100)) : 0;
-      
-      // Count how many pantry items were actually used in this recipe
-      const usedPantryItems = pantryItems.filter(p => ingLines.some(ing => ingredientMatches(p, ing)));
+      // % = individual ingredients matched / total individual ingredients
+      const matchDenominator = effectiveIngredients.length;
+      const recipePct = matchDenominator > 0 ? Math.min(100, Math.round((matchedCount / matchDenominator) * 100)) : 0;
 
-      return { 
-        recipe: r, 
-        matchedPantry: usedPantryItems.map(p => p.name), 
-        matchCount: usedPantryItems.length, 
-        matchedIngredientCount: matchedCount, 
-        pantryTotal: pantryItems.length, 
-        recipePct, 
-        totalIngredients: ingLines.length 
+      // Count which pantry items were actually used in this recipe
+      const usedPantryItems = pantryItems.filter(p => effectiveIngredients.some(ing => ingredientMatches(p, ing)));
+
+      return {
+        recipe: r,
+        matchedPantry: usedPantryItems.map(p => p.name),
+        matchCount: usedPantryItems.length,
+        matchedIngredientCount: matchedCount,
+        pantryTotal: pantryItems.length,
+        recipePct,
+        totalIngredients: matchDenominator
       };
     }).filter(s => {
       // Require minimum pantry items before showing results
