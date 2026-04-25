@@ -2791,6 +2791,22 @@
       const el = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
       if (el) el.style.display = 'none';
     });
+    // Show/hide pro badges on locked features
+    isPro().then(pro => {
+      ['scan','url'].forEach(t => {
+        const btn = document.querySelector('#addModeSelect [onclick*="switchSyncTab(\'' + t + '\')"]');
+        if (!btn) return;
+        let badge = btn.querySelector('.pro-badge-overlay');
+        if (pro) { if (badge) badge.remove(); return; }
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'pro-badge-overlay';
+          badge.style.cssText = 'position:absolute;top:8px;right:8px;background:var(--gold);color:var(--bg);font-size:0.65em;font-weight:800;padding:2px 8px;border-radius:10px;letter-spacing:0.3px;text-transform:uppercase;';
+          badge.textContent = 'PRO';
+          if (btn) { btn.style.position = 'relative'; btn.appendChild(badge); }
+        }
+      });
+    });
   }
   // ═══ ANIMATED MODAL OPEN/CLOSE ═══
   // Moved to ui-interactions.js
@@ -4868,9 +4884,24 @@
       return;
     }
 
-    // LemonSqueezy checkout link
-    window.open('https://rollcookbook.lemonsqueezy.com/checkout/buy/0a7eeff0-bb1a-443c-aed1-3eeb4672649c', '_blank');
-    rcAlert('⭐ Go Pro\n\nRedirecting to checkout. IMPORTANT: Please use the same email address you have registered in Roll Cookbook to ensure your account is upgraded automatically.');
+    // Show email confirmation popup with buy button
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--surface);z-index:900;padding:20px;overflow-y:auto;';
+    sheet.innerHTML = `
+      <div style="display:flex;align-items:center;margin-bottom:20px;">
+        <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
+        <div style="font-weight:800;margin-left:15px;">⭐ Go Pro</div>
+      </div>
+      <div style="text-align:center;padding:16px 0;">
+        <div style="font-size:3em;margin-bottom:12px;">⭐</div>
+        <div style="font-size:1.05em;font-weight:700;margin-bottom:14px;">Almost there!</div>
+        <div style="background:rgba(255,215,0,0.1);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;text-align:left;font-size:0.85em;line-height:1.6;">
+          <div style="font-weight:700;margin-bottom:6px;color:var(--gold);">⚠️ Email Match Required</div>
+          <div style="color:var(--text-faint);">Make sure to use the same email address you have registered in Roll Cookbook (<strong>' + escapeHtml(user[0].email) + '</strong>) when purchasing. This ensures your account is upgraded automatically.</div>
+        </div>
+        <button onclick="var s=this.parentElement.parentElement;window.open('https://rollcookbook.lemonsqueezy.com/checkout/buy/0a7eeff0-bb1a-443c-aed1-3eeb4672649c','_blank');s.remove()" style="width:100%;padding:16px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">🛒 Buy Pro</button>
+      </div>`;
+    document.body.appendChild(sheet);
   }
 
   function updateProUI() {
@@ -7606,12 +7637,13 @@
         return '<div class="ingredient-line" style="font-weight:700;color:var(--gold);font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;padding-bottom:2px;border-bottom:none;">' + decodeHtml(ing) + '</div>';
       }
       const scaled = decodeHtml(convertIngredientUnits(scaleIngredientLine(ing, currentScale), _unitPref));
-      // Use data-ing attribute to avoid quoting issues in onclick
+      const escIngredient = scaled.replace(/'/g, "\\'");
       const div = document.createElement('div');
       div.className = 'ingredient-line';
       div.style.display = 'flex';
       div.style.alignItems = 'center';
-      div.innerHTML = '<div class="quick-add-btn" onclick="console.log(\'Plus clicked\'); event.preventDefault(); event.stopPropagation(); openQuickAddModal(\'' + scaled.replace(/'/g, "\\'") + '\')" style="cursor:pointer;margin-right:8px;color:var(--gold);font-weight:bold;font-size:1.2em;z-index:100;padding:4px;border:1px solid red;">+</div><div class="ingredient-line-dot"></div><span>' + scaled + '</span>';
+      div.innerHTML = '<div onclick="event.preventDefault();event.stopPropagation();openQuickAddModal(\'' + escIngredient + '\')" style="cursor:pointer;margin-right:4px;font-size:1.1em;z-index:100;padding:4px;color:var(--gold);">🛒</div>' +
+        '<div onclick="event.preventDefault();event.stopPropagation();showSubstitution(this,\'' + escIngredient + '\')" style="cursor:pointer;margin-right:6px;font-size:0.9em;z-index:100;padding:4px;color:var(--text-faint);opacity:0.6;">🔄</div><div class="ingredient-line-dot"></div><span>' + scaled + '</span>';
       return div.outerHTML;    }).join('');
 
     // Init servings slider
@@ -7780,7 +7812,7 @@
         <ul style="margin:0;padding-left:20px;line-height:2;">
           <li>📅 <b>Meal Planner:</b> Plan your week and generate shopping lists.</li>
           <li>🧊 <b>Pantry Tracker:</b> Manage ingredients and find matching recipes.</li>
-          <li>🤖 <b>AI Tools:</b> URL import, photo scan, and ingredient swaps.</li>
+          <li>🤖 <b>AI Tools:</b> URL import and photo scan.</li>
           <li>📊 <b>Nutrition:</b> Track your macros and health stats.</li>
           <li>🚫 <b>Ad-Free:</b> Enjoy an uninterrupted cooking experience.</li>
         </ul>
@@ -8007,10 +8039,35 @@ ${text}`;
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
+
+    // Lock URL & Scan behind pro
+    if (tab === 'url' || tab === 'scan') {
+      isPro().then(pro => {
+        if (!pro) {
+          const sheet = document.createElement('div');
+          sheet.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--surface);z-index:900;padding:20px;overflow-y:auto;';
+          sheet.innerHTML = `
+            <div style="display:flex;align-items:center;margin-bottom:20px;">
+              <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
+              <div style="font-weight:800;margin-left:15px;">${tab === 'url' ? '🔗 Import from URL' : '📷 Scan a Recipe'}</div>
+            </div>
+            <div style="text-align:center;padding:20px 0;">
+              <div style="font-size:3em;margin-bottom:12px;">⭐</div>
+              <div style="font-size:1.1em;font-weight:700;margin-bottom:6px;">Pro Feature</div>
+              <div style="font-size:0.85em;color:var(--text-faint);line-height:1.6;margin-bottom:24px;">${tab === 'url' ? 'AI-powered URL import' : 'AI-powered photo scanning'} is available exclusively to Pro subscribers.</div>
+              <button onclick="var s=this.parentElement.parentElement;s.remove();handleProUpgrade()" style="width:100%;padding:15px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">⭐ Go Pro</button>
+            </div>`;
+          document.body.appendChild(sheet);
+          return;
+        }
+        const el = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+        if (el) el.style.display = 'block';
+      });
+      return;
+    }
+
     if (tab === 'manual')  { const el = document.getElementById('tabManual');  if (el) el.style.display = 'block'; }
-    else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
     else if (tab === 'paste')  { const el = document.getElementById('tabPaste');  if (el) el.style.display = 'block'; }
-    else if (tab === 'scan')   { const el = document.getElementById('tabScan');   if (el) el.style.display = 'block'; }
     else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
     else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
     else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
@@ -11640,7 +11697,6 @@ Return ONLY raw JSON. No markdown, no backticks.`;
   let _subPopup = null;
 
   async function showSubstitution(el, ingredient) {
-    if (!(await isPro())) { rcAlert('🔄 Ingredient Substitution\n\nAI-powered ingredient substitution is a premium feature. Upgrade to unlock it.'); return; }
     // Close existing popup
     if (_subPopup) { _subPopup.remove(); _subPopup = null; }
 
