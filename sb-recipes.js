@@ -327,10 +327,15 @@ async function getOrSetRotd(username) {
       if (r && r[0]) return r[0];
     }
   } catch(e) {}
-  const recipes = await sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`);
-  if (!recipes || recipes.length === 0) return null;
+  // Combine user's recipes with others for variety
+  const [myRecipes, otherRecipes] = await Promise.all([
+    sbFetch('GET', 'recipes', null, `user_id=eq.${userId}&select=*`),
+    sbFetch('GET', 'recipes', null, `user_id=neq.${userId}&select=*&limit=150`)
+  ]);
+  const pool = [...(myRecipes || []), ...(otherRecipes || [])];
+  if (!pool || pool.length === 0) return null;
   const seed = today.split('-').reduce((a, b) => a + parseInt(b), 0);
-  const pick = recipes[seed % recipes.length];
+  const pick = pool[seed % pool.length];
   try {
     await sbFetch('PATCH', `user_settings?user_id=eq.${userId}`,
       { rotd_recipe_id: pick.id, rotd_date: today });

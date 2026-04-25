@@ -45,7 +45,7 @@ function renderRecipes() {
     const diffBadge = r.difficulty ? '<span class="card-difficulty ' + r.difficulty + '" style="font-size:0.6em;padding:2px 6px;border-radius:6px;font-weight:700;position:absolute;bottom:8px;right:10px;z-index:2;">' + (r.difficultyLabel || r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)) + '</span>' : '';
     const imgContent = hasImg
       ? '<img src="' + r.image + '" loading="lazy" onload="this.classList.remove(\'loading\')" class="loading"><div class="card-img-gradient"></div><div class="card-category-overlay">' + r.category + '</div>' + diffBadge
-      : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>';
+      : '<div class="card-placeholder">' + r.title.charAt(0) + '</div>' + diffBadge;
     const timeHtml = r.cookTime && r.cookTime.length < 30 ? '<span class="card-time">⏱ ' + r.cookTime + '</span>' : '';
     const ratingHtml = r.rating ? '<span class="card-rating">★ ' + r.rating + '</span>' : '';
     const colHtml = colName ? '<span class="card-collection">📁 ' + colName + '</span>' : '';
