@@ -2574,8 +2574,9 @@
     }
     
     console.log('Setting UI to appScreen');
+    const pro = await isPro();
     document.getElementById('userBadgeAvatar').textContent = currentUser.charAt(0).toUpperCase();
-    document.getElementById('userBadgeName').textContent = currentUser;
+    document.getElementById('userBadgeName').textContent = (pro ? '⭐ ' : '') + currentUser;
     // Load avatar into header badge
     getUserAvatar(currentUser).then(url => {
       const el = document.getElementById('userBadgeAvatar');
@@ -3593,11 +3594,13 @@
         : '<div class="profile-avatar-large" onclick="openSettingsModal()" style="cursor:pointer;">' + currentUser.charAt(0).toUpperCase() + '</div>';
       const hero = document.getElementById('profileHero');
       // Load bio for hero
-      getUserProfile(currentUser).then(profile => {
+      getUserProfile(currentUser).then(async (profile) => {
         const bioHtml = (profile && profile.bio) ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '';
-        
-        hero.innerHTML = avatarHtml +
-          '<div class="profile-username">' + currentUser + '</div>' +
+        const pro = await isPro();
+        const proBtn = (!pro) ? '<button onclick="openProFeaturesModal()" style="margin-bottom:10px;padding:6px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.75em;font-weight:700;cursor:pointer;font-family:inherit;">⭐ View Pro Features</button>' : '';
+
+        hero.innerHTML = proBtn + avatarHtml +
+          '<div class="profile-username">' + (pro ? '⭐ ' : '') + currentUser + '</div>' +
           bioHtml +
           '<div class="profile-stats">' +
           '<div class="profile-stat" onclick="closeProfileAnimated();setTimeout(()=>{switchTab(\'recipes\');},200);" style="cursor:pointer;"><div class="profile-stat-num">' + stats.recipeCount + '</div><div class="profile-stat-label">Recipes</div></div>' +
@@ -4807,7 +4810,7 @@
 
   async function initAdMob() {
     const pro = await isPro();
-    if (pro && currentUser !== 'rollert2') return; // Pro users get no ads, except admin for testing
+    if (pro) return; // Pro users get no ads
     // Enable banner via Median AdMob plugin
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
@@ -4840,8 +4843,8 @@
     }
   }
 
-  function showInterstitialAd() {
-    if (_proStatus && currentUser !== 'rollert2') return;
+  async function showInterstitialAd() {
+    if (await isPro()) return;
     if (typeof median !== 'undefined' && median.admob && median.admob.showInterstitialIfReady) {
       median.admob.showInterstitialIfReady();
     }
@@ -5721,7 +5724,22 @@
 
   async function renderPlanner() {
     if (!(await isPro())) {
-      document.getElementById('plannerContent').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"><div style="font-size:3em;margin-bottom:16px;">⭐</div><div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Meal Planner</div><div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Plan your week, reduce food waste, and stay organized with the meal planner.<br><br>This is a premium feature.</div><button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;">⭐ Go Pro</button></div>';
+      document.getElementById('plannerContent').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+          <div style="font-size:3em;margin-bottom:16px;">⭐</div>
+          <div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Meal Planner</div>
+          <div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Plan your week, reduce food waste, and stay organized with the meal planner.</div>
+          <button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:30px;">⭐ Go Pro</button>
+          <div style="width:100%;max-width:400px;text-align:left;background:var(--glass);padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
+            <div style="font-weight:700;margin-bottom:10px;color:var(--text);">Unlock Pro Features:</div>
+            <ul style="margin:0;padding-left:20px;font-size:0.85em;color:var(--text-dim);line-height:1.6;">
+              <li>📅 <b>Full Weekly Planning:</b> Drag and drop meals for the entire week.</li>
+              <li>🛒 <b>Smart Shopping:</b> Automatically generate lists from your meal plan.</li>
+              <li>🔄 <b>Templates:</b> Save and reuse your favorite weekly meal plans.</li>
+              <li>📉 <b>Leftover Tracker:</b> See what's in your fridge and plan meals around it.</li>
+            </ul>
+          </div>
+        </div>`;
       return;
     }
     const weekStart = getWeekStart(plannerWeekOffset);
@@ -7746,8 +7764,28 @@
     });
   }
 
-  // ═══ PROFILE TABS ═════════════════════════════════════════
-  function switchProfileTab(tab) {
+  function openProFeaturesModal() {
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--surface);z-index:900;padding:20px;overflow-y:auto;';
+    sheet.innerHTML = `
+      <div style="display:flex;align-items:center;margin-bottom:20px;">
+        <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
+        <div style="font-weight:800;margin-left:15px;">⭐ Pro Features</div>
+      </div>
+      <div style="font-size:1.1em;margin-bottom:20px;">Unlock the full power of Roll Cookbook.</div>
+      <div style="background:var(--glass);padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
+        <ul style="margin:0;padding-left:20px;line-height:2;">
+          <li>📅 <b>Meal Planner:</b> Plan your week and generate shopping lists.</li>
+          <li>🧊 <b>Pantry Tracker:</b> Manage ingredients and find matching recipes.</li>
+          <li>🤖 <b>AI Tools:</b> URL import, photo scan, and ingredient swaps.</li>
+          <li>📊 <b>Nutrition:</b> Track your macros and health stats.</li>
+          <li>🚫 <b>Ad-Free:</b> Enjoy an uninterrupted cooking experience.</li>
+        </ul>
+      </div>
+      <button onclick="handleProUpgrade()" style="width:100%;padding:15px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;margin-top:20px;cursor:pointer;">⭐ Go Pro</button>
+    `;
+    document.body.appendChild(sheet);
+  }
     ['profile','friends'].forEach(t => {
       const el = document.getElementById('profileTab_' + t);
       const btn = document.getElementById('profileTabBtn_' + t);
@@ -12383,7 +12421,21 @@ ${r.ingredients}`;
 
   async function loadPantry() {
     if (!(await isPro())) {
-      document.getElementById('pantryContent').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"><div style="font-size:3em;margin-bottom:16px;">🧊</div><div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Pantry Tracker</div><div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Track what you have at home and find recipes that match your ingredients.<br><br>This is a premium feature.</div><button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;">⭐ Go Pro</button></div>';
+      document.getElementById('pantryContent').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+          <div style="font-size:3em;margin-bottom:16px;">🧊</div>
+          <div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Pantry Tracker</div>
+          <div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Track what you have at home and find recipes that match your ingredients.</div>
+          <button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:30px;">⭐ Go Pro</button>
+          <div style="width:100%;max-width:400px;text-align:left;background:var(--glass);padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
+            <div style="font-weight:700;margin-bottom:10px;color:var(--text);">Unlock Pro Features:</div>
+            <ul style="margin:0;padding-left:20px;font-size:0.85em;color:var(--text-dim);line-height:1.6;">
+              <li>🧊 <b>Pantry Inventory:</b> Keep track of your ingredients.</li>
+              <li>🔍 <b>Smart Matching:</b> Find recipes based on what you already have.</li>
+              <li>📉 <b>Waste Reduction:</b> Get suggestions to use up expiring items.</li>
+            </ul>
+          </div>
+        </div>`;
       return;
     }
     try {
@@ -12892,7 +12944,7 @@ ${r.ingredients}`;
       });
     }
     
-    if (listText.trim().split('\n').length <= 2) {
+    if (listText.trim().split('\n').length <= 2 && (activeSharedListId ? (sharedListItems && sharedListItems.filter(i => !i.checked).length === 0) : (JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]').filter(i => !i.checked).length === 0))) {
       rcAlert('List is empty!');
       return;
     }
