@@ -7230,8 +7230,13 @@
     const newStatus = !currentStatus;
     console.log('Attempting to update user:', userId, 'to Pro status:', newStatus);
     
-    // Use UPSERT to ensure the row exists or is updated
-    const res = await sbFetch('POST', 'user_settings', { user_id: userId, is_pro: newStatus }, null);
+    // Try PATCH first (update existing), if it fails (because row doesn't exist), try POST (insert)
+    let res = await sbFetch('PATCH', 'user_settings', { is_pro: newStatus }, 'user_id=eq.' + userId);
+    
+    // If PATCH returned null (no rows affected), try POST
+    if (res === null) {
+      res = await sbFetch('POST', 'user_settings', { user_id: userId, is_pro: newStatus }, null);
+    }
     
     console.log('Pro status update result:', res);
     if (res !== null) {
