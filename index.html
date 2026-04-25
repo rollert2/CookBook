@@ -4793,7 +4793,8 @@
     if (!_proChecked) {
       try {
         const res = await getUserSettings(currentUser);
-        _proStatus = !!(res.settings && res.settings.is_pro);
+        // Check both JSON 'settings' column AND direct 'is_pro' column
+        _proStatus = !!((res.settings && res.settings.is_pro) || res.is_pro);
       } catch(e) {
         _proStatus = false;
       }
@@ -7197,7 +7198,8 @@
   }
   async function toggleAdminProStatus(userId, currentStatus) {
     const newStatus = !currentStatus;
-    const res = await sbFetch('PATCH', 'user_settings', { settings: { is_pro: newStatus } }, 'user_id=eq.' + userId);
+    // Update both JSON 'settings' column AND direct 'is_pro' column
+    const res = await sbFetch('PATCH', 'user_settings', { is_pro: newStatus, settings: { is_pro: newStatus } }, 'user_id=eq.' + userId);
     if (res !== null) {
       rcAlert('✅ User status updated to ' + (newStatus ? 'Pro' : 'Free'));
       document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
