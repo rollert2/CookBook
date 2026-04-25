@@ -2389,6 +2389,9 @@
   setTimeout(() => handleAuthCallback().catch(() => {}), 100);
 
   function showLoginScreen() {
+    // Force remove any stray modals that might be blocking interaction
+    document.querySelectorAll('.modal-overlay').forEach(m => m.remove());
+    
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
     renderSavedUsers();
