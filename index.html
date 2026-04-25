@@ -11748,7 +11748,7 @@ Give 3 quick substitutes. For each: name (with amount), then one short sentence 
     fetch('/api/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, maxTokens: 800 })
+      body: JSON.stringify({ prompt, maxTokens: 1200 })
     }).then(r => r.json()).then(data => {
       const el = document.getElementById('subContent');
       if (!el) return;
