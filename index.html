@@ -7122,6 +7122,9 @@
   }
 
   // ═══ ADMIN USER MANAGEMENT ═══
+  // Make proMap available globally for showAdminUserOptions
+  let adminProMap = {};
+
   async function loadAdminUsers() {
     const el = document.getElementById('adminUserList');
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
@@ -7133,14 +7136,14 @@
     
     // Fetch all settings to map pro status
     const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro');
-    const proMap = {};
+    adminProMap = {};
     if (allSettings) {
-      allSettings.forEach(s => { if (s.is_pro) proMap[s.user_id] = true; });
+      allSettings.forEach(s => { if (s.is_pro) adminProMap[s.user_id] = true; });
     }
     
     el.innerHTML = (data||[]).map(u => {
       const secIcon = u.is_secured ? '🔒' : '🔓';
-      const proStatus = proMap[u.id] ? ' ⭐' : '';
+      const proStatus = adminProMap[u.id] ? ' ⭐' : '';
       const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
       
       return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
@@ -7214,7 +7217,7 @@
       '</div>';
 
     const actionsEl = document.getElementById('adminUserActions');
-    const isPro = proMap[userId] || false; // Use the proMap we built in loadAdminUsers
+    const isPro = adminProMap[userId] || false; // Use the global adminProMap
     if (actionsEl) actionsEl.innerHTML =
       '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isPro ? 'var(--text-faint)' : 'var(--gold)') + ';border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
       '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
