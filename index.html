@@ -4847,10 +4847,17 @@
     }
   }
 
-  function handleProUpgrade() {
+  async function handleProUpgrade() {
+    // Check if user has an email
+    const { data: user } = await sbFetch('GET', 'users', null, 'id=eq.' + currentUser + '&select=email');
+    if (!user || !user[0] || !user[0].email) {
+      rcAlert('⚠️ Email Required\n\nPlease secure your account with an email address in Profile Settings before upgrading to Pro. This ensures your purchase is linked to your account.');
+      return;
+    }
+
     // LemonSqueezy checkout link
     window.open('https://rollcookbook.lemonsqueezy.com/checkout/buy/0a7eeff0-bb1a-443c-aed1-3eeb4672649c', '_blank');
-    rcAlert('⭐ Go Pro\n\nRedirecting to checkout to complete your Pro upgrade. Once payment is confirmed, your account will be upgraded automatically.');
+    rcAlert('⭐ Go Pro\n\nRedirecting to checkout. IMPORTANT: Please use the same email address you have registered in Roll Cookbook to ensure your account is upgraded automatically.');
   }
 
   function updateProUI() {
