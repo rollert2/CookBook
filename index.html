@@ -14,6 +14,7 @@
   <script src="sb-planner.js"></script>
   <script src="sb-community.js"></script>
   <script src="sb-shop.js"></script>
+  <script src="sb-pantry.js"></script>
   <script src="utils.js"></script>
   <script src="ui-interactions.js"></script>
   <script src="profile-management.js"></script>
@@ -950,22 +951,63 @@
 
   <!-- Pantry tab -->
   <div id="pantryContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
+    <!-- Shared Pantry Tabs -->
+    <div id="pantryTabRow" style="display:flex;gap:8px;align-items:center;margin:14px 0 8px;overflow-x:auto;scrollbar-width:none;">
+      <button class="sort-chip active" id="pantryTabPersonal" onclick="switchPantryTab('personal')">🧊 Personal</button>
+      <div id="pantrySharedTabs" style="display:flex;gap:6px;"></div>
+      <button onclick="openCreateSharedPantry()" style="background:none;border:1px dashed var(--text-faint);color:var(--text-faint);padding:6px 12px;border-radius:20px;font-size:0.75em;cursor:pointer;white-space:nowrap;font-family:inherit;">+ New Shared</button>
+    </div>
+    <!-- Shared pantry actions (hidden on personal) -->
+    <div id="pantrySharedActions" style="display:none;margin-bottom:8px;gap:8px;align-items:center;">
+      <button onclick="openPantryInvite()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:4px 10px;border-radius:14px;font-size:0.7em;cursor:pointer;font-family:inherit;">👥 Invite</button>
+      <button onclick="openPantryRename()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:4px 10px;border-radius:14px;font-size:0.7em;cursor:pointer;font-family:inherit;">✏️ Rename</button>
+      <button onclick="openPantryLeave()" style="background:var(--glass);border:1px solid rgba(224,85,85,0.3);color:var(--red);padding:4px 10px;border-radius:14px;font-size:0.7em;cursor:pointer;font-family:inherit;">🚪 Leave</button>
+    </div>
     <!-- Section 1: My Pantry -->
-    <div style="margin:14px 0 6px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);">🧊 My Pantry</div>
-        <button onclick="openAddPantryModal()" style="background:var(--gold);color:var(--bg);border:none;border-radius:12px;padding:2px 10px;font-size:0.7em;font-weight:700;cursor:pointer;">+ Add</button>
+    <div style="margin:0 0 6px;">
+      <!-- Quick add row -->
+      <div class="shop-add-row" id="pantryAddRow">
+        <input type="text" id="pantryInput" placeholder="Add ingredient..." onkeydown="if(event.key==='Enter') addPantryQuickItem()">
+        <button class="shop-add-btn" onclick="addPantryQuickItem()">+</button>
+      </div>
+      <!-- Search / filter bar -->
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="pantryFilterInput" placeholder="🔍 Filter ingredients..." oninput="renderPantry()" style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.82em;font-family:inherit;">
+        <button onclick="openAddPantryModal()" title="Bulk add" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1em;display:flex;align-items:center;justify-content:center;">📝</button>
+      </div>
+      <!-- Selection mode + search bar -->
+      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
+        <span id="pantryItemCount" style="font-size:0.75em;color:var(--text-faint);font-weight:600;"></span>
+        <div style="flex:1;"></div>
+        <button id="pantrySearchAllBtn" onclick="pantrySearchOnline('all')" style="background:var(--gold);border:none;color:var(--bg);padding:5px 12px;border-radius:16px;font-size:0.75em;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">🔍 Search All</button>
+        <button id="pantrySearchSelectedBtn" onclick="pantrySearchOnline('selected')" style="display:none;background:var(--green);border:none;color:white;padding:5px 12px;border-radius:16px;font-size:0.75em;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">🔍 Search Selected (0)</button>
+        <button id="pantryToggleSelectBtn" onclick="togglePantrySelectMode()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:16px;font-size:0.75em;cursor:pointer;white-space:nowrap;font-family:inherit;">☑ Select</button>
+        <button id="pantryBatchDeleteBtn" style="display:none;" onclick="deleteSelectedPantryItems()">🗑</button>
+        <button id="pantryClearBtn" onclick="clearPantry()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:5px 10px;border-radius:16px;font-size:0.75em;cursor:pointer;white-space:nowrap;font-family:inherit;">🗑 Clear</button>
       </div>
       <div id="pantryItemsList" style="margin-bottom:14px;"></div>
-      <button onclick="clearPantry()" style="padding:8px 14px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:var(--radius-sm);font-size:0.78em;cursor:pointer;font-family:inherit;">🗑 Clear All</button>
     </div>
-    <!-- Section 2: Recipes From Your Cookbook -->
+    <!-- Section 2: Online Recipe Search -->
     <div style="margin:20px 0 6px;">
-      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;">📖 Recipes From Your Cookbook</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">🌐 Recipes Online</div>
+        <span style="font-size:0.7em;color:var(--text-faint);">AI-powered from your ingredients</span>
+      </div>
+      <div id="pantryFridgeStatus" class="ai-status" style="display:none;"><div class="spinner"></div><div class="status-text">Finding recipes online...</div></div>
+      <div id="pantryFridgeResults" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <!-- Section 3: Recipes From Your Cookbook -->
+    <div style="margin:20px 0 6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">📖 From Your Cookbook</div>
+        <label style="font-size:0.72em;color:var(--text-dim);cursor:pointer;">
+          <input type="checkbox" id="pantry100Only" onchange="findPantryMatches()"> 100% only
+        </label>
+      </div>
       <div id="pantryRecipeMatches" style="display:flex;flex-direction:column;gap:8px;"></div>
       <div id="pantryNoMatches" style="display:none;text-align:center;padding:30px;color:var(--text-faint);font-size:0.9em;">
         <div style="font-size:2em;margin-bottom:8px;">🧊</div>
-        <div>Add at least 3 ingredients to find matching recipes from your cookbook.</div>
+        <div>Add ingredients to find matching recipes from your cookbook.</div>
       </div>
     </div>
   </div>
@@ -12502,24 +12544,37 @@ ${r.ingredients}`;
   }
 
   // ═══ PANTRY TRACKER ══════════════════════════════════════
-  let pantryItems = []; // Now objects: { name, quantity, expiry }
+  let pantryItems = []; // Current active items: { name, quantity, expiry }
+  let activePantryTab = 'personal';
+  let activePantryListId = null;
+  let pantrySelectMode = false;
+  let pantrySelectedItems = new Set();
 
   async function loadPantry() {
-    if (!(await isPro())) {
-      // ... (Pro gating code remains same)
-      return;
-    }
+    if (!(await isPro())) return;
+    activePantryTab = 'personal';
+    activePantryListId = null;
     try {
-      const stored = localStorage.getItem('pantry_' + currentUser);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Migrate old array-of-strings to array-of-objects if needed
+      // Try Supabase first
+      const settings = await getUserSettings(currentUser).catch(() => ({ settings: {} }));
+      const dbPantry = settings.settings && settings.settings.pantry;
+      if (dbPantry) {
+        const parsed = JSON.parse(dbPantry);
         pantryItems = parsed.map(p => typeof p === 'string' ? { name: p, quantity: '', expiry: '' } : p);
+        localStorage.setItem('pantry_' + currentUser, JSON.stringify(pantryItems));
       } else {
-        pantryItems = [];
+        const stored = localStorage.getItem('pantry_' + currentUser);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          pantryItems = parsed.map(p => typeof p === 'string' ? { name: p, quantity: '', expiry: '' } : p);
+        } else {
+          pantryItems = [];
+        }
       }
     } catch(e) { pantryItems = []; }
+    loadPantrySharedLists();
     renderPantry();
+    findPantryMatches();
   }
 
   function openAddPantryModal() {
@@ -12527,21 +12582,27 @@ ${r.ingredients}`;
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
     modal.innerHTML = `
       <div style="background:var(--bg);width:90%;max-width:400px;padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
-        <div style="font-weight:700;margin-bottom:16px;color:var(--text);">Add Ingredient</div>
-        <input type="text" id="pantryModalName" placeholder="Ingredient name" style="width:100%;padding:10px;margin-bottom:10px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;">
-        <input type="text" id="pantryModalQty" placeholder="Quantity (e.g. 2 cans)" style="width:100%;padding:10px;margin-bottom:10px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;">
+        <div style="font-weight:700;margin-bottom:16px;color:var(--text);font-size:0.92em;">Add Ingredient</div>
+        <input type="text" id="pantryModalName" placeholder="Ingredient name" style="width:100%;padding:10px;margin-bottom:10px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;font-size:0.9em;">
+        <input type="text" id="pantryModalQty" placeholder="Quantity (e.g. 2 cans)" style="width:100%;padding:10px;margin-bottom:10px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;font-size:0.9em;">
+        <input type="date" id="pantryModalExpiry" placeholder="Expiry date" style="width:100%;padding:10px;margin-bottom:10px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;font-size:0.9em;color-scheme:dark;">
         <div style="display:flex;gap:10px;">
-          <button onclick="this.parentElement.parentElement.parentElement.remove()" style="flex:1;padding:10px;background:var(--glass);border:none;color:var(--text);border-radius:8px;cursor:pointer;">Cancel</button>
-          <button onclick="const n=document.getElementById('pantryModalName').value; const q=document.getElementById('pantryModalQty').value; addPantryItem(n,q); this.parentElement.parentElement.parentElement.remove();" style="flex:1;padding:10px;background:var(--gold);border:none;color:var(--bg);border-radius:8px;cursor:pointer;font-weight:700;">Add</button>
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" style="flex:1;padding:10px;background:var(--glass);border:none;color:var(--text);border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.85em;">Cancel</button>
+          <button onclick="const n=document.getElementById('pantryModalName').value; const q=document.getElementById('pantryModalQty').value; const e=document.getElementById('pantryModalExpiry').value; addPantryItem(n,q,e); this.parentElement.parentElement.parentElement.remove();" style="flex:1;padding:10px;background:var(--gold);border:none;color:var(--bg);border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;font-size:0.85em;">Add</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+    setTimeout(() => document.getElementById('pantryModalName')?.focus(), 100);
   }
 
   function addPantryItem(name, quantity, expiry) {
     const text = name.trim().toLowerCase();
-    if (!text || pantryItems.find(p => p.name === text)) return;
+    if (!text) return;
+    if (pantryItems.find(p => p.name === text)) {
+      rcAlert('Already in pantry!', {icon:'⚠️'});
+      return;
+    }
     pantryItems.push({ name: text, quantity: quantity || '', expiry: expiry || '' });
     savePantry();
     renderPantry();
@@ -12555,57 +12616,372 @@ ${r.ingredients}`;
     findPantryMatches();
   }
 
+  async function clearPantry() {
+    if (pantryItems.length === 0) return;
+    if (!await rcConfirm('Clear all pantry ingredients?', {icon:'🧊', title:'Clear pantry?', confirmText:'Clear all', danger:true})) return;
+    if (activePantryTab !== 'personal') {
+      await clearAllSharedPantryItems(activePantryTab);
+      await switchPantryTab(activePantryTab);
+    } else {
+      pantryItems = [];
+      savePantry();
+      renderPantry();
+      findPantryMatches();
+    }
+  }
+
   function savePantry() {
     localStorage.setItem('pantry_' + currentUser, JSON.stringify(pantryItems));
+    if (activePantryTab === 'personal') {
+      // Sync to Supabase in background
+      updateUserSettings(currentUser, { pantry: JSON.stringify(pantryItems) }).catch(() => {});
+    }
+  }
+
+  // Expanded category detection
+  function getPantryCategory(name) {
+    const CATS = {
+      'Produce': ['onion','garlic','potato','carrot','tomato','spinach','lettuce','celery','bell pepper','pepper','broccoli','cauliflower','cucumber','zucchini','mushroom','avocado','lemon','lime','banana','apple','orange','berry','grape','melon','pineapple','mango','herb','cilantro','parsley','basil','ginger','jalapeno','kale','cabbage','radish','beet','sweet potato','corn','squash','eggplant','asparagus','green bean','pea pod'],
+      'Meat & Seafood': ['chicken','beef','pork','fish','shrimp','salmon','turkey','bacon','sausage','ham','lamb','tuna','crab','lobster','tofu','tempeh','steak','ground','prosciutto','duck','anchovy','sardine','scallop'],
+      'Dairy & Eggs': ['milk','cheese','egg','butter','yogurt','cream','sour cream','cottage cheese','ricotta','mozzarella','parmesan','cheddar','feta','cream cheese','half and half','whipped','greek yogurt'],
+      'Spices & Seasonings': ['cinnamon','oregano','thyme','rosemary','cumin','paprika','turmeric','garlic powder','onion powder','chili powder','bay leaf','nutmeg','clove','allspice','coriander','dill','basil','parsley','sage','mint','seasoning','pepper','salt','seasoned salt','celery salt','cayenne'],
+      'Pantry': ['oil','rice','pasta','flour','sugar','salt','pepper','spice','bean','sauce','vinegar','broth','stock','soup','cereal','oat','bread','cracker','chip','nut','seed','honey','syrup','jam','jelly','peanut','almond','coconut','chocolate','vanilla','baking','yeast','cornstarch','tortilla','noodle','ramen','salsa','ketchup','mustard','mayo','olive','pickle','caper','raisin','date','couscous','quinoa','lentil','chickpea','canned'],
+      'Frozen': ['frozen','ice cream','popsicle','fries','tater','fish stick','frozen vegetable','frozen fruit','frozen dinner','pizza'],
+      'Beverages': ['water','juice','soda','coffee','tea','beer','wine','sparkling','seltzer','tonic','sports drink']
+    };
+    for (const [cat, items] of Object.entries(CATS)) {
+      if (items.some(i => name.includes(i))) return cat;
+    }
+    return 'Other';
+  }
+
+  // ── QUICK ADD ───────────────────────────────────────────
+  function addPantryQuickItem() {
+    const input = document.getElementById('pantryInput');
+    const text = input.value.trim().toLowerCase();
+    if (!text) return;
+    if (activePantryTab !== 'personal') {
+      input.value = '';
+      addSharedPantryItem(activePantryTab, text, '', '', currentUser)
+        .then(() => switchPantryTab(activePantryTab));
+      return;
+    }
+    if (pantryItems.find(p => p.name === text)) {
+      rcAlert('Already in pantry!', {icon:'⚠️'});
+      input.value = '';
+      return;
+    }
+    pantryItems.push({ name: text, quantity: '', expiry: '' });
+    input.value = '';
+    savePantry();
+    renderPantry();
+    findPantryMatches();
+  }
+
+  // ── SELECT MODE ─────────────────────────────────────────
+  function togglePantrySelectMode() {
+    pantrySelectMode = !pantrySelectMode;
+    if (!pantrySelectMode) pantrySelectedItems.clear();
+    const selectBtn = document.getElementById('pantryToggleSelectBtn');
+    const deleteBtn = document.getElementById('pantryBatchDeleteBtn');
+    const searchSelBtn = document.getElementById('pantrySearchSelectedBtn');
+    if (selectBtn) selectBtn.textContent = pantrySelectMode ? '✅ Done' : '☑ Select';
+    if (deleteBtn) deleteBtn.style.display = pantrySelectMode ? 'inline-block' : 'none';
+    if (searchSelBtn) searchSelBtn.style.display = 'none';
+    renderPantry();
+  }
+
+  function togglePantryItemSelect(name) {
+    if (!pantrySelectMode) return;
+    if (pantrySelectedItems.has(name)) pantrySelectedItems.delete(name);
+    else pantrySelectedItems.add(name);
+    const deleteBtn = document.getElementById('pantryBatchDeleteBtn');
+    const searchSelBtn = document.getElementById('pantrySearchSelectedBtn');
+    if (searchSelBtn) {
+      searchSelBtn.style.display = pantrySelectedItems.size > 0 ? 'inline-block' : 'none';
+      searchSelBtn.textContent = '🔍 Search Selected (' + pantrySelectedItems.size + ')';
+    }
+    if (deleteBtn) {
+      deleteBtn.style.cssText = 'background:var(--red);border:none;color:white;padding:5px 10px;border-radius:16px;font-size:0.75em;cursor:pointer;white-space:nowrap;font-family:inherit;' + (pantrySelectedItems.size > 0 ? '' : 'display:none;');
+      deleteBtn.textContent = '🗑 Delete (' + pantrySelectedItems.size + ')';
+    }
+    renderPantry();
+  }
+
+  async function deleteSelectedPantryItems() {
+    if (pantrySelectedItems.size === 0) return;
+    if (!await rcConfirm('Delete ' + pantrySelectedItems.size + ' selected item' + (pantrySelectedItems.size > 1 ? 's' : '') + '?', {icon:'🗑️', title:'Delete items?', confirmText:'Delete', danger:true})) return;
+    if (activePantryTab !== 'personal') {
+      for (const name of pantrySelectedItems) {
+        const item = pantryItems.find(p => p.name === name);
+        if (item && item._id) await removeSharedPantryItem(item._id);
+      }
+      pantrySelectedItems.clear();
+      await switchPantryTab(activePantryTab);
+    } else {
+      pantryItems = pantryItems.filter(p => !pantrySelectedItems.has(p.name));
+      pantrySelectedItems.clear();
+      savePantry();
+      renderPantry();
+      findPantryMatches();
+    }
+    togglePantrySelectMode();
+  }
+
+  // ── PANTRY TAB SYSTEM (Personal / Shared) ──────────────
+  async function switchPantryTab(tabId) {
+    if (!tabId) tabId = 'personal';
+    activePantryTab = tabId;
+
+    // Update tab UI
+    document.querySelectorAll('#pantryTabRow .sort-chip').forEach(c => c.classList.remove('active'));
+    if (tabId === 'personal') document.getElementById('pantryTabPersonal')?.classList.add('active');
+    else document.getElementById('pantryListTab_' + tabId)?.classList.add('active');
+
+    // Show/hide shared actions bar
+    const sharedActions = document.getElementById('pantrySharedActions');
+    if (sharedActions) sharedActions.style.display = tabId === 'personal' ? 'none' : 'flex';
+
+    // Clear filter
+    const filterInput = document.getElementById('pantryFilterInput');
+    if (filterInput) filterInput.value = '';
+
+    if (tabId === 'personal') {
+      // Reload personal from localStorage (which has latest from Supabase sync)
+      const stored = localStorage.getItem('pantry_' + currentUser);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        pantryItems = parsed.map(p => typeof p === 'string' ? { name: p, quantity: '', expiry: '' } : p);
+      } else {
+        pantryItems = [];
+      }
+    } else {
+      // Load shared pantry items
+      try {
+        const items = await getSharedPantryItems(tabId);
+        pantryItems = items.map(i => ({
+          name: i.name,
+          quantity: i.quantity || '',
+          expiry: i.expiry || '',
+          _id: i.id,
+          _added_by: i.added_by || ''
+        }));
+      } catch(e) { pantryItems = []; }
+    }
+    renderPantry();
+    findPantryMatches();
+  }
+
+  async function loadPantrySharedLists() {
+    const tabsEl = document.getElementById('pantrySharedTabs');
+    if (!tabsEl) return;
+    try {
+      const lists = await getMySharedPantries(currentUser);
+      tabsEl.innerHTML = lists.map(l =>
+        '<button class="sort-chip" id="pantryListTab_' + l.id + '" onclick="switchPantryTab(\'' + l.id + '\')">🧊 ' + escapeHtml(l.name || '') + '</button>'
+      ).join('');
+    } catch(e) { tabsEl.innerHTML = ''; }
+  }
+
+  function openCreateSharedPantry() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;';
+    sheet.innerHTML = '<div style="font-weight:800;font-size:0.95em;margin-bottom:14px;">New Shared Pantry</div>' +
+      '<input type="text" id="newPantryNameInput" placeholder="Pantry name (e.g. Family Pantry)" style="width:100%;padding:12px;margin-bottom:12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:8px;box-sizing:border-box;font-size:0.9em;">' +
+      '<button onclick="const n=document.getElementById(\'newPantryNameInput\').value;if(!n.trim())return;createSharedPantry(currentUser,n.trim()).then(r=>{if(r){sheet.remove();overlay.remove();loadPantrySharedLists();rcAlert(\'Created! Invite members.\',{icon:\'✅\'});}}).catch(e=>rcAlert(e.message,{icon:\'❌\'}));" style="width:100%;padding:12px;background:var(--gold);border:none;color:var(--bg);border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9em;font-family:inherit;">Create</button>' +
+      '<button onclick="sheet.remove();overlay.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
+    setTimeout(() => document.getElementById('newPantryNameInput')?.focus(), 200);
+  }
+
+  async function openPantryInvite() {
+    if (activePantryTab === 'personal') { rcAlert('Switch to a shared pantry first.', {icon:'🧊'}); return; }
+    try {
+      const friendsRes = await getFriends(currentUser).catch(() => ({ following: [] }));
+      const following = friendsRes.following || [];
+      if (following.length === 0) { rcAlert('Follow some users first to invite them.', {icon:'👥'}); return; }
+      const ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+      ov.onclick = () => { sheet.remove(); ov.remove(); };
+      const sheet = document.createElement('div');
+      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.25s ease;max-height:60vh;overflow-y:auto;';
+      sheet.innerHTML = '<div style="font-weight:800;font-size:0.95em;margin-bottom:14px;">👥 Invite to Pantry</div>' +
+        following.map(u => '<div onclick="addMemberToSharedPantry(\'' + activePantryTab + '\',\'' + u + '\').then(()=>{rcAlert(\'Invited\',{icon:\'✅\'});loadPantrySharedLists();}).catch(e=>rcAlert(e.message,{icon:\'❌\'}));sheet.remove();ov.remove();" style="padding:10px 12px;margin-bottom:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:10px;">' +
+          '<div style="width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:var(--bg);">' + u.charAt(0).toUpperCase() + '</div>' +
+          '<span style="font-weight:600;font-size:0.88em;">' + escapeHtml(u) + '</span></div>').join('') +
+        '<button onclick="sheet.remove();ov.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+      document.body.appendChild(ov);
+      document.body.appendChild(sheet);
+    } catch(e) { rcAlert(e.message, {icon:'❌'}); }
+  }
+
+  async function openPantryLeave() {
+    if (activePantryTab === 'personal') return;
+    if (!await rcConfirm('Leave this shared pantry? Your ingredients will stay for others.', {icon:'🚪', title:'Leave pantry?', confirmText:'Leave', danger:true})) return;
+    await leaveSharedPantry(activePantryTab, currentUser);
+    await loadPantrySharedLists();
+    await switchPantryTab('personal');
+  }
+
+  async function openPantryRename() {
+    if (activePantryTab === 'personal') return;
+    const newName = prompt('Rename this pantry:');
+    if (!newName || !newName.trim()) return;
+    await renameSharedPantry(activePantryTab, newName.trim());
+    await loadPantrySharedLists();
+  }
+
+  // ── PANTRY SEARCH ONLINE ────────────────────────────────
+  async function pantrySearchOnline(mode) {
+    let ingredients = [];
+    if (mode === 'selected') {
+      ingredients = pantryItems.filter(p => pantrySelectedItems.has(p.name)).map(p => p.name);
+      if (ingredients.length === 0) { rcAlert('Select some ingredients first.', {icon:'🔍'}); return; }
+      pantrySelectedItems.clear();
+      togglePantrySelectMode();
+    } else {
+      ingredients = pantryItems.map(p => p.name);
+    }
+    if (ingredients.length === 0) { rcAlert('Add some pantry ingredients first.', {icon:'🧊'}); return; }
+
+    const statusEl = document.getElementById('pantryFridgeStatus');
+    const resultsEl = document.getElementById('pantryFridgeResults');
+    statusEl.style.display = 'flex';
+    resultsEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fridge_recipes',
+          ingredients: ingredients.join(', '),
+          username: currentUser
+        })
+      });
+      const data = await res.json();
+      statusEl.style.display = 'none';
+      resultsEl.style.display = 'block';
+
+      if (data.status === 'Error') {
+        resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + data.message + '</div>';
+        return;
+      }
+
+      const recipes = data.recipes || [];
+      if (recipes.length === 0) {
+        resultsEl.innerHTML = '<div style="padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.88em;color:var(--text-dim);text-align:center;">No recipes found. Try different ingredients!</div>';
+        return;
+      }
+
+      resultsEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<span style="font-size:0.75em;color:var(--text-faint);font-weight:600;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '</span>' +
+        '<button onclick="document.getElementById(\'pantryFridgeResults\').style.display=\'none\'" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;font-size:0.85em;">✕ Hide</button></div>' +
+        recipes.map(r => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:6px;cursor:pointer;" onclick="pantryAddRecipe(' + JSON.stringify(r).replace(/"/g, '&quot;') + ')">' +
+          '<div style="font-weight:700;font-size:0.9em;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
+          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(r.match_reason || 'Uses your ingredients') + '</div>' +
+          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
+        '</div>').join('');
+    } catch(e) {
+      statusEl.style.display = 'none';
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + e.message + '</div>';
+    }
   }
 
   function renderPantry() {
     const list = document.getElementById('pantryItemsList');
+    const countEl = document.getElementById('pantryItemCount');
     const noMatch = document.getElementById('pantryNoMatches');
     const matches = document.getElementById('pantryRecipeMatches');
     if (!list) return;
-    if (pantryItems.length === 0) {
-      list.innerHTML = '<div style="font-size:0.82em;color:var(--text-faint);padding:8px 0;">No ingredients added yet.</div>';
-      if(noMatch) noMatch.style.display='block';
-      if(matches) matches.innerHTML='';
+
+    const filterVal = (document.getElementById('pantryFilterInput')?.value || '').toLowerCase().trim();
+    let filtered = pantryItems;
+    if (filterVal) {
+      filtered = pantryItems.filter(p => p.name.includes(filterVal));
+    }
+
+    if (countEl) {
+      countEl.textContent = filtered.length + ' / ' + pantryItems.length + ' item' + (pantryItems.length !== 1 ? 's' : '');
+    }
+
+    if (filtered.length === 0) {
+      list.innerHTML = filterVal
+        ? '<div style="font-size:0.82em;color:var(--text-faint);padding:20px 0;text-align:center;">No ingredients match "' + escapeHtml(filterVal) + '".</div>'
+        : '<div style="font-size:0.82em;color:var(--text-faint);padding:20px 0;text-align:center;">No ingredients added yet. Type above to add!</div>';
       return;
     }
-    // Categorized grid logic
-    const categories = {
-        'Produce': ['onion', 'garlic', 'potato', 'carrot', 'tomato', 'spinach', 'lettuce'],
-        'Meat & Seafood': ['chicken', 'beef', 'pork', 'fish', 'shrimp', 'salmon'],
-        'Dairy & Eggs': ['milk', 'cheese', 'egg', 'butter', 'yogurt', 'cream'],
-        'Pantry': ['oil', 'rice', 'pasta', 'flour', 'sugar', 'salt', 'pepper', 'spice', 'bean', 'sauce'],
-        'Frozen': ['pea', 'corn', 'berry', 'ice']
-    };
-    
-    const getCategory = (name) => {
-        for (const [cat, items] of Object.entries(categories)) {
-            if (items.some(i => name.includes(i))) return cat;
-        }
-        return 'Other';
-    };
 
-    const grouped = pantryItems.reduce((acc, item) => {
-        const cat = getCategory(item.name);
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
-        return acc;
+    const grouped = filtered.reduce((acc, item) => {
+      const cat = getPantryCategory(item.name);
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(item);
+      return acc;
     }, {});
 
-    list.innerHTML = Object.entries(grouped).map(([cat, items]) => `
-        <div style="margin-bottom:12px;">
-            <div style="font-size:0.7em;font-weight:700;color:var(--text-faint);text-transform:uppercase;margin-bottom:4px;">${cat}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                ${items.map(p => `
-                    <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;color:var(--text);">
-                        ${escapeHtml(p.name)} ${p.quantity ? '<span style="color:var(--text-dim);font-size:0.9em;">(' + p.quantity + ')</span>' : ''}
-                        <button onclick="removePantryItem('${escapeHtml(p.name)}')" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:1em;padding:0 0 0 2px;">✕</button>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `).join('');
+    const now = new Date();
+    const threeDaysFromNow = new Date(now);
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+    list.innerHTML = Object.entries(grouped).map(([cat, items]) => {
+      // Sort items: expiring soon first
+      items.sort((a, b) => {
+        const aExp = a.expiry ? new Date(a.expiry) : null;
+        const bExp = b.expiry ? new Date(b.expiry) : null;
+        if (aExp && bExp) return aExp - bExp;
+        if (aExp) return -1;
+        if (bExp) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      const catId = 'pantryCat_' + cat.replace(/\s+/g, '');
+      return '<div class="pantry-category" style="margin-bottom:8px;">' +
+        '<div class="pantry-cat-header" onclick="togglePantryCategory(\'' + catId + '\')" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 0;user-select:none;">' +
+          '<span id="' + catId + '_arrow" style="font-size:0.55em;color:var(--text-faint);transition:transform 0.2s;">▶</span>' +
+          '<span style="font-size:0.68em;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.5px;">' + cat + '</span>' +
+          '<span style="font-size:0.65em;color:var(--text-faint);margin-left:4px;">(' + items.length + ')</span>' +
+        '</div>' +
+        '<div id="' + catId + '" style="display:flex;flex-wrap:wrap;gap:6px;">' +
+          items.map(p => {
+            const isSelected = pantrySelectedItems.has(p.name);
+            const hasExpiry = p.expiry && p.expiry.length > 0;
+            let expiryColor = '';
+            let expiryLabel = '';
+            if (hasExpiry) {
+              const expDate = new Date(p.expiry);
+              const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+              if (diffDays < 0) { expiryColor = 'border-color:var(--red);background:rgba(224,85,85,0.1);'; expiryLabel = '❌ Expired'; }
+              else if (diffDays <= 3) { expiryColor = 'border-color:var(--gold);background:rgba(255,193,7,0.08);'; expiryLabel = '⚠️ ' + diffDays + 'd'; }
+              else if (diffDays <= 7) { expiryColor = 'border-color:rgba(255,193,7,0.3);'; expiryLabel = '📅 ' + diffDays + 'd'; }
+            }
+            const selectHtml = pantrySelectMode
+              ? '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onchange="togglePantryItemSelect(\'' + escapeHtml(p.name) + '\')" style="margin:0;width:16px;height:16px;accent-color:var(--gold);cursor:pointer;">'
+              : '';
+            const addedByHtml = p._added_by ? '<span style="font-size:0.65em;color:var(--text-faint);margin-left:4px;">👤' + p._added_by.substring(0, 6) + '</span>' : '';
+            return '<div style="display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;font-size:0.82em;color:var(--text);' + expiryColor + (pantrySelectMode && isSelected ? 'outline:2px solid var(--gold);' : '') + '">' +
+              selectHtml +
+              (hasExpiry && expiryLabel ? '<span style="font-size:0.7em;font-weight:600;color:' + (expiryColor.includes('red') ? 'var(--red)' : 'var(--gold)') + ';">' + expiryLabel + '</span>' : '') +
+              '<span>' + escapeHtml(p.name) + '</span>' +
+              (p.quantity ? '<span style="color:var(--text-dim);font-size:0.88em;">(' + escapeHtml(p.quantity) + ')</span>' : '') +
+              addedByHtml +
+              (!pantrySelectMode ? '<button onclick="removePantryItem(\'' + escapeHtml(p.name) + '\')" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:1em;padding:0 0 0 2px;line-height:1;">✕</button>' : '') +
+            '</div>';
+          }).join('') +
+        '</div></div>';
+    }).join('');
+  }
+
+  function togglePantryCategory(catId) {
+    const el = document.getElementById(catId);
+    const arrow = document.getElementById(catId + '_arrow');
+    if (!el) return;
+    const isHidden = el.style.display === 'none';
+    el.style.display = isHidden ? 'flex' : 'none';
+    if (arrow) arrow.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(90deg)';
   }
 
   function findPantryMatches() {
@@ -12697,12 +13073,7 @@ ${r.ingredients}`;
     }
 
     noMatch.style.display = 'none';
-    matches.innerHTML = `
-      <div style="margin-bottom:10px;">
-        <label style="font-size:0.8em;color:var(--text-dim);"><input type="checkbox" id="pantry100Only" onchange="renderPantryMatches()"> Only show 100% matches</label>
-      </div>
-      <div id="pantryMatchesList" style="display:flex;flex-direction:column;gap:8px;"></div>
-    `;
+    matches.innerHTML = '<div id="pantryMatchesList" style="display:flex;flex-direction:column;gap:8px;"></div>';
     renderPantryMatches(scored);
   }
 
@@ -12729,71 +13100,6 @@ ${r.ingredients}`;
     const idx = allRecipes.findIndex(r => r.id === recipeId);
     if (idx < 0) return;
     openDetails(idx);
-  }
-
-  // ═══ PANTRY: AI FIND RECIPES ONLINE ══════════════════════════════════════
-  async function runPantryFridgeSearch() {
-    const extraInput = document.getElementById('pantryFridgeInput');
-    const extra = extraInput?.value.trim() || '';
-
-    // Combine pantry items + extra ingredients
-    const allIngredients = [...pantryItems];
-    if (extra) {
-      extra.split(',').forEach(i => {
-        const trimmed = i.trim().toLowerCase();
-        if (trimmed && !allIngredients.includes(trimmed)) allIngredients.push(trimmed);
-      });
-    }
-
-    if (allIngredients.length === 0) {
-      rcAlert('Add some pantry ingredients first, or type extra ingredients above.');
-      return;
-    }
-
-    const statusEl = document.getElementById('pantryFridgeStatus');
-    const resultsEl = document.getElementById('pantryFridgeResults');
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = '<div class="spinner" style="margin:0 auto 8px;"></div>Finding recipes online using your ingredients...';
-    resultsEl.style.display = 'none';
-
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'fridge_recipes',
-          ingredients: allIngredients.join(', '),
-          username: currentUser
-        })
-      });
-      const data = await res.json();
-      statusEl.style.display = 'none';
-
-      if (data.status === 'Error') {
-        resultsEl.style.display = 'block';
-        resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + data.message + '</div>';
-        return;
-      }
-
-      const recipes = data.recipes || [];
-      resultsEl.style.display = 'block';
-
-      if (recipes.length === 0) {
-        resultsEl.innerHTML = '<div style="padding:14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);font-size:0.88em;color:var(--text-dim);text-align:center;">No recipes found. Try different ingredients!</div>';
-        return;
-      }
-
-      resultsEl.innerHTML = '<div style="font-size:0.72em;color:var(--text-faint);margin-bottom:8px;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + ' you can make:</div>' +
-        recipes.map(r => '<div style="padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;" onclick="pantryAddRecipe(' + JSON.stringify(r).replace(/"/g, '&quot;') + ')">' +
-          '<div style="font-weight:700;font-size:0.92em;margin-bottom:4px;">' + escapeHtml(r.title) + '</div>' +
-          '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + escapeHtml(r.match_reason || 'Uses your ingredients') + '</div>' +
-          '<div style="font-size:0.72em;color:var(--gold);margin-top:6px;font-weight:600;">Tap to add to cookbook →</div>' +
-        '</div>').join('');
-    } catch(e) {
-      statusEl.style.display = 'none';
-      resultsEl.style.display = 'block';
-      resultsEl.innerHTML = '<div style="padding:14px;background:rgba(224,85,85,0.1);border:1px solid rgba(224,85,85,0.3);border-radius:var(--radius-sm);color:var(--red);font-size:0.88em;">❌ ' + e.message + '</div>';
-    }
   }
 
   async function pantryAddRecipe(recipe) {
