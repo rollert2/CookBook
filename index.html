@@ -3998,11 +3998,13 @@
   }
 
   async function fridgeAddRecipe(recipe) {
+    const ings = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : (recipe.ingredients || '');
+    const inst = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : (recipe.instructions || '');
     const res = await addRecipe(currentUser, {
       title: recipe.title,
       category: recipe.category || 'General',
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions,
+      ingredients: ings,
+      instructions: inst,
       notes: recipe.notes || '',
       cookTime: recipe.cook_time || '',
       prepTime: recipe.prep_time || '',
@@ -9360,11 +9362,13 @@ ${text}`;
   }
 
   async function leftoverAddRecipe(recipe) {
+    const ings = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : (recipe.ingredients || '');
+    const inst = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : (recipe.instructions || '');
     const res = await addRecipe(currentUser, {
       title: recipe.title,
       category: recipe.category || 'General',
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions,
+      ingredients: ings,
+      instructions: inst,
       notes: recipe.notes || '',
       cookTime: recipe.cook_time || '',
       prepTime: recipe.prep_time || '',
@@ -12921,20 +12925,23 @@ ${r.ingredients}`;
         return;
       }
 
+      window._pantryAiRecipes = recipes;
       resultsEl.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
         '<span style="font-size:0.75em;color:var(--text-faint);font-weight:600;">Found ' + recipes.length + ' recipe' + (recipes.length > 1 ? 's' : '') + '</span>' +
         '<button onclick="document.getElementById(\'pantryFridgeResults\').style.display=\'none\'" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-family:inherit;font-size:0.85em;">✕ Hide</button></div>' +
-        recipes.map(r => {
+        recipes.map((r, i) => {
           const ings = parseIngredients(r.ingredients);
-          return '<div style="padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;">' +
+          return '<div onclick="pantryShowRecipeDetails(' + i + ')" style="padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer;transition:all 0.15s;" onmouseenter="this.style.borderColor=\'var(--gold)\'" onmouseleave="this.style.borderColor=\'var(--glass-border)\'">' +
             '<div style="font-weight:700;font-size:0.85em;margin-bottom:6px;color:var(--gold);">' + escapeHtml(r.title) + '</div>' +
             '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
               ings.map(ing => {
                 const cleaned = ing.replace(/\*+/g, '').trim();
                 if (!cleaned) return '';
-                return '<div onclick="pantryAddSearchIngredient(\'' + escapeHtml(cleaned) + '\', this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);cursor:pointer;font-size:0.78em;color:var(--text-dim);font-weight:600;transition:all 0.15s;user-select:none;">' + escapeHtml(cleaned) + '</div>';
+                return '<div onclick="event.stopPropagation();pantryAddSearchIngredient(\'' + escapeHtml(cleaned) + '\', this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);cursor:pointer;font-size:0.78em;color:var(--text-dim);font-weight:600;transition:all 0.15s;user-select:none;">' + escapeHtml(cleaned) + '</div>';
               }).join('') +
-            '</div></div>';
+            '</div>' +
+            '<div style="margin-top:8px;text-align:right;font-size:0.72em;color:var(--text-faint);">📖 View &amp; Import</div>' +
+            '</div>';
         }).join('');
     } catch(e) {
       statusEl.style.display = 'none';
@@ -12971,6 +12978,61 @@ ${r.ingredients}`;
         el.style.color = 'var(--text-dim)';
       }, 600);
     }
+  }
+
+  // ── SHOW AI RECIPE DETAILS & IMPORT ────────────────────
+  function pantryShowRecipeDetails(index) {
+    const recipes = window._pantryAiRecipes || [];
+    const r = recipes[index];
+    if (!r) return;
+
+    // Remove existing sheet
+    document.getElementById('pantryRecipeSheet')?.remove();
+    document.getElementById('pantryRecipeOverlay')?.remove();
+
+    const ings = parseIngredients(r.ingredients);
+    const instructions = Array.isArray(r.instructions)
+      ? r.instructions.join('\n')
+      : (r.instructions || '');
+
+    const sheet = document.createElement('div');
+    sheet.id = 'pantryRecipeSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--glass-border);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 40px;animation:slideUp 0.25s ease;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;';
+
+    // Meta info line
+    const metaParts = [];
+    if (r.category) metaParts.push(r.category);
+    if (r.cook_time) metaParts.push('⏱ ' + r.cook_time);
+    if (r.prep_time) metaParts.push('🔪 ' + r.prep_time);
+    if (r.servings) metaParts.push('🍽 ' + r.servings);
+    const metaStr = metaParts.length ? metaParts.join(' · ') : '';
+
+    sheet.innerHTML = `
+      <div style="width:40px;height:4px;background:var(--glass-border);border-radius:2px;margin:0 auto 16px;flex-shrink:0;"></div>
+      <div style="font-size:1.05em;font-weight:800;margin-bottom:4px;color:var(--gold);">${escapeHtml(r.title)}</div>
+      ${metaStr ? `<div style="font-size:0.75em;color:var(--text-faint);margin-bottom:14px;">${escapeHtml(metaStr)}</div>` : ''}
+      ${r.match_reason ? `<div style="font-size:0.78em;color:var(--text-dim);margin-bottom:14px;font-style:italic;">💡 ${escapeHtml(r.match_reason)}</div>` : ''}
+      <div style="font-size:0.82em;font-weight:700;margin-bottom:6px;color:var(--text);">Ingredients</div>
+      <div style="font-size:0.88em;line-height:1.7;color:var(--text-dim);margin-bottom:14px;padding-left:4px;">
+        ${ings.map(ing => '• ' + escapeHtml(ing)).join('<br>')}
+      </div>
+      <div style="font-size:0.82em;font-weight:700;margin-bottom:6px;color:var(--text);">Instructions</div>
+      <div style="font-size:0.82em;line-height:1.7;color:var(--text-dim);margin-bottom:20px;padding-left:4px;white-space:pre-wrap;">
+        ${escapeHtml(instructions)}
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+        <button onclick="pantryAddRecipe(window._pantryAiRecipes[${index}]);document.getElementById('pantryRecipeSheet')?.remove();document.getElementById('pantryRecipeOverlay')?.remove();" style="width:100%;padding:16px;background:var(--gold);border:none;border-radius:var(--radius-sm);color:var(--bg);font-size:1em;font-weight:800;cursor:pointer;font-family:inherit;">✨ Add to Cookbook</button>
+        <button onclick="document.getElementById('pantryRecipeSheet')?.remove();document.getElementById('pantryRecipeOverlay')?.remove();" style="width:100%;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.88em;font-weight:600;cursor:pointer;font-family:inherit;">Close</button>
+      </div>
+    `;
+
+    document.body.appendChild(sheet);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pantryRecipeOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    overlay.onclick = () => { sheet.remove(); overlay.remove(); };
+    document.body.appendChild(overlay);
   }
 
   function renderPantry() {
@@ -13183,11 +13245,14 @@ ${r.ingredients}`;
   }
 
   async function pantryAddRecipe(recipe) {
+    // Normalize arrays to strings (AI returns arrays with responseMimeType)
+    const ings = Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : (recipe.ingredients || '');
+    const inst = Array.isArray(recipe.instructions) ? recipe.instructions.join('\n') : (recipe.instructions || '');
     const res = await addRecipe(currentUser, {
       title: recipe.title,
       category: recipe.category || 'General',
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions,
+      ingredients: ings,
+      instructions: inst,
       notes: recipe.notes || '',
       cookTime: recipe.cook_time || '',
       prepTime: recipe.prep_time || '',
