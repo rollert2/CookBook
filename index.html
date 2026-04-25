@@ -7125,14 +7125,20 @@
   async function loadAdminUsers() {
     const el = document.getElementById('adminUserList');
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
-    const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at&order=created_at.desc');
+    
+    // Fetch users and their pro status
+    const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at,user_settings(is_pro)&order=created_at.desc');
+    
     if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
+    
     el.innerHTML = (data||[]).map(u => {
       const secIcon = u.is_secured ? '🔒' : '🔓';
+      const proStatus = (u.user_settings && u.user_settings[0] && u.user_settings[0].is_pro) ? ' ⭐' : '';
       const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
+      
       return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + '</div>' +
+        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + proStatus + '</div>' +
         '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>' +
         '<div style="font-size:0.72em;color:var(--text-faint);margin-top:2px;">' + emailStr + ' · joined ' + new Date(u.created_at).toLocaleDateString() + '</div>' +
         '</div>';
@@ -7214,9 +7220,11 @@
     const newStatus = !currentStatus;
     // Update both JSON 'settings' column AND direct 'is_pro' column
     const res = await sbFetch('PATCH', 'user_settings', { is_pro: newStatus, settings: { is_pro: newStatus } }, 'user_id=eq.' + userId);
+    console.log('Pro status update result:', res);
     if (res !== null) {
       rcAlert('✅ User status updated to ' + (newStatus ? 'Pro' : 'Free'));
       document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+      loadAdminUsers(); // Refresh the list
     } else {
       rcAlert('❌ Failed to update status');
     }
