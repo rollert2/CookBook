@@ -8355,12 +8355,29 @@ ${text}`;
         : n.type==='friend_rating'?`<strong>${escapeHtml(n.fromUser)}</strong> rated your recipe`
         : n.type==='deletion_request'?`🗑 <strong>${n.meta?.username||n.fromUser}</strong> requested account deletion`
         : `<strong>${escapeHtml(n.fromUser||'')}</strong> ${n.type}`;
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">
-        <div style="flex:1;font-size:0.85em;">${text}</div>
-        ${n.type==='deletion_request'&&currentUser==='rollert2'
-          ? `<button onclick="adminDeleteUser('${n.meta?.username||n.fromUser}','');dismissNotification('${n.notifId}');" style="padding:5px 10px;border-radius:10px;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">Delete</button>`
-          : `<button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;">✕</button>`}
-      </div>`;
+
+      if (n.type === 'follow') {
+        // Highlighted follow notification with Follow Back button
+        const safeUser = n.fromUser.replace(/'/g, "\\'");
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;border-radius:var(--radius-sm);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);">
+          <div style="flex:1;font-size:0.85em;">👤 ${text}</div>
+          <button onclick="followUser('${currentUser}','${safeUser}').then(()=>{sendFollowNotification('${currentUser}','${safeUser}');dismissNotification('${n.notifId}');});this.closest('div[style]').remove();" style="padding:5px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">Follow Back</button>
+          <button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;padding:4px;">✕</button>
+        </div>`;
+      } else if (n.type === 'follow_back') {
+        // Slightly highlighted mutual follow notification
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;border-radius:var(--radius-sm);background:rgba(76,175,125,0.06);border:1px solid rgba(76,175,125,0.2);">
+          <div style="flex:1;font-size:0.85em;">🤝 ${text}</div>
+          <button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;padding:4px;">✕</button>
+        </div>`;
+      } else {
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--glass-border);">
+          <div style="flex:1;font-size:0.85em;">${text}</div>
+          ${n.type==='deletion_request'&&currentUser==='rollert2'
+            ? `<button onclick="adminDeleteUser('${n.meta?.username||n.fromUser}','');dismissNotification('${n.notifId}');" style="padding:5px 10px;border-radius:10px;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);font-size:0.75em;cursor:pointer;font-family:inherit;">Delete</button>`
+            : `<button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;">✕</button>`}
+        </div>`;
+      }
     });
     if (html) { section.style.display = 'block'; el.innerHTML = html; }
     else section.style.display = 'none';
