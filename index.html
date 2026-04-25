@@ -742,8 +742,8 @@
     <!-- Sign In form -->
     <div id="authFormSignIn">
       <input type="text" class="login-input" id="authUsername" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="off" spellcheck="false" style="margin-bottom:8px;">
-      <input type="password" class="login-input" id="authPassword" placeholder="Password (optional — leave blank for guest access)" autocomplete="current-password" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')attemptAuthLogin()">
-      <button class="login-btn" onclick="attemptAuthLogin()">Sign In →</button>
+      <input type="password" class="login-input" id="authPassword" placeholder="Password (optional — leave blank for guest access)" autocomplete="current-password" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')window.attemptAuthLogin()">
+      <button class="login-btn" onclick="window.attemptAuthLogin()">Sign In →</button>
       <div style="text-align:center;margin-top:10px;"><button onclick="showForgotPassword()" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;font-family:inherit;">Forgot password?</button></div>
     </div>
 
@@ -10224,7 +10224,8 @@ ${text}`;
   }
 
   // ── Email/password sign in ──────────────────────────────────
-  async function attemptAuthLogin() {
+  window.attemptAuthLogin = async function() {
+    console.log('attemptAuthLogin called');
     const username = (document.getElementById('authUsername')?.value || '').trim().toLowerCase();
     const password = document.getElementById('authPassword')?.value || '';
 
