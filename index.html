@@ -5608,7 +5608,7 @@
       const hasSeenThemePrompt = localStorage.getItem('rc_has_seen_theme_prompt_' + currentUser);
       if (!hasSeenThemePrompt && !userSettings.theme) {
         // Show theme preference modal before loading recipes
-        setTimeout(() => showThemePreferenceModal(), 500);
+        setTimeout(() => showThemePreferenceModal(), 1000);
       }
       allRecipes = await getRecipes(currentUser);
       // Check for any recipes with unknown categories and prompt user
