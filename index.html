@@ -3517,6 +3517,19 @@
 
   function parseIngredients(rawIngredients) {
     if (!rawIngredients) return [];
+    // If already an array (e.g. AI returns JSON-native arrays), clean and return
+    if (Array.isArray(rawIngredients)) {
+      return rawIngredients
+        .map(line => (line || '').toString()
+          .replace(/\*+/g, '')
+          .replace(/\(\(/g, '(').replace(/\)\)/g, ')')
+          .replace(/\b1\/2\b/g, '½').replace(/\b1\/4\b/g, '¼')
+          .replace(/\b3\/4\b/g, '¾').replace(/\b1\/3\b/g, '⅓')
+          .replace(/\b2\/3\b/g, '⅔')
+          .trim()
+        )
+        .filter(Boolean);
+    }
     return rawIngredients
       .split(/\n|(?:,\s*(?=[0-9½¼¾⅓⅔]))/)
       .map(line => line
