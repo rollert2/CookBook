@@ -973,6 +973,7 @@
       <!-- Search / filter bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="pantryFilterInput" placeholder="🔍 Filter ingredients..." oninput="renderPantry()" style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-size:0.82em;font-family:inherit;">
+        <button onclick="openAddPantryModal()" style="padding:8px 11px;border-radius:20px;background:var(--glass);border:1px solid var(--glass-border);color:var(--gold);font-size:1em;cursor:pointer;flex-shrink:0;" title="Add item">📝</button>
       </div>
       <!-- Selection mode + search bar -->
       <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap;">
@@ -12640,10 +12641,10 @@ ${r.ingredients}`;
   // Expanded category detection
   function getPantryCategory(name) {
     const CATS = {
-      'Produce': ['onion','garlic','potato','carrot','tomato','spinach','lettuce','celery','bell pepper','pepper','broccoli','cauliflower','cucumber','zucchini','mushroom','avocado','lemon','lime','banana','apple','orange','berry','grape','melon','pineapple','mango','herb','cilantro','parsley','basil','ginger','jalapeno','kale','cabbage','radish','beet','sweet potato','corn','squash','eggplant','asparagus','green bean','pea pod'],
+      'Produce': ['onion','garlic','potato','carrot','tomato','spinach','lettuce','celery','bell pepper','broccoli','cauliflower','cucumber','zucchini','mushroom','avocado','lemon','lime','banana','apple','orange','berry','grape','melon','pineapple','mango','herb','cilantro','parsley','basil','ginger','jalapeno','kale','cabbage','radish','beet','sweet potato','corn','squash','eggplant','asparagus','green bean','pea pod'],
       'Meat & Seafood': ['chicken','beef','pork','fish','shrimp','salmon','turkey','bacon','sausage','ham','lamb','tuna','crab','lobster','tofu','tempeh','steak','ground','prosciutto','duck','anchovy','sardine','scallop'],
       'Dairy & Eggs': ['milk','cheese','egg','butter','yogurt','cream','sour cream','cottage cheese','ricotta','mozzarella','parmesan','cheddar','feta','cream cheese','half and half','whipped','greek yogurt'],
-      'Spices & Seasonings': ['cinnamon','oregano','thyme','rosemary','cumin','paprika','turmeric','garlic powder','onion powder','chili powder','bay leaf','nutmeg','clove','allspice','coriander','dill','basil','parsley','sage','mint','seasoning','salt','seasoned salt','celery salt','cayenne'],
+      'Spices & Seasonings': ['cinnamon','oregano','thyme','rosemary','cumin','paprika','turmeric','garlic powder','onion powder','chili powder','bay leaf','nutmeg','clove','allspice','coriander','dill','basil','parsley','sage','mint','seasoning','salt','seasoned salt','celery salt','cayenne','pepper'],
       'Pantry': ['oil','rice','pasta','flour','sugar','salt','pepper','spice','bean','sauce','vinegar','broth','stock','soup','cereal','oat','bread','cracker','chip','nut','seed','honey','syrup','jam','jelly','peanut','almond','coconut','chocolate','vanilla','baking','yeast','cornstarch','tortilla','noodle','ramen','salsa','ketchup','mustard','mayo','olive','pickle','caper','raisin','date','couscous','quinoa','lentil','chickpea','canned'],
       'Frozen': ['frozen','ice cream','popsicle','fries','tater','fish stick','frozen vegetable','frozen fruit','frozen dinner','pizza'],
       'Beverages': ['water','juice','soda','coffee','tea','beer','wine','sparkling','seltzer','tonic','sports drink']
