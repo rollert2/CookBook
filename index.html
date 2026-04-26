@@ -2613,6 +2613,13 @@
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
     }
 
+    // Track last active time (fire and forget)
+    getUserId(currentUser).then(uid => {
+      if (uid) {
+        sbFetch('PATCH', 'user_settings?user_id=eq.' + uid, { last_active_at: new Date().toISOString() }).catch(() => {});
+      }
+    }).catch(() => {});
+
     // ALWAYS ensure shopItems is loaded if not already
     if (!shopItems || shopItems.length === 0) {
       shopItems = JSON.parse(localStorage.getItem('shopItems_' + currentUser) || '[]');
@@ -7329,8 +7336,24 @@
     const emailDisplay = u?.email || '<em style="color:var(--text-faint);">no email</em>';
     const secStatus = u?.is_secured ? '🔒 Secured' : '🔓 Unsecured';
     const joined = u?.created_at ? new Date(u.created_at).toLocaleDateString('en',{year:'numeric',month:'short',day:'numeric'}) : '?';
-    const scale = settings?.default_scale || '1';
     const theme = settings?.theme || 'light';
+    let lastActive = '<em style="color:var(--text-faint);font-size:0.85em;">No data</em>';
+    if (settings?.last_active_at) {
+      const d = new Date(settings.last_active_at);
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHr = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      let rel;
+      if (diffMin < 1) rel = 'Just now';
+      else if (diffMin < 60) rel = diffMin + 'm ago';
+      else if (diffHr < 24) rel = diffHr + 'h ago';
+      else if (diffDays < 7) rel = diffDays + 'd ago';
+      else rel = diffDays + ' days ago';
+      lastActive = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+        + ' <span style="color:var(--text-faint);font-size:0.8em;">(' + rel + ')</span>';
+    }
 
     const metaEl = document.getElementById('adminUserMeta');
     if (metaEl) metaEl.innerHTML =
@@ -7356,8 +7379,8 @@
         '<div style="font-size:0.85em;color:var(--text);">' + theme + '</div>' +
       '</div>' +
       '<div style="background:var(--glass);border-radius:8px;padding:8px 10px;">' +
-        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Default Scale</div>' +
-        '<div style="font-size:0.85em;color:var(--text);">' + scale + '×</div>' +
+        '<div style="font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--gold);margin-bottom:2px;">Last Active</div>' +
+        '<div style="font-size:0.85em;color:var(--text);">' + lastActive + '</div>' +
       '</div>' +
       '</div>';
 
