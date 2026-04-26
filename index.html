@@ -8142,14 +8142,14 @@ ${text}`;
           sheet.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--surface);z-index:900;padding:20px;overflow-y:auto;';
           sheet.innerHTML = `
             <div style="display:flex;align-items:center;margin-bottom:20px;">
-              <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
+              <button onclick="this.parentElement.parentElement.remove();showAddModeSelect()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
               <div style="font-weight:800;margin-left:15px;">${tab === 'url' ? '🔗 Import from URL' : '📷 Scan a Recipe'}</div>
             </div>
             <div style="text-align:center;padding:20px 0;">
               <div style="font-size:3em;margin-bottom:12px;">⭐</div>
               <div style="font-size:1.1em;font-weight:700;margin-bottom:6px;">Pro Feature</div>
               <div style="font-size:0.85em;color:var(--text-faint);line-height:1.6;margin-bottom:24px;">${tab === 'url' ? 'AI-powered URL import' : 'AI-powered photo scanning'} is available exclusively to Pro subscribers.</div>
-              <button onclick="var s=this.parentElement.parentElement;s.remove();handleProUpgrade()" style="width:100%;padding:15px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">⭐ Go Pro</button>
+              <button onclick="var s=this.parentElement.parentElement;s.remove();showAddModeSelect();handleProUpgrade()" style="width:100%;padding:15px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">⭐ Go Pro</button>
             </div>`;
           document.body.appendChild(sheet);
           return;
