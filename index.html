@@ -60,7 +60,7 @@
     .header-title span { color:var(--gold); }
     .header-actions { display:flex; gap:5px; align-items:center; flex-shrink:0; overflow:visible; }
     .header-search { padding:0 16px 8px; }
-    .header-chips { padding:0 16px 10px; display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; }
+    .header-chips { padding:0 16px 2px; display:flex; gap:7px; overflow-x:auto; scrollbar-width:none; }
     .header-chips::-webkit-scrollbar { display:none; }
     .recipe-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 12px; }
     @media (orientation:landscape) { .header-statusbar{height:38px;} .recipe-grid{grid-template-columns:1fr 1fr 1fr;} }
@@ -111,7 +111,7 @@
     .sort-option:active { background:var(--glass); }
     .sort-option.active { color:var(--gold); font-weight:600; }
     .sort-option.active::after { content:'✓'; margin-left:auto; }
-    .category-filter-row { display:flex; gap:7px; padding:8px 12px 10px; scrollbar-width:none; align-items:center; overflow:visible; position:relative; z-index:200; }
+    .category-filter-row { display:flex; gap:7px; padding:2px 12px 10px; scrollbar-width:none; align-items:center; overflow:visible; position:relative; z-index:200; }
     .category-filter-row::-webkit-scrollbar { display:none; }
     .category-filter-inner { display:flex; gap:7px; overflow-x:auto; flex:1; scrollbar-width:none; }
     .category-filter-inner::-webkit-scrollbar { display:none; }
@@ -321,8 +321,7 @@
     .context-item.danger { color:var(--red); }
 
     /* ── AD BANNER ── */
-    .ad-banner { position:fixed; bottom:56px; left:0; right:0; z-index:99; display:flex; justify-content:center; align-items:center; background:var(--bg); border-top:1px solid var(--glass-border); min-height:50px; }
-    .ad-banner.hidden { display:none; }
+    .ad-banner { display:none; }
 
     /* ── BOTTOM NAV ── */
     .bottom-nav { position:fixed; bottom:0; left:0; right:0; display:flex; background:var(--nav-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-top:1px solid var(--glass-border); z-index:100; }
@@ -1075,9 +1074,6 @@
       <button onclick="exportMealPlanText()" style="width:100%;margin-top:8px;padding:12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-weight:600;font-size:0.88em;cursor:pointer;font-family:inherit;">📤 Export Meal Plan</button>
     </div>
   </div>
-
-  <!-- Ad Banner -->
-  <div id="adBanner" class="ad-banner hidden"></div>
 
   <!-- Bottom Nav -->
   <div class="bottom-nav">
@@ -2780,9 +2776,14 @@
   }
 
   // ═══ TAB ═══
-  function switchTab(tab) {
+  async function switchTab(tab) {
     if (batchSelectMode) exitBatchSelect();
     if (window._revealHeader) window._revealHeader();
+    // Gate pantry behind Pro
+    if (tab === 'pantry' && !(await isPro())) {
+      rcAlert('🧊 Pantry\n\nTracking your pantry is a premium feature. Upgrade to Pro to manage ingredients, expiry dates, and shared lists.');
+      return;
+    }
     currentTab = tab;
     ['recipes','featured','discover','planner','pantry'].forEach(t => {
       const el = document.getElementById(t === 'recipes' ? 'mainContent' : t + 'Content');
@@ -2817,7 +2818,7 @@
     }
     setTimeout(adjustHeaderPadding, 50);
     // Show banner ad on main tabs (not on modals)
-    showBannerAd();
+    await showBannerAd();
     if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
     if (tab === 'discover') renderSeasonalCard();
     if (tab === 'pantry') { loadPantry(); findPantryMatches(); }
@@ -4894,7 +4895,6 @@
     // Enable banner via Median AdMob plugin
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
-      document.getElementById('adBanner').classList.remove('hidden');
     }
     // Request iOS ATT tracking consent
     if (typeof median !== 'undefined' && median.admob && median.admob.request && median.admob.request.tracking) {
@@ -4906,18 +4906,15 @@
     }
   }
 
-  function showBannerAd() {
-    if (_proStatus) return;
-    const banner = document.getElementById('adBanner');
-    if (banner) banner.classList.remove('hidden');
+  async function showBannerAd() {
+    // Ad banner element removed -- ads controlled by Median directly
+    if (await isPro()) return;
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
     }
   }
 
   function hideBannerAd() {
-    const banner = document.getElementById('adBanner');
-    if (banner) banner.classList.add('hidden');
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.disable();
     }
