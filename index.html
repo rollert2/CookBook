@@ -2779,9 +2779,42 @@
   async function switchTab(tab) {
     if (batchSelectMode) exitBatchSelect();
     if (window._revealHeader) window._revealHeader();
-    // Gate pantry behind Pro
+    // Gate pantry behind Pro — show full lockout page
     if (tab === 'pantry' && !(await isPro())) {
-      rcAlert('🧊 Pantry\n\nTracking your pantry is a premium feature. Upgrade to Pro to manage ingredients, expiry dates, and shared lists.');
+      document.getElementById('pantryContent').innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+          <div style="font-size:3em;margin-bottom:16px;">🧊</div>
+          <div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Pantry Tracker</div>
+          <div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Track your ingredients, expiry dates, and always know what's in your kitchen.</div>
+          <button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:30px;">⭐ Go Pro</button>
+          <div style="width:100%;max-width:400px;text-align:left;background:var(--glass);padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
+            <div style="font-weight:700;margin-bottom:10px;color:var(--text);">Unlock Pro Features:</div>
+            <ul style="margin:0;padding-left:20px;font-size:0.85em;color:var(--text-dim);line-height:1.6;">
+              <li>🧊 <b>Ingredient Tracking:</b> Log what you have and what's running low.</li>
+              <li>📅 <b>Expiry Alerts:</b> Get notified before your ingredients go bad.</li>
+              <li>🔗 <b>Shared Pantries:</b> Manage pantry lists with family or roommates.</li>
+              <li>🍳 <b>Recipe Matching:</b> Find recipes based on what's already in your pantry.</li>
+            </ul>
+          </div>
+        </div>`;
+      // Show the pantry content so the lockout page is visible
+      document.getElementById('pantryContent').style.display = 'block';
+      // Hide other content tabs
+      ['mainContent','discoverContent','plannerContent','featuredContent'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.display = 'none'; el.style.opacity = ''; el.style.transition = ''; }
+      });
+      // Update nav tab active state
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const navBtn = document.getElementById('navPantry');
+      if (navBtn) navBtn.classList.add('active');
+      // Hide recipe search
+      const searchWrap = document.querySelector('.header-search');
+      const filterChips = document.getElementById('categoryFilters');
+      const sortFilterRow = document.getElementById('sortFilterRow');
+      if (searchWrap) searchWrap.style.display = 'none';
+      if (filterChips) filterChips.style.display = 'none';
+      if (sortFilterRow) sortFilterRow.style.display = 'none';
       return;
     }
     currentTab = tab;
@@ -4970,6 +5003,7 @@
       if (btn) { btn.textContent = '✅ Active'; btn.style.background = 'var(--green)'; btn.onclick = null; }
       if (label) label.textContent = '⭐ Pro Active';
       if (sub) sub.textContent = 'Ads removed, all features unlocked. Thank you!';
+      hideBannerAd(); // Ensure banner is disabled if user upgraded without refresh
     } else {
       if (btn) { btn.textContent = 'Go Pro'; btn.style.background = ''; btn.onclick = handleProUpgrade; }
       if (label) label.textContent = '⭐ Remove Ads';
@@ -9657,12 +9691,44 @@ ${text}`;
   let shopPageActiveListId = null;
 
   async function openShoppingPage() {
+    const page = document.getElementById('shoppingPage');
+    if (!page) return;
+    page.style.display = 'flex';
     if (!(await isPro())) {
-      rcAlert('🧊 Shopping Lists\n\nShopping lists are a premium feature. Upgrade to unlock them.');
+      // Show shopping page with full lockout content instead
+      document.getElementById('shopPageTabRow').style.display = 'none';
+      document.getElementById('shopPagePersonal').style.display = 'none';
+      // Create or show a lockout container within the shopping page
+      let lockout = document.getElementById('shopPageLockout');
+      if (!lockout) {
+        lockout = document.createElement('div');
+        lockout.id = 'shopPageLockout';
+        page.appendChild(lockout);
+      }
+      lockout.style.cssText = 'padding-top:64px;';
+      lockout.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;">
+          <div style="font-size:3em;margin-bottom:16px;">🛒</div>
+          <div style="font-size:1.1em;font-weight:700;margin-bottom:8px;color:var(--text);">Shopping Lists</div>
+          <div style="font-size:0.85em;color:var(--text-faint);margin-bottom:20px;line-height:1.5;">Stay organized with smart shopping lists that automatically sync across your devices.</div>
+          <button onclick="handleProUpgrade()" style="padding:12px 28px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-size:0.95em;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:30px;">⭐ Go Pro</button>
+          <div style="width:100%;max-width:400px;text-align:left;background:var(--glass);padding:20px;border-radius:16px;border:1px solid var(--glass-border);">
+            <div style="font-weight:700;margin-bottom:10px;color:var(--text);">Unlock Pro Features:</div>
+            <ul style="margin:0;padding-left:20px;font-size:0.85em;color:var(--text-dim);line-height:1.6;">
+              <li>🛒 <b>Smart Shopping Lists:</b> Add items, check them off, and never forget a thing.</li>
+              <li>👨‍👩‍👧‍👦 <b>Shared Lists:</b> Collaborate on shopping lists with family and friends.</li>
+              <li>📋 <b>Auto-Generate:</b> Automatically create lists from your meal plan.</li>
+              <li>🚫 <b>Ad-Free:</b> Enjoy an uninterrupted shopping experience.</li>
+            </ul>
+          </div>
+        </div>`;
       return;
     }
-    const page = document.getElementById('shoppingPage');
-    if (page) page.style.display = 'flex';
+    // Pro user — restore normal UI
+    document.getElementById('shopPageTabRow').style.display = 'flex';
+    document.getElementById('shopPagePersonal').style.display = 'block';
+    const lockout = document.getElementById('shopPageLockout');
+    if (lockout) lockout.style.display = 'none';
     switchShoppingPageTab('personal');
     loadShoppingPageSharedTabs();
   }
