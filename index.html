@@ -4924,7 +4924,7 @@
 
   async function initAdMob() {
     const pro = await isPro();
-    if (pro) return; // Pro users get no ads
+    if (pro) { hideBannerAd(); return; } // Pro users get no ads — explicitly disable in case Median auto-shows
     // Enable banner via Median AdMob plugin
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
@@ -4941,7 +4941,7 @@
 
   async function showBannerAd() {
     // Ad banner element removed -- ads controlled by Median directly
-    if (await isPro()) return;
+    if (await isPro()) { hideBannerAd(); return; }
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
     }
