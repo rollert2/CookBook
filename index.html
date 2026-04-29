@@ -1830,11 +1830,18 @@
       <h2>Settings</h2>
     </div>
     <div class="settings-section">
-      <div class="settings-section-title">Go Pro</div>
+      <div class="settings-section-title">Remove Ads</div>
       <div class="settings-row">
         <div class="settings-row-info">
-          <div class="settings-row-label" id="settingsProLabel">⭐ Remove Ads</div>
-          <div class="settings-row-sub" id="settingsProSub">Support the app and remove all ads</div>
+          <div class="settings-row-label" id="settingsAdLabel">🚫 Remove Ads</div>
+          <div class="settings-row-sub" id="settingsAdSub">Remove all ads from the app</div>
+        </div>
+        <button id="settingsAdBtn" onclick="handleRemoveAds()" style="padding:8px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Remove</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label" id="settingsProLabel">⭐ Go Pro</div>
+          <div class="settings-row-sub" id="settingsProSub">Remove ads and unlock all premium features</div>
         </div>
         <button id="settingsProBtn" onclick="handleProUpgrade()" style="padding:8px 16px;border-radius:20px;background:var(--gold);border:none;color:var(--bg);font-size:0.82em;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Go Pro</button>
       </div>
@@ -4931,11 +4938,29 @@
     return _proStatus;
   }
 
-  function invalidateProCache() { _proChecked = false; }
+  function invalidateProCache() { _proChecked = false; _adsChecked = false; }
+
+  let _adsRemovedStatus = false;
+  let _adsChecked = false;
+
+  async function isAdFree() {
+    // Returns true if user has Pro OR has purchased ad removal
+    if (await isPro()) return true;
+    if (!currentUser) return false;
+    if (!_adsChecked) {
+      try {
+        const res = await getUserSettings(currentUser);
+        _adsRemovedStatus = !!((res.settings && res.settings.ads_removed) || res.ads_removed);
+      } catch(e) {
+        _adsRemovedStatus = false;
+      }
+      _adsChecked = true;
+    }
+    return _adsRemovedStatus;
+  }
 
   async function initAdMob() {
-    const pro = await isPro();
-    if (pro) { hideBannerAd(); return; } // Pro users get no ads — explicitly disable in case Median auto-shows
+    if (await isAdFree()) { hideBannerAd(); return; } // Ad-free users get no ads
     // Enable banner via Median AdMob plugin
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
@@ -4952,7 +4977,7 @@
 
   async function showBannerAd() {
     // Ad banner element removed -- ads controlled by Median directly
-    if (await isPro()) { hideBannerAd(); return; }
+    if (await isAdFree()) { hideBannerAd(); return; }
     if (typeof median !== 'undefined' && median.admob && median.admob.banner) {
       median.admob.banner.enable();
     }
@@ -4965,10 +4990,41 @@
   }
 
   async function showInterstitialAd() {
-    if (await isPro()) return;
+    if (await isAdFree()) return;
     if (typeof median !== 'undefined' && median.admob && median.admob.showInterstitialIfReady) {
       median.admob.showInterstitialIfReady();
     }
+  }
+
+  async function handleRemoveAds() {
+    console.log('handleRemoveAds clicked!');
+    const isUuid = currentUser.length === 36 && currentUser.includes('-');
+    const query = isUuid ? 'id=eq.' + currentUser : 'username=eq.' + currentUser;
+    const user = await sbFetch('GET', 'users', null, query + '&select=email');
+
+    if (!user || !user.length || !user[0].email) {
+      rcAlert('⚠️ Email Required\n\nPlease secure your account with an email address in Profile Settings before purchasing. This ensures your purchase is linked to your account.');
+      return;
+    }
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--surface);z-index:900;padding:20px;overflow-y:auto;';
+    sheet.innerHTML = `
+      <div style="display:flex;align-items:center;margin-bottom:20px;">
+        <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
+        <div style="font-weight:800;margin-left:15px;">🚫 Remove Ads</div>
+      </div>
+      <div style="text-align:center;padding:16px 0;">
+        <div style="font-size:3em;margin-bottom:12px;">🚫</div>
+        <div style="font-size:1.05em;font-weight:700;margin-bottom:14px;">Remove all ads</div>
+        <div style="background:rgba(255,215,0,0.1);border:1px solid var(--gold);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;text-align:left;font-size:0.85em;line-height:1.6;">
+          <div style="font-weight:700;margin-bottom:6px;color:var(--gold);">⚠️ Email Match Required</div>
+          <div style="color:var(--text-faint);">Make sure to use the same email address you have registered in Roll Cookbook (<strong>${escapeHtml(user[0].email)}</strong>) when purchasing. This ensures your account is upgraded automatically.</div>
+        </div>
+        <button onclick="var s=this.parentElement.parentElement;window.open('https://rollcookbook.lemonsqueezy.com/checkout/buy/d0368077-9a00-4d38-abf1-d7e036e685c4','_blank');s.remove()" style="width:100%;padding:16px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">🛒 Remove Ads</button>
+        <div style="margin-top:12px;font-size:0.78em;color:var(--text-faint);">Ad-free experience without premium features</div>
+      </div>`;
+    document.body.appendChild(sheet);
   }
 
   async function handleProUpgrade() {
@@ -5007,18 +5063,39 @@
   }
 
   function updateProUI() {
-    const btn = document.getElementById('settingsProBtn');
-    const label = document.getElementById('settingsProLabel');
-    const sub = document.getElementById('settingsProSub');
+    const adBtn = document.getElementById('settingsAdBtn');
+    const adLabel = document.getElementById('settingsAdLabel');
+    const adSub = document.getElementById('settingsAdSub');
+    const proBtn = document.getElementById('settingsProBtn');
+    const proLabel = document.getElementById('settingsProLabel');
+    const proSub = document.getElementById('settingsProSub');
+
     if (_proStatus) {
-      if (btn) { btn.textContent = '✅ Active'; btn.style.background = 'var(--green)'; btn.onclick = null; }
-      if (label) label.textContent = '⭐ Pro Active';
-      if (sub) sub.textContent = 'Ads removed, all features unlocked. Thank you!';
-      hideBannerAd(); // Ensure banner is disabled if user upgraded without refresh
+      // Pro: both rows show as active, ad row says "Included"
+      if (adBtn) { adBtn.textContent = '✅ Included'; adBtn.style.background = 'var(--green)'; adBtn.onclick = null; }
+      if (adLabel) adLabel.textContent = '🚫 Ads Removed';
+      if (adSub) adSub.textContent = 'Included with Pro';
+      if (proBtn) { proBtn.textContent = '✅ Active'; proBtn.style.background = 'var(--green)'; proBtn.onclick = null; }
+      if (proLabel) proLabel.textContent = '⭐ Pro Active';
+      if (proSub) proSub.textContent = 'All premium features unlocked';
+      hideBannerAd();
+    } else if (_adsRemovedStatus) {
+      // Ads removed only: ad row active, pro row available
+      if (adBtn) { adBtn.textContent = '✅ Active'; adBtn.style.background = 'var(--green)'; adBtn.onclick = null; }
+      if (adLabel) adLabel.textContent = '🚫 Ads Removed';
+      if (adSub) adSub.textContent = 'Ads are hidden. Thank you!';
+      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = ''; proBtn.onclick = handleProUpgrade; }
+      if (proLabel) proLabel.textContent = '⭐ Go Pro';
+      if (proSub) proSub.textContent = 'Remove ads and unlock all premium features';
+      hideBannerAd();
     } else {
-      if (btn) { btn.textContent = 'Go Pro'; btn.style.background = ''; btn.onclick = handleProUpgrade; }
-      if (label) label.textContent = '⭐ Remove Ads';
-      if (sub) sub.textContent = 'Support the app and remove all ads';
+      // Free: both available
+      if (adBtn) { adBtn.textContent = 'Remove'; adBtn.style.background = ''; adBtn.onclick = handleRemoveAds; }
+      if (adLabel) adLabel.textContent = '🚫 Remove Ads';
+      if (adSub) adSub.textContent = 'Remove all ads from the app';
+      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = ''; proBtn.onclick = handleProUpgrade; }
+      if (proLabel) proLabel.textContent = '⭐ Go Pro';
+      if (proSub) proSub.textContent = 'Remove ads and unlock all premium features';
     }
   }
 
@@ -7280,6 +7357,7 @@
   // ═══ ADMIN USER MANAGEMENT ═══
   // Make proMap available globally for showAdminUserOptions
   let adminProMap = {};
+  let adminAdsMap = {};
 
   async function loadAdminUsers() {
     const el = document.getElementById('adminUserList');
@@ -7290,21 +7368,23 @@
     
     if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
     
-    // Fetch all settings to map pro status
-    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro');
+    // Fetch all settings to map pro and ad status
+    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,ads_removed');
     adminProMap = {};
+    adminAdsMap = {};
     if (allSettings) {
-      allSettings.forEach(s => { if (s.is_pro) adminProMap[s.user_id] = true; });
+      allSettings.forEach(s => { if (s.is_pro) adminProMap[s.user_id] = true; if (s.ads_removed) adminAdsMap[s.user_id] = true; });
     }
     
     el.innerHTML = (data||[]).map(u => {
       const secIcon = u.is_secured ? '🔒' : '🔓';
       const proStatus = adminProMap[u.id] ? ' ⭐' : '';
+      const adStatus = adminAdsMap[u.id] && !adminProMap[u.id] ? ' 🚫' : '';
       const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
       
       return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + proStatus + '</div>' +
+        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + proStatus + adStatus + '</div>' +
         '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>' +
         '<div style="font-size:0.72em;color:var(--text-faint);margin-top:2px;">' + emailStr + ' · joined ' + new Date(u.created_at).toLocaleDateString() + '</div>' +
         '</div>';
@@ -7389,9 +7469,11 @@
       '</div>';
 
     const actionsEl = document.getElementById('adminUserActions');
-    const isPro = adminProMap[userId] || false; // Use the global adminProMap
+    const isPro = adminProMap[userId] || false;
+    const isAdFree = adminAdsMap[userId] || false;
     if (actionsEl) actionsEl.innerHTML =
       '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isPro ? 'var(--text-faint)' : 'var(--gold)') + ';border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
+      '<div onclick="toggleAdminAdsStatus(\'' + userId + '\',' + isAdFree + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isAdFree ? 'var(--text-faint)' : 'var(--gold)') + ';border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isAdFree ? '🚫 Remove Ad-Free Status' : '🚫 Grant Ad-Free Status') + '</div>' +
       '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
       '<div onclick="adminSendMessage(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message ' + username + '</div>' +
       '<div onclick="adminSetEmail(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">📧 Set / Clear Email</div>' +
@@ -7417,6 +7499,25 @@
       loadAdminUsers(); // Refresh the list
     } else {
       rcAlert('❌ Failed to update status');
+    }
+  }
+  async function toggleAdminAdsStatus(userId, currentStatus) {
+    const newStatus = !currentStatus;
+    console.log('Attempting to update user:', userId, 'to Ad-Free status:', newStatus);
+
+    let res = await sbFetch('PATCH', 'user_settings', { ads_removed: newStatus }, 'user_id=eq.' + userId);
+
+    if (res === null) {
+      res = await sbFetch('POST', 'user_settings', { user_id: userId, ads_removed: newStatus }, null);
+    }
+
+    console.log('Ad-Free status update result:', res);
+    if (res !== null) {
+      rcAlert('✅ User ad-free status updated to ' + (newStatus ? 'Ad-Free' : 'Ads Shown'));
+      document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+      loadAdminUsers();
+    } else {
+      rcAlert('❌ Failed to update ad-free status');
     }
   }
   async function adminFollowUser(username) {
