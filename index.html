@@ -3712,6 +3712,7 @@
         ? '<div class="profile-avatar-large" onclick="openSettingsModal()" style="cursor:pointer;"><img src="' + avatarUrl + '" alt="avatar"></div>'
         : '<div class="profile-avatar-large" onclick="openSettingsModal()" style="cursor:pointer;">' + currentUser.charAt(0).toUpperCase() + '</div>';
       const hero = document.getElementById('profileHero');
+      if (!hero) return;
       // Load bio for hero
       getUserProfile(currentUser).then(async (profile) => {
         const bioHtml = (profile && profile.bio) ? '<div style="font-size:0.82em;color:var(--text-dim);margin:6px 16px 0;text-align:center;line-height:1.5;">' + escapeHtml(profile.bio) + '</div>' : '';
@@ -3773,8 +3774,10 @@
       }
       renderFriendsList(following);
       renderProfileNotifications();
-      document.getElementById('friendRecipesSection').style.display = 'none';
-      document.getElementById('followResult').style.display = 'none';
+      const friendRecipesSection = document.getElementById('friendRecipesSection');
+      if (friendRecipesSection) friendRecipesSection.style.display = 'none';
+      const followResult = document.getElementById('followResult');
+      if (followResult) followResult.style.display = 'none';
       openModalAnimated('profileModal');
       loadFollowingAndActivity();
       // If there are pending notifications or follow requests, scroll to them
@@ -3793,6 +3796,7 @@
   let activeFriendOptionsUser = null;
   async function renderFriendsList(following) {
     const list = document.getElementById('friendsList');
+    if (!list) return;
     if (following.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Not following anyone yet.<br>Add a friend by username above.</div>'; return; }
     // Fetch streaks for all friends in parallel
     const streakMap = {};
