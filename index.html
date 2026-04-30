@@ -2148,8 +2148,30 @@
 
     <div class="admin-section">
       <div class="admin-section-title">📊 Quick Stats</div>
-      <button class="btn btn-secondary" onclick="loadAdminStats()">Load Stats</button>
+      <button class="btn btn-secondary" onclick="loadAdminStats()">Refresh Stats</button>
       <div id="adminStats" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">⚙️ Admin Settings</div>
+      <div class="settings-row" style="justify-content:space-between;">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Default Card Size</div>
+          <div class="settings-row-sub">Card size for new users and guests</div>
+        </div>
+        <select id="adminDefaultCardSize" onchange="saveAdminCardSize(this.value)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--glass-border);background:var(--glass);color:var(--text);font-family:inherit;font-size:0.82em;">
+          <option value="normal">Normal</option>
+          <option value="compact">Compact</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+      <div class="settings-row" style="justify-content:space-between;">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Export Users CSV</div>
+          <div class="settings-row-sub">Download all users with email, join date, last active, and pro status</div>
+        </div>
+        <button class="btn btn-secondary" onclick="exportUsersCSV()" style="font-size:0.82em;padding:6px 14px;">⬇ Export</button>
+      </div>
     </div>
 
     <div style="height:30px;"></div>
@@ -5180,6 +5202,9 @@
       if (achievementSection) {
         achievementSection.style.display = currentUser === 'rollert2' ? 'block' : 'none';
       }
+      // Load admin settings
+      loadAdminCardSize();
+      loadAdminStats();
       openModalAnimated('adminModal');
     });
   }
@@ -5531,22 +5556,94 @@
     const el = document.getElementById('adminStats');
     el.innerHTML = '<div style="color:var(--text-faint);font-size:0.85em;">Loading...</div>';
     try {
-      const [users, recipes, messages, blacklist] = await Promise.all([
-        sbFetch('GET', 'users', null, 'select=id'),
+      const [users, recipes, messages, blacklist, allSettings] = await Promise.all([
+        sbFetch('GET', 'users', null, 'select=id,created_at'),
         sbFetch('GET', 'recipes', null, 'select=id'),
         sbFetch('GET', 'messages', null, 'select=id'),
-        sbFetch('GET', 'blacklist', null, 'select=id')
+        sbFetch('GET', 'blacklist', null, 'select=id'),
+        sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,last_active_at')
       ]);
+
+      const totalUsers = (users || []).length;
+      const totalRecipes = (recipes || []).length;
+      const totalMessages = (messages || []).length;
+      const blockedDomains = (blacklist || []).length;
+
+      // Pro users
+      let proUsers = 0;
+      if (allSettings) allSettings.forEach(s => { if (s.is_pro) proUsers++; });
+
+      // Active today (last_active_at within 24h)
+      const now = Date.now();
+      let activeToday = 0;
+      if (allSettings) {
+        allSettings.forEach(s => {
+          if (s.last_active_at && (now - new Date(s.last_active_at).getTime()) < 86400000) activeToday++;
+        });
+      }
+
+      // New users this week
+      const weekAgo = now - 604800000;
+      let newThisWeek = 0;
+      if (users) users.forEach(u => { if (new Date(u.created_at).getTime() > weekAgo) newThisWeek++; });
+
       el.innerHTML = [
-        ['👥 Total users', (users||[]).length],
-        ['🍳 Total recipes', (recipes||[]).length],
-        ['💬 Total messages', (messages||[]).length],
-        ['🚫 Blocked domains', (blacklist||[]).length],
+        ['👥 Total users', totalUsers],
+        ['⭐ Pro users', proUsers],
+        ['🟢 Active today', activeToday],
+        ['🆕 New this week', newThisWeek],
+        ['🍳 Total recipes', totalRecipes],
+        ['💬 Total messages', totalMessages],
+        ['🚫 Blocked domains', blockedDomains],
       ].map(([label, val]) =>
         '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--glass-border);font-size:0.88em;">' +
         '<span style="color:var(--text-dim);">' + label + '</span><span style="font-weight:700;">' + val + '</span></div>'
       ).join('');
     } catch(e) { el.innerHTML = '<div style="color:var(--red);font-size:0.82em;">Failed to load stats</div>'; }
+  }
+
+  // ═══ ADMIN SETTINGS ═══
+  async function loadAdminCardSize() {
+    try {
+      const settings = await getAdminSettings();
+      const size = (settings.settings && settings.settings.default_card_size) || 'normal';
+      const sel = document.getElementById('adminDefaultCardSize');
+      if (sel) sel.value = size;
+    } catch(e) {}
+  }
+
+  async function saveAdminCardSize(size) {
+    try {
+      await updateAdminSettings({ default_card_size: size });
+      rcAlert('✅ Default card size saved: ' + size);
+    } catch(e) { rcAlert('❌ Failed to save'); }
+  }
+
+  async function exportUsersCSV() {
+    const data = await sbFetch('GET', 'users', null, 'select=username,email,is_secured,created_at&order=created_at.desc');
+    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,last_active_at');
+    const proMap = {};
+    const activeMap = {};
+    if (allSettings) {
+      allSettings.forEach(s => {
+        if (s.is_pro) proMap[s.user_id] = true;
+        activeMap[s.user_id] = s.last_active_at;
+      });
+    }
+    let csv = 'Username,Email,Joined,Last Active,Pro,Secured\n';
+    (data || []).forEach(u => {
+      const joined = new Date(u.created_at).toISOString().split('T')[0];
+      const lastActive = activeMap[u.id] ? new Date(activeMap[u.id]).toISOString().split('T')[0] : '';
+      const pro = proMap[u.id] ? 'Yes' : 'No';
+      const secured = u.is_secured ? 'Yes' : 'No';
+      const email = (u.email || '').replace(/"/g, '""');
+      csv += '"' + u.username + '","' + email + '","' + joined + '","' + lastActive + '","' + pro + '","' + secured + '"\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'roll_cookbook_users.csv'; a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ═══ SEASONAL TIMER TONES ═══
@@ -7300,37 +7397,119 @@
   }
 
   // ═══ ADMIN USER MANAGEMENT ═══
-  // Make proMap available globally for showAdminUserOptions
   let adminProMap = {};
+  let adminSettingsMap = {}; // user_id -> { last_active_at, ... }
+  let adminSortBy = 'default'; // 'default' | 'recipes' | 'cooks' | 'active' | 'name'
+  let adminSortDir = 'desc'; // 'asc' | 'desc'
 
-  async function loadAdminUsers() {
+  async function loadAdminUsers(sortBy = 'default') {
+    adminSortBy = sortBy;
     const el = document.getElementById('adminUserList');
     el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
-    
+
     // Fetch users
     const data = await sbFetch('GET', 'users', null, 'select=id,username,email,is_secured,created_at&order=created_at.desc');
-    
+
     if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
-    
-    // Fetch all settings to map pro status
-    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro');
+
+    // Fetch all settings for pro + last_active
+    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,last_active_at');
     adminProMap = {};
+    adminSettingsMap = {};
     if (allSettings) {
-      allSettings.forEach(s => { if (s.is_pro) adminProMap[s.user_id] = true; });
+      allSettings.forEach(s => {
+        if (s.is_pro) adminProMap[s.user_id] = true;
+        adminSettingsMap[s.user_id] = { last_active_at: s.last_active_at };
+      });
     }
-    
-    el.innerHTML = (data||[]).map(u => {
-      const secIcon = u.is_secured ? '🔒' : '🔓';
-      const proStatus = adminProMap[u.id] ? ' ⭐' : '';
-      const emailStr = u.email ? u.email : '<span style="color:var(--text-faint);font-style:italic;">no email</span>';
-      
-      return '<div style="padding:11px 4px;border-bottom:0.5px solid var(--glass-border);cursor:pointer;" onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<div style="font-size:0.9em;font-weight:700;">' + secIcon + ' ' + u.username + proStatus + '</div>' +
-        '<div style="color:var(--text-faint);font-size:0.8em;">›</div></div>' +
-        '<div style="font-size:0.72em;color:var(--text-faint);margin-top:2px;">' + emailStr + ' · joined ' + new Date(u.created_at).toLocaleDateString() + '</div>' +
-        '</div>';
+
+    // Fetch extra data for metric sorts
+    let extraData = {}; // user_id -> metric value
+    if (sortBy === 'recipes' || sortBy === 'cooks') {
+      const allRecipes = await sbFetch('GET', 'recipes', null, 'select=user_id,cook_count');
+      if (allRecipes) {
+        const counts = {};
+        allRecipes.forEach(r => {
+          if (!counts[r.user_id]) counts[r.user_id] = { recipes: 0, cooks: 0 };
+          counts[r.user_id].recipes++;
+          counts[r.user_id].cooks += (r.cook_count || 0);
+        });
+        if (sortBy === 'recipes') {
+          Object.entries(counts).forEach(([uid, c]) => { extraData[uid] = c.recipes; });
+        } else if (sortBy === 'cooks') {
+          Object.entries(counts).forEach(([uid, c]) => { extraData[uid] = c.cooks; });
+        }
+      }
+    }
+
+    // Sort users
+    let sorted = [...data];
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+    } else if (sortBy === 'active') {
+      sorted.sort((a, b) => {
+        const aDate = (adminSettingsMap[a.id] && adminSettingsMap[a.id].last_active_at) ? new Date(adminSettingsMap[a.id].last_active_at) : new Date(0);
+        const bDate = (adminSettingsMap[b.id] && adminSettingsMap[b.id].last_active_at) ? new Date(adminSettingsMap[b.id].last_active_at) : new Date(0);
+        return bDate - aDate;
+      });
+    } else if (sortBy === 'recipes' || sortBy === 'cooks') {
+      sorted.sort((a, b) => (extraData[b.id] || 0) - (extraData[a.id] || 0));
+    }
+    // 'default' keeps created_at desc from the query
+
+    const showExtraCol = sortBy !== 'default' && sortBy !== 'name' && sortBy !== 'active';
+    const colLabel = sortBy === 'recipes' ? '📋 Recipes' : sortBy === 'cooks' ? '🍳 Cooks' : '';
+
+    // Build sort bar
+    const sortChips = ['default','recipes','cooks','active','name'];
+    const sortLabels = { default:'🕐 Joined', recipes:'📋 Recipes', cooks:'🍳 Cooks', active:'🟢 Active', name:'🔤 Name' };
+    const sortBar = '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">' +
+      sortChips.map(s => {
+        const active = sortBy === s;
+        return '<button onclick="loadAdminUsers(\'' + s + '\')" style="padding:5px 10px;border-radius:14px;border:1px solid ' + (active ? 'var(--gold)' : 'var(--glass-border)') + ';background:' + (active ? 'var(--gold)' : 'var(--glass)') + ';color:' + (active ? 'var(--bg)' : 'var(--text)') + ';font-size:0.72em;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">' + sortLabels[s] + '</button>';
+      }).join('') +
+      '</div>';
+
+    // Column headers
+    const headerStyle = 'font-size:0.65em;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);padding:6px 4px;border-bottom:1px solid var(--glass-border);';
+    const headers = '<div style="display:grid;grid-template-columns:' + (showExtraCol ? '1.2fr 1.8fr 0.8fr 0.8fr 0.7fr' : '1.2fr 1.8fr 0.9fr 0.9fr') + ';gap:4px;margin-bottom:4px;">' +
+      '<div style="' + headerStyle + '">User</div>' +
+      '<div style="' + headerStyle + '">Email</div>' +
+      '<div style="' + headerStyle + '">Joined</div>' +
+      '<div style="' + headerStyle + '">Last Active</div>' +
+      (showExtraCol ? '<div style="' + headerStyle + '">' + colLabel + '</div>' : '') +
+      '</div>';
+
+    // Render rows
+    const now = Date.now();
+    const rowStyle = 'font-size:0.78em;padding:8px 4px;border-bottom:0.5px solid var(--glass-border);display:flex;align-items:center;';
+    const rows = sorted.map(u => {
+      const proBadge = adminProMap[u.id] ? ' ⭐' : '';
+      const emailStr = u.email || '<span style="color:var(--text-faint);font-style:italic;">—</span>';
+      const joined = new Date(u.created_at).toLocaleDateString();
+      const la = adminSettingsMap[u.id] && adminSettingsMap[u.id].last_active_at;
+      let lastActiveStr = '<span style="color:var(--text-faint);">—</span>';
+      if (la) {
+        const laDate = new Date(la);
+        const diffMins = Math.floor((now - laDate.getTime()) / 60000);
+        if (diffMins < 1) lastActiveStr = 'Just now';
+        else if (diffMins < 60) lastActiveStr = diffMins + 'm ago';
+        else if (diffMins < 1440) lastActiveStr = Math.floor(diffMins / 60) + 'h ago';
+        else lastActiveStr = Math.floor(diffMins / 1440) + 'd ago';
+      }
+      const extraVal = showExtraCol ? '<div style="font-weight:600;text-align:center;">' + (extraData[u.id] || 0) + '</div>' : '';
+
+      return '<div onclick="showAdminUserOptions(\'' + u.username + '\',\'' + u.id + '\')" style="cursor:pointer;">' +
+        '<div style="display:grid;grid-template-columns:' + (showExtraCol ? '1.2fr 1.8fr 0.8fr 0.8fr 0.7fr' : '1.2fr 1.8fr 0.9fr 0.9fr') + ';gap:4px;align-items:center;' + rowStyle + '">' +
+        '<div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + u.username + proBadge + '</div>' +
+        '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim);">' + emailStr + '</div>' +
+        '<div style="color:var(--text-faint);">' + joined + '</div>' +
+        '<div style="color:' + (la ? 'var(--text)' : 'var(--text-faint)') + ';">' + lastActiveStr + '</div>' +
+        extraVal +
+        '</div></div>';
     }).join('');
+
+    el.innerHTML = sortBar + '<div style="color:var(--text-faint);font-size:0.7em;margin-bottom:6px;">' + sorted.length + ' user' + (sorted.length !== 1 ? 's' : '') + '</div>' + headers + rows;
   }
   async function showAdminUserOptions(username, userId) {
     document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
