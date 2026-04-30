@@ -4996,6 +4996,11 @@
     }
   }
 
+  // Re-hide ads when app resumes (Median native plugin may auto-show on resume)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { isAdFree().then(free => { if (free) hideBannerAd(); }); }
+  });
+
   async function handleRemoveAds() {
     console.log('handleRemoveAds clicked!');
     const isUuid = currentUser.length === 36 && currentUser.includes('-');
@@ -5084,16 +5089,16 @@
       if (adBtn) { adBtn.textContent = '✅ Active'; adBtn.style.background = 'var(--green)'; adBtn.onclick = null; }
       if (adLabel) adLabel.textContent = '🚫 Ads Removed';
       if (adSub) adSub.textContent = 'Ads are hidden. Thank you!';
-      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = ''; proBtn.onclick = handleProUpgrade; }
+      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = 'var(--gold)'; proBtn.onclick = handleProUpgrade; }
       if (proLabel) proLabel.textContent = '⭐ Go Pro';
       if (proSub) proSub.textContent = 'Remove ads and unlock all premium features';
       hideBannerAd();
     } else {
       // Free: both available
-      if (adBtn) { adBtn.textContent = 'Remove'; adBtn.style.background = ''; adBtn.onclick = handleRemoveAds; }
+      if (adBtn) { adBtn.textContent = 'Remove'; adBtn.style.background = 'var(--gold)'; adBtn.onclick = handleRemoveAds; }
       if (adLabel) adLabel.textContent = '🚫 Remove Ads';
       if (adSub) adSub.textContent = 'Remove all ads from the app';
-      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = ''; proBtn.onclick = handleProUpgrade; }
+      if (proBtn) { proBtn.textContent = 'Go Pro'; proBtn.style.background = 'var(--gold)'; proBtn.onclick = handleProUpgrade; }
       if (proLabel) proLabel.textContent = '⭐ Go Pro';
       if (proSub) proSub.textContent = 'Remove ads and unlock all premium features';
     }
