@@ -87,6 +87,8 @@
 
     /* ── MAIN ── */
     .main-content { padding-top:var(--header-height); }
+    .tab-page { transition: opacity 0.18s ease; }
+    .tab-page.switching { opacity: 0; pointer-events: none; }
     /* ── RECIPE OF THE DAY ── */
     .rotd-card { margin:10px 12px 2px; border-radius:var(--radius); overflow:hidden; border:1px solid rgba(201,168,76,0.35); background:var(--surface); position:relative; cursor:pointer; animation:fadeUp 0.3s ease both; }
     .rotd-img { width:100%; height:130px; object-fit:cover; display:block; }
@@ -890,7 +892,7 @@
   </div>
 
   <!-- Recipes tab -->
-  <div class="main-content" id="mainContent">
+  <div class="main-content tab-page" id="mainContent">
     <div id="broadcastBanner" class="broadcast-banner"></div>
     <div id="rotdCard"></div>
     <div id="recipeContainer" class="recipe-grid"></div>
@@ -898,7 +900,7 @@
 
   <!-- Shopping tab -->
   <!-- Discover tab -->
-  <div id="discoverContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
+  <div id="discoverContent" class="tab-page" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
     <div id="seasonalCard" class="seasonal-card" style="display:none;"></div>
     <!-- Main AI search -->
     <div style="margin:14px 0 4px;">
@@ -949,7 +951,7 @@
   </div>
 
   <!-- Pantry tab -->
-  <div id="pantryContent" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
+  <div id="pantryContent" class="tab-page" style="display:none; padding-top:var(--header-height); padding-left:16px; padding-right:16px; padding-bottom:20px;">
     <!-- Shared Pantry Tabs -->
     <div id="pantryTabRow" style="display:flex;gap:8px;align-items:center;margin:14px 0 8px;overflow-x:auto;scrollbar-width:none;">
       <button class="sort-chip active" id="pantryTabPersonal" onclick="switchPantryTab('personal')">🧊 Personal</button>
@@ -1012,7 +1014,7 @@
   </div>
 
   <!-- Community tab (replaces Featured) -->
-  <div id="featuredContent" style="display:none; padding-top:var(--header-height); padding-bottom:20px;">
+  <div id="featuredContent" class="tab-page" style="display:none; padding-top:var(--header-height); padding-bottom:20px;">
     <!-- Community header -->
     <div style="padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between; background:var(--bg); border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
@@ -1045,7 +1047,7 @@
   </div>
 
   <!-- Planner tab -->
-  <div id="plannerContent" style="display:none; padding-bottom:100px;">
+  <div id="plannerContent" class="tab-page" style="display:none; padding-bottom:100px;">
     <!-- Planner top bar -->
     <div style="padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;">📅 Meal Planner</div>
@@ -2809,7 +2811,7 @@
       // Hide other content tabs
       ['mainContent','discoverContent','plannerContent','featuredContent'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) { el.style.display = 'none'; el.style.opacity = ''; el.style.transition = ''; }
+        if (el) { el.style.display = 'none'; el.classList.remove('switching'); }
       });
       // Update nav tab active state
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -2825,19 +2827,30 @@
       return;
     }
     currentTab = tab;
-    ['recipes','featured','discover','planner','pantry'].forEach(t => {
-      const el = document.getElementById(t === 'recipes' ? 'mainContent' : t + 'Content');
+    const tabIds = { recipes:'mainContent', featured:'featuredContent', discover:'discoverContent', planner:'plannerContent', pantry:'pantryContent' };
+    const targetId = tabIds[tab];
+    
+    // Fade out all tab pages
+    Object.values(tabIds).forEach(id => {
+      const el = document.getElementById(id);
       if (!el) return;
-      if (t === tab) {
-        el.style.display = 'block';
-        el.style.opacity = '0';
-        requestAnimationFrame(() => { el.style.transition = 'opacity 0.12s ease'; el.style.opacity = '1'; });
-      } else {
-        el.style.display = 'none';
-        el.style.opacity = '';
-        el.style.transition = '';
-      }
+      el.classList.add('switching');
     });
+    
+    // After fade-out, swap visibility and fade in target
+    setTimeout(() => {
+      Object.entries(tabIds).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (key === tab) {
+          el.style.display = 'block';
+          requestAnimationFrame(() => { el.classList.remove('switching'); });
+        } else {
+          el.style.display = 'none';
+          el.classList.remove('switching');
+        }
+      });
+    }, 180);
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('nav' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
     // Hide recipe search bar on non-recipe tabs
