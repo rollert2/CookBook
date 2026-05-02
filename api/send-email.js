@@ -49,17 +49,18 @@ export default async function handler(req, res) {
       <p style="font-size:16px;color:#333333;margin:0 0 8px;">Hey <strong>${username}</strong> — thanks for joining!</p>
       <p style="font-size:14px;color:#555555;line-height:1.6;margin:0 0 20px;">Roll Cookbook is your personal recipe companion. Here is what you get for free:</p>
       <ul style="font-size:14px;color:#444444;line-height:2;padding-left:20px;margin:0 0 20px;">
-        <li>📸 Scan recipes from photos or import from any URL</li>
+        <li>📸 Import recipes from any URL</li>
         <li>🍳 Cook mode with step-by-step timers</li>
-        <li>📅 Meal planner to organize your week</li>
         <li>🌍 Community — share and discover recipes</li>
-        <li>🔍 Pantry tracker — find recipes from what you have</li>
+        <li>🔖 Save favourites, rate, and organize with tags</li>
+        <li>📱 Recipe scaling, unit conversion & QR codes</li>
       </ul>
       <div style="background:#faf3e0;border-left:4px solid #c9a84c;border-radius:0 8px 8px 0;padding:14px 16px;margin:0 0 20px;">
         <p style="font-size:14px;color:#8b6914;font-weight:700;margin:0 0 6px;">⭐ Go Pro to unlock:</p>
         <ul style="font-size:13px;color:#8b6914;line-height:1.8;padding-left:18px;margin:0;">
+          <li>📅 Meal planner with templates & week view</li>
+          <li>🥫 Pantry tracker — find recipes from what you have</li>
           <li>🛒 Smart shopping lists with aisle grouping</li>
-          <li>🥫 Full pantry tracking & ingredient matching</li>
           <li>🤖 AI-powered recipe import & photo scan</li>
           <li>📊 Nutrition estimates & logging</li>
           <li>🔄 Ingredient substitution & leftover suggestions</li>
