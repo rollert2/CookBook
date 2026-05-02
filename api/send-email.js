@@ -67,7 +67,6 @@ export default async function handler(req, res) {
         </ul>
       </div>
       <p style="font-size:14px;color:#555555;line-height:1.6;margin:0 0 16px;">You are all set. Open the app and start cooking!</p>
-      <p style="font-size:12px;color:#888888;line-height:1.5;margin:0;text-align:center;">Have questions or feedback? Just reply to this email.</p>
     </div>
   </div>
 </body>
