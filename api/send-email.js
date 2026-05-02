@@ -38,29 +38,38 @@ export default async function handler(req, res) {
           subject: 'Welcome to Roll Cookbook! 🍳',
           html: `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:20px;background:#1a1a1a;color:#e0e0e0;">
-  <div style="text-align:center;padding:30px 0;">
-    <div style="font-size:48px;margin-bottom:12px;">🍳</div>
-    <h1 style="color:#c9a84c;margin:0 0 8px;font-size:24px;">Welcome to Roll Cookbook!</h1>
-    <p style="font-size:16px;color:#a0a0a0;margin:0;">Hey <strong style="color:#e0e0e0;">${username}</strong> — thanks for joining!</p>
+<head><meta charset="utf-8"><meta name="color-scheme" content="light"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:0;background:#f5f5f5;">
+  <div style="background:#ffffff;border-radius:12px;overflow:hidden;margin:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <div style="background:#c9a84c;padding:28px 24px;text-align:center;">
+      <div style="font-size:42px;margin-bottom:6px;">🍳</div>
+      <h1 style="color:#ffffff;margin:0;font-size:22px;font-weight:800;">Welcome to Roll Cookbook!</h1>
+    </div>
+    <div style="padding:24px;">
+      <p style="font-size:16px;color:#333333;margin:0 0 8px;">Hey <strong>${username}</strong> — thanks for joining!</p>
+      <p style="font-size:14px;color:#555555;line-height:1.6;margin:0 0 20px;">Roll Cookbook is your personal recipe companion. Here is what you get for free:</p>
+      <ul style="font-size:14px;color:#444444;line-height:2;padding-left:20px;margin:0 0 20px;">
+        <li>📸 Scan recipes from photos or import from any URL</li>
+        <li>🍳 Cook mode with step-by-step timers</li>
+        <li>📅 Meal planner to organize your week</li>
+        <li>🌍 Community — share and discover recipes</li>
+        <li>🔍 Pantry tracker — find recipes from what you have</li>
+      </ul>
+      <div style="background:#faf3e0;border-left:4px solid #c9a84c;border-radius:0 8px 8px 0;padding:14px 16px;margin:0 0 20px;">
+        <p style="font-size:14px;color:#8b6914;font-weight:700;margin:0 0 6px;">⭐ Go Pro to unlock:</p>
+        <ul style="font-size:13px;color:#8b6914;line-height:1.8;padding-left:18px;margin:0;">
+          <li>🛒 Smart shopping lists with aisle grouping</li>
+          <li>🥫 Full pantry tracking & ingredient matching</li>
+          <li>🤖 AI-powered recipe import & photo scan</li>
+          <li>📊 Nutrition estimates & logging</li>
+          <li>🔄 Ingredient substitution & leftover suggestions</li>
+          <li>🚫 Ad-free experience</li>
+        </ul>
+      </div>
+      <p style="font-size:14px;color:#555555;line-height:1.6;margin:0 0 16px;">You are all set. Open the app and start cooking!</p>
+      <p style="font-size:12px;color:#888888;line-height:1.5;margin:0;text-align:center;">Have questions or feedback? Just reply to this email.</p>
+    </div>
   </div>
-  <div style="background:#252525;border-radius:12px;padding:20px;margin:16px 0;">
-    <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Roll Cookbook is your personal recipe companion. Here is what you can do:</p>
-    <ul style="font-size:14px;line-height:1.8;padding-left:20px;margin:0;">
-      <li>📸 <strong>Scan recipes</strong> from photos or import from any URL</li>
-      <li>🍳 <strong>Cook mode</strong> with step-by-step timers</li>
-      <li>📅 <strong>Meal planner</strong> to organize your week</li>
-      <li>🛒 <strong>Shopping lists</strong> with smart aisle grouping</li>
-      <li>🥫 <strong>Pantry tracker</strong> — find recipes from what you have</li>
-      <li>🌍 <strong>Community</strong> — share and discover recipes</li>
-    </ul>
-  </div>
-  <p style="font-size:14px;color:#a0a0a0;text-align:center;">You are all set. Open the app and start cooking!</p>
-  <div style="text-align:center;margin-top:24px;">
-    <a href="https://rollcookbook.com" style="display:inline-block;padding:12px 28px;background:#c9a84c;color:#1a1a1a;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Open Roll Cookbook</a>
-  </div>
-  <p style="font-size:11px;color:#666;text-align:center;margin-top:30px;">If you did not create this account, you can ignore this email.</p>
 </body>
 </html>`
         })
