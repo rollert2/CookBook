@@ -2545,6 +2545,15 @@
   function cancelWarning() { document.getElementById('loginWarning').style.display = 'none'; pendingLoginUsername = null; }
   function showLoginError(msg) { const el = document.getElementById('loginError'); el.textContent = msg; el.style.display = 'block'; }
 
+  // Fire-and-forget welcome email via Vercel API route
+  function sendWelcomeEmail(email, username) {
+    fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'welcome', email, username })
+    }).catch(() => {}); // silent fail — welcome email is non-critical
+  }
+
   function showThemeSelectionPopup() {
     const modal = document.createElement('div');
     modal.id = 'themeSelectionModal';
@@ -6757,6 +6766,7 @@
   let communityPostSelectedRecipe = null;
   let communityPostMode = 'existing'; // 'existing' or 'new'
   let communityAttemptPhotoData = null;
+  let _communityDetailPostOwner = null; // for comment notifications
 
   function setCommunityFilter(cat, el) {
     communityFilter = cat;
@@ -6805,18 +6815,20 @@
       ? '<div class="community-card-img" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;"><img src="'+p.image_url+'" loading="lazy"></div>'
       : '';
     const attemptHtml = p.attempt_photo_url ? '<div style="margin:0;padding:0 14px 10px;"><div style="font-size:0.7em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);margin-bottom:6px;">Their Attempt 📸</div><img src="'+p.attempt_photo_url+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);"></div>' : '';
+    const owner = u.username || '?';
     const adminBtns = communityAdminMode && currentUser === 'rollert2' ? '<button onclick="adminRemoveCommunityPost(\''+p.id+'\')" style="margin-left:auto;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">Remove</button>' : '';
     const commentCount = p._commentCount || 0;
     const commentLabel = commentCount > 0 ? '💬 ' + commentCount : '💬';
+    const countSpan = '<span id="upvote-count-'+p.id+'"'+(currentUser === owner ? ' onclick="showCommunityUpvoters(\''+p.id+'\')" title="See who liked" style="cursor:pointer;text-decoration:underline dotted;"' : '')+'>'+(p.upvotes||0)+'</span>';
     return '<div class="community-card" id="cpost-'+p.id+'">' +
-      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(u.username||'?')+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
+      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(owner)+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
       imgHtml +
       '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div>' +
       '<div class="community-card-title" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;">'+escapeHtml(p.title)+'</div>' +
       (p.cook_time ? '<div class="community-card-meta">⏱ '+escapeHtml(p.cook_time)+(p.servings ? ' · 👤 '+escapeHtml(p.servings) : '')+'</div>' : '') + '</div>' +
       attemptHtml +
       '<div class="community-card-actions">' +
-        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)">👍 <span id="upvote-count-'+p.id+'">'+(p.upvotes||0)+'</span></button>' +
+        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)" data-owner="'+escapeHtml(owner)+'">👍 '+countSpan+'</button>' +
         '<button class="community-comment-btn" id="comm-comment-btn-'+p.id+'" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">'+commentLabel+'</button>' +
         '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')">+ Add</button>' +
       '</div></div>';
@@ -6825,7 +6837,7 @@
   async function toggleCommunityUpvote(postId, btn) {
     const res = await upvoteCommunityPost(postId, currentUser);
     const countEl = document.getElementById('upvote-count-' + postId);
-    if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; showInterstitialAd(); }
+    if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; showInterstitialAd(); sendCommunityLikeNotification(postId, currentUser); }
     else { btn.classList.remove('active'); if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1); }
   }
 
@@ -6842,6 +6854,7 @@
     const posts = await getCommunityPosts(null, null, 100, 0);
     const post = posts.find(p => p.id === postId);
     if (!post) return;
+    _communityDetailPostOwner = (post.users || {}).username || null; // store for comment notifications
     document.getElementById('communityDetailTitle').textContent = post.title;
     const body = document.getElementById('communityDetailBody');
     const u = post.users || {};
@@ -6881,6 +6894,7 @@
     await addCommunityComment(postId, currentUser, content);
     loadCommunityComments(postId);
     showInterstitialAd();
+    sendCommunityCommentNotification(postId, currentUser);
   }
 
   function showCommentUserOptions(username, btnId) {
@@ -6935,6 +6949,29 @@
     await removeCommunityPost(postId);
     const el = document.getElementById('cpost-' + postId);
     if (el) el.remove();
+  }
+
+  // ── Who liked viewer ─────────────────────────────────────────
+  async function showCommunityUpvoters(postId) {
+    const voters = await getCommunityUpvoters(postId);
+    if (!voters || voters.length === 0) return;
+    const sheet = document.createElement('div');
+    sheet.id = 'upvotersSheet';
+    sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:700;padding:20px 20px 50px;animation:slideUp 0.2s ease;max-height:60vh;overflow-y:auto;';
+    const overlay = document.createElement('div');
+    overlay.id = 'upvotersOverlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:699;';
+    const close = () => { document.getElementById('upvotersSheet')?.remove(); document.getElementById('upvotersOverlay')?.remove(); };
+    overlay.onclick = close;
+    let listHtml = '<div style="font-weight:800;font-size:1em;margin-bottom:6px;">👍 Liked by</div><div style="font-size:0.78em;color:var(--text-faint);margin-bottom:14px;">'+voters.length+' '+(voters.length===1?'person':'people')+'</div>';
+    voters.forEach(v => {
+      const av = v.avatar_url ? '<img src="'+v.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (v.username||'?').charAt(0).toUpperCase();
+      const isMe = v.username === currentUser;
+      listHtml += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);"><div class="community-avatar" style="width:34px;height:34px;font-size:0.85em;flex-shrink:0;">'+av+'</div><div style="flex:1;font-weight:600;font-size:0.88em;">'+escapeHtml(v.username||'')+(isMe?' <span style="color:var(--text-faint);font-weight:400;">(you)</span>':'')+'</div>'+(isMe?'':'<button onclick="followFromCommunity(\''+v.username+'\');close();" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:4px 12px;font-size:0.72em;font-weight:600;cursor:pointer;font-family:inherit;">+ Follow</button>')+'</div>';
+    });
+    sheet.innerHTML = listHtml;
+    document.body.appendChild(overlay);
+    document.body.appendChild(sheet);
   }
 
   // Community post creation
@@ -8669,6 +8706,8 @@ ${text}`;
         : n.type==='follow_back'?`<strong>${escapeHtml(n.fromUser)}</strong> followed you back`
         : n.type==='friend_rating'?`<strong>${escapeHtml(n.fromUser)}</strong> rated your recipe`
         : n.type==='deletion_request'?`🗑 <strong>${n.meta?.username||n.fromUser}</strong> requested account deletion`
+        : n.type==='community_like'?`❤️ <strong>${escapeHtml(n.fromUser)}</strong> liked your community post`
+        : n.type==='community_comment'?`💬 <strong>${escapeHtml(n.fromUser)}</strong> commented on your post`
         : `<strong>${escapeHtml(n.fromUser||'')}</strong> ${n.type}`;
 
       if (n.type === 'follow') {
@@ -8683,6 +8722,14 @@ ${text}`;
         // Slightly highlighted mutual follow notification
         html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;border-radius:var(--radius-sm);background:rgba(76,175,125,0.06);border:1px solid rgba(76,175,125,0.2);">
           <div style="flex:1;font-size:0.85em;">🤝 ${text}</div>
+          <button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;padding:4px;">✕</button>
+        </div>`;
+      } else if (n.type === 'community_like' || n.type === 'community_comment') {
+        // Community interaction notification with View button
+        const postId = n.meta?.post_id || '';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin:4px 0;border-radius:var(--radius-sm);background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);">
+          <div style="flex:1;font-size:0.85em;">${text}</div>
+          <button onclick="openCommunityDetail('${postId}','recipe');dismissNotification('${n.notifId}');" style="padding:5px 12px;border-radius:12px;background:var(--gold);border:none;color:var(--bg);font-size:0.78em;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;">View</button>
           <button onclick="dismissNotification('${n.notifId}');this.closest('div[style]').remove();" style="background:none;border:none;color:var(--text-faint);font-size:0.8em;cursor:pointer;padding:4px;">✕</button>
         </div>`;
       } else {
@@ -10645,6 +10692,9 @@ ${text}`;
       localStorage.setItem('rc_session', JSON.stringify(signupRes.data.session));
     }
     enterApp(username);
+
+    // Fire-and-forget welcome email
+    sendWelcomeEmail(email, username);
   }
 
   // ── Email/password sign in ──────────────────────────────────
@@ -10846,6 +10896,9 @@ ${text}`;
     localStorage.setItem('rc_session', JSON.stringify({ access_token: pending.accessToken, refresh_token: pending.refreshToken }));
     localStorage.removeItem('rc_pending_google_auth');
     enterApp(username);
+
+    // Fire-and-forget welcome email
+    sendWelcomeEmail(pending.email, username);
   }
 
   // ── Password reset ──────────────────────────────────────────

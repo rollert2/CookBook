@@ -82,6 +82,47 @@ async function removeCommunityPost(postId) {
   return { status: 'Success' };
 }
 
+// ── COMMUNITY NOTIFICATIONS ────────────────────────────────────
+
+async function sendCommunityLikeNotification(postId, fromUsername) {
+  const fromId = await getUserId(fromUsername);
+  if (!fromId) return;
+  // Get post owner
+  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=user_id`);
+  if (!post || !post[0]) return;
+  const ownerId = post[0].user_id;
+  if (ownerId === fromId) return; // don't notify on self-like
+  await sbFetch('POST', 'notifications', {
+    to_user_id: ownerId, from_user_id: fromId, type: 'community_like',
+    meta: JSON.stringify({ post_id: postId })
+  }).catch(() => {});
+}
+
+async function sendCommunityCommentNotification(postId, fromUsername) {
+  const fromId = await getUserId(fromUsername);
+  if (!fromId) return;
+  // Get post owner
+  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=user_id,title`);
+  if (!post || !post[0]) return;
+  const ownerId = post[0].user_id;
+  if (ownerId === fromId) return; // don't notify on self-comment
+  await sbFetch('POST', 'notifications', {
+    to_user_id: ownerId, from_user_id: fromId, type: 'community_comment',
+    meta: JSON.stringify({ post_id: postId, post_title: post[0].title })
+  }).catch(() => {});
+}
+
+// ── WHO LIKED ──────────────────────────────────────────────────
+
+async function getCommunityUpvoters(postId) {
+  const data = await sbFetch('GET', 'community_upvotes', null,
+    `post_id=eq.${postId}&select=user_id,users!community_upvotes_user_id_fkey(username,avatar_url)&order=created_at.desc`);
+  return (data || []).map(r => ({
+    username: r.users?.username,
+    avatar_url: r.users?.avatar_url
+  }));
+}
+
 async function uploadCommunityPhoto(base64Data, filename, username) {
   try {
     const parts = base64Data.split(',');
