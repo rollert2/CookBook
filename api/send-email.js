@@ -17,8 +17,10 @@ export default async function handler(req, res) {
 
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY) {
-    console.error('RESEND_API_KEY not set');
-    return res.status(500).json({ error: 'Email not configured' });
+    // Debug: list available env var names (not values)
+    const envKeys = Object.keys(process.env).filter(k => k.includes('RESEND') || k.includes('SEND') || k.includes('KEY'));
+    console.error('RESEND_API_KEY not set. Similar env vars found:', envKeys);
+    return res.status(500).json({ error: 'Email not configured', debug: 'RESEND_API_KEY missing', envHints: envKeys });
   }
 
   try {
