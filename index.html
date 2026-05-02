@@ -2547,11 +2547,12 @@
 
   // Fire-and-forget welcome email via Vercel API route
   function sendWelcomeEmail(email, username) {
+    console.log('sendWelcomeEmail firing for:', email, username);
     fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'welcome', email, username })
-    }).catch(() => {}); // silent fail — welcome email is non-critical
+    }).then(r => r.json()).then(d => console.log('sendWelcomeEmail response:', d)).catch(e => console.error('sendWelcomeEmail error:', e));
   }
 
   function showThemeSelectionPopup() {
