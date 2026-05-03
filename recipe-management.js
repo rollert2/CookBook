@@ -25,8 +25,9 @@ function renderRecipes() {
     const favMatch = !showFavsOnly || r.favourite;
     const searchMatch = !q || (r.title||'').toLowerCase().includes(q) || (r.category||'').toLowerCase().includes(q) || (r.ingredients||'').toLowerCase().includes(q) || (r.tags||'').toLowerCase().includes(q);
     const timeMatch = !cookTimeFilter || parseCookMinutes(r.cookTime) <= cookTimeFilter;
+    const quickCookMatch = !showQuickCookOnly || parseTotalMinutes(r) <= QUICK_COOK_MAX_MINUTES;
     const tagMatch = !activeTagFilter || (r.tags||'').toLowerCase().includes(activeTagFilter.toLowerCase());
-    return catMatch && favMatch && searchMatch && timeMatch && tagMatch;
+    return catMatch && favMatch && searchMatch && timeMatch && quickCookMatch && tagMatch;
   });
   list = sortRecipes(list);
   filteredRecipes = list;

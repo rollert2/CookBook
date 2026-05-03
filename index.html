@@ -866,6 +866,7 @@
     <div class="category-filter-row" id="sortFilterRow" style="display:flex;align-items:center;gap:8px;padding-left:16px;">
       <button onclick="openRecipeRoulette()" id="rouletteBtn" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:6px 12px;font-size:0.8em;cursor:pointer;color:var(--text-dim);white-space:nowrap;font-family:inherit;flex-shrink:0;" title="Recipe Roulette">🎰</button>
       <button class="icon-btn" id="cookTimeToggleBtn" onclick="toggleCookTimeFilterRow()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.85em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Cook Time Filter">⏱</button>
+      <button class="icon-btn" id="quickCookBtn" onclick="toggleQuickCookFilter()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.85em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Quick Cook (≤20 min)">⚡</button>
       <button class="icon-btn" id="favFilterBtn2" onclick="toggleFavFilter2()" style="width:32px;height:32px;border-radius:9px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);font-size:0.9em;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Favourites">⭐</button>
       <div class="sort-filter-wrap">
         <div class="sort-filter-btn" id="sortFilterBtn" onclick="toggleSortDropdown()">
@@ -910,6 +911,11 @@
     <div class="discover-search-wrap">
       <input type="text" id="discoverInput" placeholder="e.g. Thai green curry, pasta carbonara, https://..." onkeydown="if(event.key==='Enter') runDiscoverSearch()">
       <button class="discover-search-btn" onclick="runDiscoverSearch()">Search</button>
+    </div>
+    <!-- Seasonal ingredient spotlight -->
+    <div id="seasonalIngredientsCard" style="margin:12px 0;padding:12px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);display:none;">
+      <div style="font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-faint);margin-bottom:8px;">🌿 In Season Now</div>
+      <div id="seasonalIngredientsChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
     <!-- Quick browse categories -->
     <div style="margin:18px 0 6px;">
@@ -2345,6 +2351,7 @@
   let batchSelectMode = false;
   let batchSelectedIds = new Set();
   let cookTimeFilter = 0;
+  let showQuickCookOnly = false;
   let activeTagFilter = '';
   let journalSectionOpen = false;
 
@@ -2904,7 +2911,7 @@
     // Show banner ad on main tabs (not on modals)
     await showBannerAd();
     if (tab === 'planner') { adjustHeaderPadding(); renderPlanner(); }
-    if (tab === 'discover') renderSeasonalCard();
+    if (tab === 'discover') { renderSeasonalCard(); renderSeasonalIngredients(); }
     if (tab === 'pantry') { loadPantry(); findPantryMatches(); }
     if (tab === 'featured') {
       loadCommunity();
@@ -3082,6 +3089,22 @@
         btn.style.color = 'var(--text-dim)';
       }
     }
+  }
+  function toggleQuickCookFilter() {
+    showQuickCookOnly = !showQuickCookOnly;
+    const btn = document.getElementById('quickCookBtn');
+    if (btn) {
+      if (showQuickCookOnly) {
+        btn.style.background = 'var(--gold-dim)';
+        btn.style.borderColor = 'var(--gold)';
+        btn.style.color = 'var(--gold)';
+      } else {
+        btn.style.background = 'var(--glass)';
+        btn.style.borderColor = 'var(--glass-border)';
+        btn.style.color = 'var(--text-dim)';
+      }
+    }
+    renderRecipes();
   }
 
   // ═══ SORT DROPDOWN ═══
@@ -5804,6 +5827,7 @@
     return d.toLocaleDateString('en',{month:'short',day:'numeric'});
   }
   function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
   // ═══ FRIEND COLLECTIONS ═══
   function viewFriendCollections(username) {
@@ -9437,6 +9461,34 @@ ${text}`;
         '<div style="font-size:0.78em;color:var(--text-dim);line-height:1.4;">' + active.desc + '</div></div>' +
       '</div>' +
       suggestionsHtml + myMatchesHtml2;
+  }
+
+  // ═══ SEASONAL INGREDIENT SPOTLIGHT ════════════════════════════
+  const SEASONAL_PRODUCE = {
+    1: [{n:'Citrus',e:'🍊'},{n:'Kale',e:'🥬'},{n:'Potatoes',e:'🥔'},{n:'Onions',e:'🧅'},{n:'Carrots',e:'🥕'},{n:'Parsnips',e:'🥕'},{n:'Cabbage',e:'🥬'},{n:'Beets',e:'🟣'},{n:'Cauliflower',e:'🥦'},{n:'Leeks',e:'🫒'},{n:'Brussels sprouts',e:'🥬'}],
+    2: [{n:'Citrus',e:'🍊'},{n:'Kale',e:'🥬'},{n:'Potatoes',e:'🥔'},{n:'Onions',e:'🧅'},{n:'Carrots',e:'🥕'},{n:'Parsnips',e:'🥕'},{n:'Cabbage',e:'🥬'},{n:'Beets',e:'🟣'},{n:'Leeks',e:'🫒'}],
+    3: [{n:'Asparagus',e:'🌱'},{n:'Peas',e:'🟢'},{n:'Spinach',e:'🥬'},{n:'Artichokes',e:'🌿'},{n:'Radishes',e:'🔴'},{n:'Leeks',e:'🫒'},{n:'Arugula',e:'🥬'},{n:'Rhubarb',e:'🟢'}],
+    4: [{n:'Asparagus',e:'🌱'},{n:'Peas',e:'🟢'},{n:'Spinach',e:'🥬'},{n:'Strawberries',e:'🍓'},{n:'Artichokes',e:'🌿'},{n:'Radishes',e:'🔴'},{n:'Arugula',e:'🥬'},{n:'Rhubarb',e:'🟢'}],
+    5: [{n:'Asparagus',e:'🌱'},{n:'Strawberries',e:'🍓'},{n:'Peas',e:'🟢'},{n:'Spinach',e:'🥬'},{n:'Radishes',e:'🔴'},{n:'Arugula',e:'🥬'},{n:'Cherries',e:'🍒'},{n:'Apricots',e:'🍑'}],
+    6: [{n:'Tomatoes',e:'🍅'},{n:'Zucchini',e:'🥒'},{n:'Corn',e:'🌽'},{n:'Berries',e:'🫐'},{n:'Peaches',e:'🍑'},{n:'Bell peppers',e:'🫑'},{n:'Cucumbers',e:'🥒'},{n:'Green beans',e:'🫘'},{n:'Cherries',e:'🍒'},{n:'Melon',e:'🍈'}],
+    7: [{n:'Tomatoes',e:'🍅'},{n:'Zucchini',e:'🥒'},{n:'Corn',e:'🌽'},{n:'Berries',e:'🫐'},{n:'Peaches',e:'🍑'},{n:'Bell peppers',e:'🫑'},{n:'Cucumbers',e:'🥒'},{n:'Green beans',e:'🫘'},{n:'Melon',e:'🍈'},{n:'Watermelon',e:'🍉'}],
+    8: [{n:'Tomatoes',e:'🍅'},{n:'Zucchini',e:'🥒'},{n:'Corn',e:'🌽'},{n:'Peaches',e:'🍑'},{n:'Bell peppers',e:'🫑'},{n:'Melon',e:'🍈'},{n:'Watermelon',e:'🍉'},{n:'Eggplant',e:'🍆'}],
+    9: [{n:'Pumpkin',e:'🎃'},{n:'Squash',e:'🎃'},{n:'Apples',e:'🍎'},{n:'Pears',e:'🍐'},{n:'Brussels sprouts',e:'🥬'},{n:'Sweet potatoes',e:'🍠'},{n:'Mushrooms',e:'🍄'},{n:'Cranberries',e:'🔴'},{n:'Grapes',e:'🍇'}],
+    10:[{n:'Pumpkin',e:'🎃'},{n:'Squash',e:'🎃'},{n:'Apples',e:'🍎'},{n:'Pears',e:'🍐'},{n:'Brussels sprouts',e:'🥬'},{n:'Sweet potatoes',e:'🍠'},{n:'Mushrooms',e:'🍄'},{n:'Cranberries',e:'🔴'},{n:'Turnips',e:'🟤'}],
+    11:[{n:'Pumpkin',e:'🎃'},{n:'Squash',e:'🎃'},{n:'Apples',e:'🍎'},{n:'Pears',e:'🍐'},{n:'Sweet potatoes',e:'🍠'},{n:'Mushrooms',e:'🍄'},{n:'Brussels sprouts',e:'🥬'},{n:'Cranberries',e:'🔴'},{n:'Turnips',e:'🟤'}],
+    12:[{n:'Citrus',e:'🍊'},{n:'Kale',e:'🥬'},{n:'Potatoes',e:'🥔'},{n:'Onions',e:'🧅'},{n:'Carrots',e:'🥕'},{n:'Parsnips',e:'🥕'},{n:'Cabbage',e:'🥬'},{n:'Pomegranate',e:'🔴'},{n:'Cranberries',e:'🔴'}]
+  };
+  function renderSeasonalIngredients() {
+    const card = document.getElementById('seasonalIngredientsCard');
+    const chips = document.getElementById('seasonalIngredientsChips');
+    if (!card || !chips) return;
+    const month = new Date().getMonth() + 1;
+    const produce = SEASONAL_PRODUCE[month] || [];
+    if (produce.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    chips.innerHTML = produce.map(p =>
+      '<span onclick="discoverSearch(\'' + p.n.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:var(--surface);border:1px solid var(--glass-border);border-radius:16px;font-size:0.78em;color:var(--text-dim);cursor:pointer;white-space:nowrap;">' + p.e + ' ' + p.n + '</span>'
+    ).join('');
   }
 
   // ═══ LEFTOVERS TRACKER ════════════════════════════════════
@@ -13559,8 +13611,61 @@ ${r.ingredients}`;
     }
 
     noMatch.style.display = 'none';
-    matches.innerHTML = '<div id="pantryMatchesList" style="display:flex;flex-direction:column;gap:8px;"></div>';
+
+    // ── Build "almost there" list: recipes 1-2 pantry items short ──
+    const almost = allRecipes.map(r => {
+      const allLines = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
+      const recipeIngredients = allLines.filter(i => i.match(/^[\d½¼¾⅓⅔⅛]/) || i.match(/^(a |an |pinch|handful|dash|splash|to taste)/i));
+      const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
+      const ingItems = [];
+      ingLines.forEach(line => {
+        const parts = line.split(',').map(i => i.trim()).filter(Boolean);
+        ingItems.push(...parts);
+      });
+      const effectiveIngredients = ingItems.length > ingLines.length ? ingItems : ingLines;
+
+      let matchedCount = 0;
+      const missingIngs = [];
+      effectiveIngredients.forEach(ing => {
+        const isMatched = pantryItems.some(p => ingredientMatches(p, ing));
+        if (isMatched) matchedCount++;
+        else missingIngs.push(ing);
+      });
+
+      const matchDenominator = effectiveIngredients.length;
+      const recipePct = matchDenominator > 0 ? Math.min(100, Math.round((matchedCount / matchDenominator) * 100)) : 0;
+      const usedPantryItems = pantryItems.filter(p => effectiveIngredients.some(ing => ingredientMatches(p, ing)));
+
+      return {
+        recipe: r,
+        matchedPantry: usedPantryItems.map(p => p.name),
+        matchCount: usedPantryItems.length,
+        matchedIngredientCount: matchedCount,
+        recipePct,
+        missingIngs,
+        totalIngredients: matchDenominator
+      };
+    }).filter(s => {
+      // Only show almost recipes if user has enough pantry items
+      if (pantryItems.length < MIN_PANTRY_ITEMS) return false;
+      // The recipe must have at least 1 pantry match (they're close)
+      if (s.matchCount < 1) return false;
+      // Must have at least 2 total ingredients in the recipe
+      if (s.totalIngredients < 2) return false;
+      // Exclude recipes that already qualified as full matches
+      const alreadyFullMatch = scored.some(fm => fm.recipe.id === s.recipe.id);
+      if (alreadyFullMatch) return false;
+      return true;
+    }).sort((a, b) => {
+      // Sort by how close they are: priority to most pantry matches, then recipe %
+      if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+      return b.recipePct - a.recipePct;
+    }).slice(0, 6);
+
+    matches.innerHTML = '<div id="pantryMatchesList" style="display:flex;flex-direction:column;gap:8px;"></div>' +
+      (almost.length > 0 ? '<div id="pantryAlmostSection" style="margin-top:16px;"><div style="font-size:0.75em;font-weight:700;color:var(--text-dim);margin-bottom:8px;">👀 Almost There — Just Missing:</div><div id="pantryAlmostList" style="display:flex;flex-direction:column;gap:8px;"></div></div>' : '');
     renderPantryMatches(scored);
+    if (almost.length > 0) renderAlmostMatches(almost);
   }
 
   function renderPantryMatches(scoredData) {
@@ -13580,6 +13685,43 @@ ${r.ingredients}`;
         '<div style="font-size:0.88em;font-weight:800;color:' + color + ';">' + s.recipePct + '%</div>' +
         '</div>';
     }).join('');
+  }
+
+  function renderAlmostMatches(almostData) {
+    const list = document.getElementById('pantryAlmostList');
+    if (!list) return;
+    list.innerHTML = almostData.map(s => {
+      const r = s.recipe;
+      // Pick up to 2 missing ingredients — prioritize shorter ones (more likely to be key ingredients)
+      const missing = s.missingIngs
+        .filter(m => m.length > 1)
+        .sort((a, b) => a.length - b.length)
+        .slice(0, 2);
+      const missingHtml = missing.map(m => {
+        const cleanName = m.replace(/^[\d½¼¾⅓⅔⅛\s._-]+/, '').replace(/[()]/g, '').trim();
+        const displayName = cleanName.length > 30 ? cleanName.substring(0, 28) + '…' : cleanName;
+        return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;font-size:0.72em;color:var(--text-dim);">' + escapeHtml(displayName) + ' <button onclick="event.stopPropagation();addMissingToShop(\'' + escapeAttr(cleanName) + '\')" style="background:var(--gold-dim);border:none;color:var(--gold);cursor:pointer;font-size:0.85em;padding:1px 5px;border-radius:8px;font-family:inherit;" title="Add to shopping list">+🛒</button></span>';
+      }).join(' ');
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px dashed var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;" onclick="openRecipeFromPantry(\'' + r.id + '\')">' +
+        '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85em;">' + escapeHtml(r.title) + '</div>' +
+        '<div style="font-size:0.7em;color:var(--text-faint);margin-top:3px;">' + (s.matchedPantry.length > 0 ? 'You have ' + s.matchedPantry.slice(0,2).join(', ') : '') + '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">' + missingHtml + '</div></div>' +
+        '<div style="font-size:0.78em;font-weight:700;color:var(--text-faint);white-space:nowrap;">' + s.recipePct + '%</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function addMissingToShop(ingredientName) {
+    if (!ingredientName) return;
+    // Add to personal shopping list
+    shopItems.unshift({ text: ingredientName, checked: false, group: 'Other' });
+    saveShop();
+    // Brief toast feedback
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface);border:1px solid var(--gold);color:var(--gold);padding:12px 16px;border-radius:12px;font-size:0.85em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '🛒 Added "' + ingredientName + '" to shopping list';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 2000);
   }
 
   function openRecipeFromPantry(recipeId) {

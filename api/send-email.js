@@ -70,6 +70,7 @@ export default async function handler(req, res) {
       <p style="font-size:14px;color:#555555;line-height:1.6;margin:0 0 16px;">You are all set. Open the app and start cooking!</p>
     </div>
   </div>
+  <p style="font-size:12px;color:#999999;text-align:center;margin:0 20px 24px;line-height:1.5;">If you didn't create this account, please let us know at <a href="mailto:rollcookbook@hxosixo.resend.app" style="color:#999999;">rollcookbook@hxosixo.resend.app</a></p>
 </body>
 </html>`
         })
