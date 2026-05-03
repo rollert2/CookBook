@@ -2931,7 +2931,7 @@
     });
     // Show/hide pro badges on locked features
     isPro().then(pro => {
-      ['scan','url'].forEach(t => {
+      ['scan'].forEach(t => {
         const btn = document.querySelector('#addModeSelect [onclick*="switchSyncTab(\'' + t + '\')"]');
         if (!btn) return;
         let badge = btn.querySelector('.pro-badge-overlay');
@@ -4279,7 +4279,6 @@
   }
 
   async function importFromUrl() {
-    if (!(await isPro())) { rcAlert('⭐ Go Pro\n\nAI recipe import is a premium feature. Upgrade to unlock it.'); return; }
     const url = document.getElementById('urlInput').value.trim();
     if (!url || !url.startsWith('http')) { showUrlImportError('Please enter a valid URL starting with http:// or https://'); return; }
     // Route YouTube to social scraper (has ytInitialData parser)
@@ -8015,8 +8014,8 @@
     // Ingredients
     const ings = parseIngredients(r.ingredients);
     document.getElementById('ingredientsList').innerHTML = ings.map((ing, _ii) => {
-      const isHeader = ing.endsWith(':') || (ing.length < 40 && !ing.match(/^[\d½¼¾⅓⅔⅛]/));
-      if (isHeader && !ing.match(/^[\d½¼¾⅓⅔⅛]/)) {
+      const isHeader = ing.endsWith(':');
+      if (isHeader) {
         return '<div class="ingredient-line" style="font-weight:700;color:var(--gold);font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;padding-bottom:2px;border-bottom:none;">' + decodeHtml(ing) + '</div>';
       }
       const scaled = decodeHtml(convertIngredientUnits(scaleIngredientLine(ing, currentScale), _unitPref));
@@ -8195,7 +8194,7 @@
         <ul style="margin:0;padding-left:20px;line-height:2;">
           <li>📅 <b>Meal Planner:</b> Plan your week and generate shopping lists.</li>
           <li>🧊 <b>Pantry Tracker:</b> Manage ingredients and find matching recipes.</li>
-          <li>🤖 <b>AI Tools:</b> URL import and photo scan.</li>
+          <li>📷 <b>AI Tools:</b> Photo scan.</li>
           <li>📊 <b>Nutrition:</b> Track your macros and health stats.</li>
           <li>🚫 <b>Ad-Free:</b> Enjoy an uninterrupted cooking experience.</li>
         </ul>
@@ -8423,8 +8422,8 @@ ${text}`;
       if (el) el.style.display = 'none';
     });
 
-    // Lock URL & Scan behind pro
-    if (tab === 'url' || tab === 'scan') {
+    // Lock Scan behind pro
+    if (tab === 'scan') {
       isPro().then(pro => {
         if (!pro) {
           const sheet = document.createElement('div');
@@ -8432,12 +8431,12 @@ ${text}`;
           sheet.innerHTML = `
             <div style="display:flex;align-items:center;margin-bottom:20px;">
               <button onclick="this.parentElement.parentElement.remove();showAddModeSelect()" style="background:none;border:none;color:var(--text);font-size:1.2em;cursor:pointer;">✕</button>
-              <div style="font-weight:800;margin-left:15px;">${tab === 'url' ? '🔗 Import from URL' : '📷 Scan a Recipe'}</div>
+              <div style="font-weight:800;margin-left:15px;">📷 Scan a Recipe</div>
             </div>
             <div style="text-align:center;padding:20px 0;">
               <div style="font-size:3em;margin-bottom:12px;">⭐</div>
               <div style="font-size:1.1em;font-weight:700;margin-bottom:6px;">Pro Feature</div>
-              <div style="font-size:0.85em;color:var(--text-faint);line-height:1.6;margin-bottom:24px;">${tab === 'url' ? 'AI-powered URL import' : 'AI-powered photo scanning'} is available exclusively to Pro subscribers.</div>
+              <div style="font-size:0.85em;color:var(--text-faint);line-height:1.6;margin-bottom:24px;">AI-powered photo scanning is available exclusively to Pro subscribers.</div>
               <button onclick="var s=this.parentElement.parentElement;s.remove();showAddModeSelect();handleProUpgrade()" style="width:100%;padding:15px;border-radius:24px;background:var(--gold);border:none;color:var(--bg);font-weight:700;font-size:1em;cursor:pointer;font-family:inherit;">⭐ Go Pro</button>
             </div>`;
           document.body.appendChild(sheet);
@@ -13545,11 +13544,9 @@ ${r.ingredients}`;
 
     // For each recipe, check how many pantry ingredients match
     const scored = allRecipes.map(r => {
-      // Only count lines that look like real ingredients (start with a quantity or known measure)
+      // Only count lines that look like real ingredients (exclude headers ending with colon)
       const allLines = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
-      const recipeIngredients = allLines.filter(i => i.match(/^[\d½¼¾⅓⅔⅛]/) || i.match(/^(a |an |pinch|handful|dash|splash|to taste)/i));
-      // Fall back to all non-blank lines if none qualify (e.g. ingredient-only lists)
-      const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
+      const ingLines = allLines.filter(i => !i.endsWith(':'));
 
       // Split each line by commas to handle inline comma-separated lists (e.g. "salmon, oil, lemon")
       const ingItems = [];
@@ -13615,8 +13612,7 @@ ${r.ingredients}`;
     // ── Build "almost there" list: recipes 1-2 pantry items short ──
     const almost = allRecipes.map(r => {
       const allLines = (r.ingredients || '').toLowerCase().split('\n').map(i => i.replace(/\*+/g, '').trim()).filter(Boolean);
-      const recipeIngredients = allLines.filter(i => i.match(/^[\d½¼¾⅓⅔⅛]/) || i.match(/^(a |an |pinch|handful|dash|splash|to taste)/i));
-      const ingLines = recipeIngredients.length > 0 ? recipeIngredients : allLines;
+      const ingLines = allLines.filter(i => !i.endsWith(':'));
       const ingItems = [];
       ingLines.forEach(line => {
         const parts = line.split(',').map(i => i.trim()).filter(Boolean);

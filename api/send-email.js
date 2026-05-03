@@ -61,7 +61,7 @@ export default async function handler(req, res) {
           <li>📅 Meal planner with templates & week view</li>
           <li>🥫 Pantry tracker — find recipes from what you have</li>
           <li>🛒 Smart shopping lists with aisle grouping</li>
-          <li>🤖 AI-powered recipe import & photo scan</li>
+          <li>📷 AI-powered photo scan</li>
           <li>📊 Nutrition estimates & logging</li>
           <li>🔄 Ingredient substitution & leftover suggestions</li>
           <li>🚫 Ad-free experience</li>
