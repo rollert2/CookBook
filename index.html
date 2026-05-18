@@ -6851,13 +6851,24 @@
       (p.cook_time ? '<div class="community-card-meta">⏱ '+escapeHtml(p.cook_time)+(p.servings ? ' · 👤 '+escapeHtml(p.servings) : '')+'</div>' : '') + '</div>' +
       attemptHtml +
       '<div class="community-card-actions">' +
-        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)" data-owner="'+escapeHtml(owner)+'">👍 '+countSpan+'</button>' +
+        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)" ontouchstart="startUpvoteLongPress(event,this,\''+p.id+'\')" ontouchend="cancelUpvoteLongPress(this)" ontouchmove="cancelUpvoteLongPress(this)" oncontextmenu="event.preventDefault();showCommunityUpvoters(\''+p.id+'\');return false;" data-owner="'+escapeHtml(owner)+'">👍 '+countSpan+'</button>' +
         '<button class="community-comment-btn" id="comm-comment-btn-'+p.id+'" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">'+commentLabel+'</button>' +
         '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')">+ Add</button>' +
       '</div></div>';
   }
 
+  function startUpvoteLongPress(e, btn, postId) {
+    const owner = btn.getAttribute('data-owner');
+    if (currentUser !== owner) return;
+    btn._longPressTimer = setTimeout(() => {
+      btn.setAttribute('data-longpress', '1');
+      showCommunityUpvoters(postId);
+    }, 600);
+  }
+  function cancelUpvoteLongPress(btn) { clearTimeout(btn._longPressTimer); }
+
   async function toggleCommunityUpvote(postId, btn) {
+    if (btn.getAttribute('data-longpress') === '1') { btn.removeAttribute('data-longpress'); return; }
     const res = await upvoteCommunityPost(postId, currentUser);
     const countEl = document.getElementById('upvote-count-' + postId);
     if (res.action === 'added') { btn.classList.add('active'); if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1; showInterstitialAd(); sendCommunityLikeNotification(postId, currentUser); }
@@ -8453,6 +8464,7 @@ ${text}`;
     else if (tab === 'json')   { const el = document.getElementById('tabJson');   if (el) el.style.display = 'block'; }
     else if (tab === 'bulk')   { const el = document.getElementById('tabBulk');   if (el) el.style.display = 'block'; }
     else if (tab === 'export') { const el = document.getElementById('tabExport'); if (el) el.style.display = 'block'; }
+    else if (tab === 'url')    { const el = document.getElementById('tabUrl');    if (el) el.style.display = 'block'; }
   }
 
   // ═══ OFFLINE CACHE ════════════════════════════════════════
