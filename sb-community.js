@@ -3,8 +3,9 @@
 // Community posts, comments, upvotes, photo uploads
 // ============================================================
 
-async function getCommunityPosts(category, sortBy, limit, offset) {
+async function getCommunityPosts(category, sortBy, limit, offset, includePending) {
   let query = `removed=eq.false&select=*,users!community_posts_user_id_fkey(username,avatar_url)`;
+  query += includePending ? `&status=in.(approved,pending)` : `&status=eq.approved`;
   if (category && category !== 'All') query += `&category=eq.${encodeURIComponent(category)}`;
   query += sortBy === 'top' ? `&order=upvotes.desc,created_at.desc` : `&order=created_at.desc`;
   query += `&limit=${limit || 20}&offset=${offset || 0}`;
@@ -25,16 +26,11 @@ async function createCommunityPost(username, postData) {
     instructions: postData.instructions || '',
     notes: postData.notes || '',
     cook_time: postData.cook_time || '',
-    servings: postData.servings || ''
+    servings: postData.servings || '',
+    status: 'pending'
   });
-  // Log to activity feed
-  const postId = post && post[0] ? post[0].id : null;
-  if (postId) {
-    await logActivityFeed(username, 'community_post',
-      postData.recipeId || null, postData.title,
-      postData.image_url || null, postId).catch(() => {});
-  }
-  return { status: 'Success' };
+  // Activity feed logging deferred until admin approval
+  return { status: 'Success', postId: post && post[0] ? post[0].id : null };
 }
 
 async function upvoteCommunityPost(postId, username) {
@@ -121,6 +117,33 @@ async function getCommunityUpvoters(postId) {
     username: r.users?.username,
     avatar_url: r.users?.avatar_url
   }));
+}
+
+// ── COMMUNITY APPROVAL SYSTEM ─────────────────────────────────
+
+async function getPendingCommunityPosts() {
+  const query = `removed=eq.false&status=eq.pending&select=*,users!community_posts_user_id_fkey(username,avatar_url)&order=created_at.desc`;
+  return (await sbFetch('GET', 'community_posts', null, query)) || [];
+}
+
+async function approveCommunityPost(postId) {
+  // Get post data first for activity feed logging
+  const post = await sbFetch('GET', 'community_posts', null, `id=eq.${postId}&select=*,users!community_posts_user_id_fkey(username)`);
+  await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { status: 'approved' });
+  // Log to activity feed now that it's approved
+  if (post && post[0]) {
+    const p = post[0];
+    const username = p.users?.username || '';
+    await logActivityFeed(username, 'community_post',
+      p.recipe_id || null, p.title,
+      p.image_url || null, postId).catch(() => {});
+  }
+  return { status: 'Success' };
+}
+
+async function rejectCommunityPost(postId) {
+  await sbFetch('PATCH', `community_posts?id=eq.${postId}`, { status: 'rejected' });
+  return { status: 'Success' };
 }
 
 async function uploadCommunityPhoto(base64Data, filename, username) {

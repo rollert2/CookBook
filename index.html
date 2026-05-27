@@ -1026,7 +1026,7 @@
       <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button onclick="openCommunityPost()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Share Recipe</button>
-        <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;" onclick="communityAdminMode=!communityAdminMode;loadCommunity()">🛡 Admin</button>
+        <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;position:relative;" onclick="communityAdminMode=!communityAdminMode;loadCommunity()">🛡 Admin<span id="communityPendingBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.7em;font-weight:800;line-height:18px;text-align:center;padding:0 5px;"></span></button>
       </div>
     </div>
     <!-- Filters -->
@@ -6810,12 +6810,23 @@
     const status = document.getElementById('communityStatus');
     const feed = document.getElementById('communityFeed');
     status.style.display = 'flex'; feed.innerHTML = '';
-    const posts = await getCommunityPosts(communityFilter, communitySort, 20, 0);
+    const posts = await getCommunityPosts(communityFilter, communitySort, 20, 0, communityAdminMode);
     communityOffset = posts.length;
+    // In admin mode, fetch pending posts and prepend them
+    let pendingPosts = [];
+    if (communityAdminMode && currentUser === 'rollert2') {
+      pendingPosts = await getPendingCommunityPosts();
+      // Update badge
+      const badge = document.getElementById('communityPendingBadge');
+      if (badge) {
+        badge.textContent = pendingPosts.length;
+        badge.style.display = pendingPosts.length > 0 ? 'inline-block' : 'none';
+      }
+    }
     status.style.display = 'none';
-    if (posts.length === 0) { feed.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.9em;"><div style="font-size:2.5em;margin-bottom:10px;">🌍</div><p>No posts yet in this category.<br>Be the first to share a recipe!</p></div>'; return; }
-    // Check upvote status for current user
-    feed.innerHTML = posts.map(p => renderCommunityCard(p)).join('');
+    const allPosts = [...pendingPosts, ...posts];
+    if (allPosts.length === 0) { feed.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-faint);font-size:0.9em;"><div style="font-size:2.5em;margin-bottom:10px;">🌍</div><p>No posts yet in this category.<br>Be the first to share a recipe!</p></div>'; return; }
+    feed.innerHTML = allPosts.map(p => renderCommunityCard(p)).join('');
     // Load upvote states and comment counts async
     posts.forEach(p => {
       hasUpvotedPost(p.id, currentUser).then(voted => {
@@ -6839,21 +6850,31 @@
       : '';
     const attemptHtml = p.attempt_photo_url ? '<div style="margin:0;padding:0 14px 10px;"><div style="font-size:0.7em;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-faint);margin-bottom:6px;">Their Attempt 📸</div><img src="'+p.attempt_photo_url+'" style="width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);"></div>' : '';
     const owner = u.username || '?';
-    const adminBtns = communityAdminMode && currentUser === 'rollert2' ? '<button onclick="adminRemoveCommunityPost(\''+p.id+'\')" style="margin-left:auto;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">Remove</button>' : '';
+    const isPending = p.status === 'pending';
+    let adminBtns = '';
+    if (communityAdminMode && currentUser === 'rollert2') {
+      if (isPending) {
+        adminBtns = '<div style="display:flex;gap:6px;margin-left:auto;"><button onclick="approveCommunityPostUI(\''+p.id+'\')" style="background:rgba(76,175,125,0.15);border:1px solid var(--green);color:var(--green);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;font-weight:600;">✓ Approve</button><button onclick="rejectCommunityPostUI(\''+p.id+'\')" style="background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">✕ Reject</button></div>';
+      } else {
+        adminBtns = '<button onclick="adminRemoveCommunityPost(\''+p.id+'\')" style="margin-left:auto;background:rgba(224,85,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:8px;padding:4px 10px;font-size:0.72em;cursor:pointer;">Remove</button>';
+      }
+    }
+    const pendingBadge = isPending ? '<span style="display:inline-block;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:2px 8px;font-size:0.65em;font-weight:700;margin-left:6px;vertical-align:middle;">⏳ Pending</span>' : '';
     const commentCount = p._commentCount || 0;
     const commentLabel = commentCount > 0 ? '💬 ' + commentCount : '💬';
-    const countSpan = '<span id="upvote-count-'+p.id+'"'+(currentUser === owner ? ' onclick="showCommunityUpvoters(\''+p.id+'\')" title="See who liked" style="cursor:pointer;text-decoration:underline dotted;"' : '')+'>'+(p.upvotes||0)+'</span>';
-    return '<div class="community-card" id="cpost-'+p.id+'">' +
-      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(owner)+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
+    const countSpan = '<span id="upvote-count-'+p.id+'"'+(currentUser === owner && !isPending ? ' onclick="showCommunityUpvoters(\''+p.id+'\')" title="See who liked" style="cursor:pointer;text-decoration:underline dotted;"' : '')+'>'+(p.upvotes||0)+'</span>';
+    const upvoteDisabled = isPending ? ' disabled style="opacity:0.5;cursor:default;"' : '';
+    return '<div class="community-card" id="cpost-'+p.id+'"'+(isPending?' style="border:1px solid var(--gold);background:var(--gold-dim);"':'')+'>' +
+      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(owner)+pendingBadge+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
       imgHtml +
       '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div>' +
       '<div class="community-card-title" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;">'+escapeHtml(p.title)+'</div>' +
       (p.cook_time ? '<div class="community-card-meta">⏱ '+escapeHtml(p.cook_time)+(p.servings ? ' · 👤 '+escapeHtml(p.servings) : '')+'</div>' : '') + '</div>' +
       attemptHtml +
       '<div class="community-card-actions">' +
-        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)" ontouchstart="startUpvoteLongPress(event,this,\''+p.id+'\')" ontouchend="cancelUpvoteLongPress(this)" ontouchmove="cancelUpvoteLongPress(this)" oncontextmenu="event.preventDefault();showCommunityUpvoters(\''+p.id+'\');return false;" data-owner="'+escapeHtml(owner)+'">👍 '+countSpan+'</button>' +
-        '<button class="community-comment-btn" id="comm-comment-btn-'+p.id+'" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')">'+commentLabel+'</button>' +
-        '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')">+ Add</button>' +
+        '<button class="community-upvote-btn" id="upvote-'+p.id+'" onclick="toggleCommunityUpvote(\''+p.id+'\',this)" ontouchstart="startUpvoteLongPress(event,this,\''+p.id+'\')" ontouchend="cancelUpvoteLongPress(this)" ontouchmove="cancelUpvoteLongPress(this)" oncontextmenu="event.preventDefault();showCommunityUpvoters(\''+p.id+'\');return false;" data-owner="'+escapeHtml(owner)+'"'+upvoteDisabled+'>👍 '+countSpan+'</button>' +
+        '<button class="community-comment-btn" id="comm-comment-btn-'+p.id+'" onclick="openCommunityDetail(\''+p.id+'\',\'comments\')"'+upvoteDisabled+'>'+commentLabel+'</button>' +
+        '<button class="community-import-btn" onclick="importCommunityRecipe(\''+p.id+'\')"'+upvoteDisabled+'>+ Add</button>' +
       '</div></div>';
   }
 
@@ -6876,7 +6897,7 @@
   }
 
   async function loadMoreCommunity() {
-    const posts = await getCommunityPosts(communityFilter, communitySort, 20, communityOffset);
+    const posts = await getCommunityPosts(communityFilter, communitySort, 20, communityOffset, false);
     communityOffset += posts.length;
     const feed = document.getElementById('communityFeed');
     feed.innerHTML += posts.map(p => renderCommunityCard(p)).join('');
@@ -6885,7 +6906,7 @@
   }
 
   async function openCommunityDetail(postId, defaultTab) {
-    const posts = await getCommunityPosts(null, null, 100, 0);
+    const posts = await getCommunityPosts(null, null, 100, 0, communityAdminMode);
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     _communityDetailPostOwner = (post.users || {}).username || null; // store for comment notifications
@@ -6983,6 +7004,47 @@
     await removeCommunityPost(postId);
     const el = document.getElementById('cpost-' + postId);
     if (el) el.remove();
+  }
+
+  async function approveCommunityPostUI(postId) {
+    await approveCommunityPost(postId);
+    const el = document.getElementById('cpost-' + postId);
+    if (el) {
+      el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.95)';
+      setTimeout(() => el.remove(), 300);
+    }
+    // Update badge
+    const badge = document.getElementById('communityPendingBadge');
+    if (badge) {
+      const count = Math.max(0, (parseInt(badge.textContent) || 1) - 1);
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
+    toast.textContent = '✅ Post approved! It\'s now live in the community.';
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+  }
+
+  async function rejectCommunityPostUI(postId) {
+    if (!await rcConfirm('Reject this post? It will be hidden from the community.', {icon:'🗑',confirmText:'Reject',danger:true})) return;
+    await rejectCommunityPost(postId);
+    const el = document.getElementById('cpost-' + postId);
+    if (el) {
+      el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0.95)';
+      setTimeout(() => el.remove(), 300);
+    }
+    // Update badge
+    const badge = document.getElementById('communityPendingBadge');
+    if (badge) {
+      const count = Math.max(0, (parseInt(badge.textContent) || 1) - 1);
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
   }
 
   // ── Who liked viewer ─────────────────────────────────────────
@@ -7101,8 +7163,8 @@
         loadCommunity();
         const toast = document.createElement('div');
         toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-        toast.textContent = '✅ Shared to Community!';
-        document.body.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+        toast.textContent = '✅ Submitted for review! An admin will approve it soon.';
+        document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
       } else {
         resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ ' + res.message;
       }
