@@ -56,7 +56,7 @@ async function getApprovedPosters() {
 }
 
 async function setAutoApprove(userId, value) {
-  const existing = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=id`);
+  const existing = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=user_id`);
   if (existing && existing.length > 0) {
     await sbFetch('PATCH', 'user_settings', { auto_approve: value }, `user_id=eq.${userId}`);
   } else {
