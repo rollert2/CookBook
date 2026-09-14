@@ -12,9 +12,19 @@ async function getCommunityPosts(category, sortBy, limit, offset, includePending
   return (await sbFetch('GET', 'community_posts', null, query)) || [];
 }
 
+async function isApprovedPoster(username, userId) {
+  if (!username) return false;
+  if (username.toLowerCase() === 'rollert2') return true;
+  const id = userId || await getUserId(username);
+  if (!id) return false;
+  const s = await sbFetch('GET', 'user_settings', null, `user_id=eq.${id}&select=auto_approve`);
+  return !!(s && s[0] && s[0].auto_approve);
+}
+
 async function createCommunityPost(username, postData) {
   const userId = await getUserId(username);
   if (!userId) return { status: 'Error', message: 'User not found' };
+  const autoApproved = await isApprovedPoster(username, userId);
   const post = await sbFetch('POST', 'community_posts', {
     user_id: userId,
     recipe_id: postData.recipeId || null,
@@ -27,10 +37,32 @@ async function createCommunityPost(username, postData) {
     notes: postData.notes || '',
     cook_time: postData.cook_time || '',
     servings: postData.servings || '',
-    status: 'pending'
+    status: autoApproved ? 'approved' : 'pending'
   });
-  // Activity feed logging deferred until admin approval
-  return { status: 'Success', postId: post && post[0] ? post[0].id : null };
+  const postId = post && post[0] ? post[0].id : null;
+  if (autoApproved && postId) {
+    const p = post[0];
+    await logActivityFeed(username, 'community_post', p.recipe_id || null, p.title, p.image_url || null, postId).catch(() => {});
+  }
+  return { status: 'Success', postId, autoApproved };
+}
+
+async function getApprovedPosters() {
+  const settings = await sbFetch('GET', 'user_settings', null, 'auto_approve=eq.true&select=user_id');
+  if (!settings || !settings.length) return [];
+  const ids = settings.map(s => s.user_id);
+  const users = await sbFetch('GET', 'users', null, `id=in.(${ids.join(',')})&select=username,avatar_url&order=username.asc`);
+  return users || [];
+}
+
+async function setAutoApprove(userId, value) {
+  const existing = await sbFetch('GET', 'user_settings', null, `user_id=eq.${userId}&select=id`);
+  if (existing && existing.length > 0) {
+    await sbFetch('PATCH', 'user_settings', { auto_approve: value }, `user_id=eq.${userId}`);
+  } else {
+    await sbFetch('POST', 'user_settings', { user_id: userId, auto_approve: value }, null);
+  }
+  return true;
 }
 
 async function upvoteCommunityPost(postId, username) {

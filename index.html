@@ -1026,7 +1026,8 @@
       <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button onclick="openCommunityPost()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Share Recipe</button>
-        <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;position:relative;" onclick="communityAdminMode=!communityAdminMode;loadCommunity()">🛡 Admin<span id="communityPendingBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.7em;font-weight:800;line-height:18px;text-align:center;padding:0 5px;"></span></button>
+        <button id="communityApprovedBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openApprovedPosters()">👥 Posters</button>
+        <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;position:relative;" onclick="toggleCommunityAdminMode()">🛡 Admin<span id="communityPendingBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.7em;font-weight:800;line-height:18px;text-align:center;padding:0 5px;"></span></button>
       </div>
     </div>
     <!-- Filters -->
@@ -1486,12 +1487,24 @@
   </div>
 
   <!-- FRIEND RECIPE DETAIL MODAL -->
-  <div id="friendRecipeModal" class="modal-overlay">
+  <div id="friendRecipeModal" class="modal-overlay" style="z-index:260;">
     <div class="modal-header">
       <button class="modal-back" onclick="closeModalAnimated('friendRecipeModal')">← Back</button>
       <h2 id="friendRecipeModalTitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></h2>
     </div>
     <div id="friendRecipeModalBody" class="modal-body" style="padding-top:0;"></div>
+  </div>
+
+  <!-- APPROVED POSTERS MODAL -->
+  <div id="approvedPostersModal" class="modal-overlay" style="z-index:270;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeModalAnimated('approvedPostersModal')">← Back</button>
+      <h2>👥 Approved Posters</h2>
+    </div>
+    <div class="modal-body">
+      <div id="approvedPostersList"></div>
+      <div id="approvedPostersEmpty" style="display:none;text-align:center;padding:30px;color:var(--text-faint);font-size:0.9em;">No approved posters yet.<br>Grant auto-approve from the Admin panel → View all users.</div>
+    </div>
   </div>
 
   <!-- ACHIEVEMENTS MODAL -->
@@ -2419,7 +2432,7 @@
     const modals = [
       'communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal',
       'communityPostModal','adminModal','settingsModal','cookModeModal',
-      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal'
+      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -2919,6 +2932,8 @@
       document.getElementById('featuredBadge').style.display = 'none';
       const adminBtn = document.getElementById('communityAdminBtn');
       if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'block' : 'none';
+      const apprBtn = document.getElementById('communityApprovedBtn');
+      if (apprBtn) apprBtn.style.display = (communityAdminMode && currentUser === 'rollert2') ? 'inline-block' : 'none';
     }
   }
 
@@ -6791,6 +6806,42 @@
   let communityAttemptPhotoData = null;
   let _communityDetailPostOwner = null; // for comment notifications
 
+  function toggleCommunityAdminMode() {
+    communityAdminMode = !communityAdminMode;
+    loadCommunity();
+    const b = document.getElementById('communityApprovedBtn');
+    if (b) b.style.display = (communityAdminMode && currentUser === 'rollert2') ? 'inline-block' : 'none';
+  }
+  async function openApprovedPosters() {
+    openModalAnimated('approvedPostersModal');
+    const list = document.getElementById('approvedPostersList');
+    const empty = document.getElementById('approvedPostersEmpty');
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">Loading...</div>';
+    empty.style.display = 'none';
+    const posters = await getApprovedPosters();
+    const all = posters.filter(p => p.username !== 'rollert2');
+    if (all.length === 0) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    list.innerHTML = all.map(p => {
+      const av = p.avatar_url ? '<img src="' + p.avatar_url + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : (p.username || '?').charAt(0).toUpperCase();
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--glass-border);">' +
+        '<div style="width:40px;height:40px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);flex-shrink:0;overflow:hidden;">' + av + '</div>' +
+        '<div style="flex:1;min-width:0;"><div style="font-size:0.88em;font-weight:600;">' + escapeHtml(p.username) + '</div></div>' +
+        '<button onclick="revokeApprovedPoster(\'' + escapeAttr(p.username) + '\')" style="padding:6px 12px;border-radius:14px;background:rgba(224,85,85,0.12);border:1px solid var(--red);color:var(--red);font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;">Remove</button>' +
+      '</div>';
+    }).join('');
+  }
+  async function revokeApprovedPoster(username) {
+    if (!await rcConfirm('Remove auto-approve from ' + username + '?', {icon:'👥', confirmText:'Remove', danger:true})) return;
+    const userId = await getUserId(username);
+    if (!userId) return;
+    await setAutoApprove(userId, false);
+    openApprovedPosters();
+  }
+
   function setCommunityFilter(cat, el) {
     communityFilter = cat;
     document.querySelectorAll('#communityFilterRow .sort-chip').forEach(c => c.classList.remove('active'));
@@ -6865,7 +6916,7 @@
     const countSpan = '<span id="upvote-count-'+p.id+'"'+(currentUser === owner && !isPending ? ' onclick="showCommunityUpvoters(\''+p.id+'\')" title="See who liked" style="cursor:pointer;text-decoration:underline dotted;"' : '')+'>'+(p.upvotes||0)+'</span>';
     const upvoteDisabled = isPending ? ' disabled style="opacity:0.5;cursor:default;"' : '';
     return '<div class="community-card" id="cpost-'+p.id+'"'+(isPending?' style="border:1px solid var(--gold);background:var(--gold-dim);"':'')+'>' +
-      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username">'+escapeHtml(owner)+pendingBadge+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
+      '<div class="community-card-header"><div class="community-avatar">'+av+'</div><div style="flex:1;"><div class="community-username"><span style="cursor:pointer;" onclick="openPublicProfile(\''+escapeAttr(owner)+'\')">'+escapeHtml(owner)+'</span>'+pendingBadge+'</div><div class="community-time">'+ago+'</div></div>'+adminBtns+'</div>' +
       imgHtml +
       '<div class="community-card-body"><div class="community-card-cat">'+escapeHtml(p.category||'General')+'</div>' +
       '<div class="community-card-title" onclick="openCommunityDetail(\''+p.id+'\',\'recipe\')" style="cursor:pointer;">'+escapeHtml(p.title)+'</div>' +
@@ -7163,7 +7214,7 @@
         loadCommunity();
         const toast = document.createElement('div');
         toast.style.cssText = 'position:fixed;bottom:90px;left:16px;right:16px;background:#1a3d2b;border:1px solid var(--green);color:#4caf7d;padding:14px 16px;border-radius:12px;font-size:0.88em;font-weight:700;z-index:9999;text-align:center;';
-        toast.textContent = '✅ Submitted for review! An admin will approve it soon.';
+        toast.textContent = res.autoApproved ? '✅ Shared to Community!' : '✅ Submitted for review! An admin will approve it soon.';
         document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000);
       } else {
         resultEl.style.display = 'block'; resultEl.className = 'ai-result error'; resultEl.innerHTML = '❌ ' + res.message;
@@ -7531,6 +7582,7 @@
 
   // ═══ ADMIN USER MANAGEMENT ═══
   let adminProMap = {};
+  let adminAutoApproveMap = {};
   let adminSettingsMap = {}; // user_id -> { last_active_at, ... }
   let adminSortBy = 'default'; // 'default' | 'recipes' | 'cooks' | 'active' | 'name'
   let adminSortDir = 'desc'; // 'asc' | 'desc'
@@ -7546,12 +7598,14 @@
     if (!data || data.length === 0) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:0.85em;">No users found.</div>'; return; }
 
     // Fetch all settings for pro + last_active
-    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,last_active_at');
+    const allSettings = await sbFetch('GET', 'user_settings', null, 'select=user_id,is_pro,last_active_at,auto_approve');
     adminProMap = {};
+    adminAutoApproveMap = {};
     adminSettingsMap = {};
     if (allSettings) {
       allSettings.forEach(s => {
         if (s.is_pro) adminProMap[s.user_id] = true;
+        if (s.auto_approve) adminAutoApproveMap[s.user_id] = true;
         adminSettingsMap[s.user_id] = { last_active_at: s.last_active_at };
       });
     }
@@ -7724,13 +7778,26 @@
 
     const actionsEl = document.getElementById('adminUserActions');
     const isPro = adminProMap[userId] || false;
+    const isAutoApprove = adminAutoApproveMap[userId] || false;
     if (actionsEl) actionsEl.innerHTML =
       '<div onclick="toggleAdminProStatus(\'' + userId + '\',' + isPro + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isPro ? 'var(--text-faint)' : 'var(--gold)') + ';border:none;margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--bg);text-align:center;">' + (isPro ? '⬇️ Remove Pro Status' : '⬆️ Grant Pro Status') + '</div>' +
+      '<div onclick="toggleAdminAutoApprove(\'' + userId + '\',' + isAutoApprove + ')" style="padding:13px;border-radius:var(--radius-sm);background:' + (isAutoApprove ? 'var(--text-faint)' : 'rgba(76,175,125,0.12)') + ';border:1px solid var(--green);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:' + (isAutoApprove ? 'var(--bg)' : 'var(--green)') + ';text-align:center;">' + (isAutoApprove ? '⬇️ Remove Auto-Approve' : '✅ Grant Auto-Approve') + '</div>' +
       '<div onclick="adminFollowUser(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">🤝 Follow ' + username + '</div>' +
       '<div onclick="adminSendMessage(\'' + username + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">💬 Message ' + username + '</div>' +
       '<div onclick="adminSetEmail(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:var(--glass);border:1px solid var(--glass-border);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;">📧 Set / Clear Email</div>' +
       '<div onclick="adminDeleteUser(\'' + username + '\',\'' + userId + '\')" style="padding:13px;border-radius:var(--radius-sm);background:rgba(224,85,85,0.1);border:1px solid var(--red);margin-bottom:8px;cursor:pointer;font-size:0.88em;font-weight:600;color:var(--red);">🗑 Delete account</div>' +
       '<button onclick="this.closest(\'[style*=z-index]\').nextSibling?.remove();this.closest(\'[style*=z-index]\').remove();" style="width:100%;padding:11px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+  }
+  async function toggleAdminAutoApprove(userId, currentStatus) {
+    const newStatus = !currentStatus;
+    try {
+      await setAutoApprove(userId, newStatus);
+      rcAlert('✅ Posting approval ' + (newStatus ? 'granted' : 'removed'));
+      document.querySelectorAll('[style*="z-index:700"],[style*="z-index:699"]').forEach(el => el.remove());
+      loadAdminUsers();
+    } catch(e) {
+      rcAlert('❌ Failed to update posting approval');
+    }
   }
   async function toggleAdminProStatus(userId, currentStatus) {
     const newStatus = !currentStatus;
