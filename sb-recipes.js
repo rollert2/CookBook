@@ -174,6 +174,31 @@ async function uploadImage(base64Data, fileName, recipeId, username) {
   } catch(e) { return { status: 'Error', message: e.message }; }
 }
 
+// Upload a recipe photo before the recipe exists (returns a public URL, no DB write)
+async function uploadRecipePhoto(base64Data, username) {
+  try {
+    const parts = base64Data.split(',');
+    const byteString = atob(parts[1]);
+    const mimeString = parts[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mimeString });
+    const ext = (mimeString.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    const path = `recipes/${username}/${Date.now()}.${ext}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/recipe-images/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': mimeString, 'x-upsert': 'true'
+      },
+      body: blob
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return { status: 'Success', url: `${SUPABASE_URL}/storage/v1/object/public/recipe-images/${path}` };
+  } catch(e) { return { status: 'Error', message: e.message }; }
+}
+
 // ── SCRAPE ─────────────────────────────────────────────────────
 
 async function scrapeRecipeWithAI(url, username) {

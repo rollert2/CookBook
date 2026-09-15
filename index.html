@@ -1641,6 +1641,15 @@
       <div id="tabManual" style="display:none;">
         <button onclick="showAddModeSelect()" style="background:none;border:none;color:var(--text-dim);font-size:0.85em;cursor:pointer;padding:0 0 16px;font-family:inherit;">← Back</button>
         <label class="edit-label">Title *</label><input type="text" id="manualTitle" class="edit-field" placeholder="Recipe name">
+        <label class="edit-label">Photo <span style="font-weight:400;color:var(--text-faint);">optional</span></label>
+        <div id="manualPhotoWrap" style="margin-bottom:14px;">
+          <input type="file" id="manualPhotoInput" accept="image/*" style="display:none;" onchange="handleManualPhoto(this)">
+          <div id="manualPhotoPreview" style="display:none;position:relative;margin-bottom:8px;">
+            <img id="manualPhotoImg" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--glass-border);">
+            <button type="button" onclick="clearManualPhoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:0.9em;cursor:pointer;">✕</button>
+          </div>
+          <button type="button" onclick="document.getElementById('manualPhotoInput').click()" style="width:100%;padding:12px;background:var(--glass);border:1px dashed var(--glass-border);border-radius:var(--radius-sm);color:var(--text-dim);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;">📷 Add Photo</button>
+        </div>
         <label class="edit-label">Category</label>
         <select id="manualCategory" class="edit-field" style="appearance:auto;" onchange="handleManualCategoryChange(this)">
           <option value="Breakfast">🌅 Breakfast</option>
@@ -1660,10 +1669,11 @@
           <div><label class="edit-label">Servings</label><input type="text" id="manualServings" class="edit-field" placeholder="4 servings"></div>
           <div><label class="edit-label">Tags</label><input type="text" id="manualTags" class="edit-field" placeholder="#keto #quick"></div>
         </div>
-        <label class="edit-label">Ingredients * <span style="font-weight:400;color:var(--text-faint);">one per line</span></label>
-        <textarea id="manualIngredients" class="edit-field" rows="5" placeholder="2 cups flour&#10;1 tsp salt&#10;..."></textarea>
-        <label class="edit-label">Instructions * <span style="font-weight:400;color:var(--text-faint);">one step per line</span></label>
-        <textarea id="manualInstructions" class="edit-field" style="height:180px;" placeholder="Preheat oven to 375F&#10;Mix dry ingredients&#10;..."></textarea>
+        <label class="edit-label">Ingredients *</label>
+        <div id="manualIngredientsList"></div>
+        <button type="button" onclick="addManualIngredient('', true)" style="margin:2px 0 16px;padding:8px 12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:12px;font-size:0.8em;font-weight:600;cursor:pointer;font-family:inherit;">＋ Add Ingredient</button>
+        <label class="edit-label">Instructions *</label>
+        <div id="manualInstructionsList"></div>
         <label class="edit-label">Notes <span style="font-weight:400;color:var(--text-faint);">optional</span></label>
         <textarea id="manualNotes" class="edit-field" rows="2" placeholder="Tips, substitutions..."></textarea>
         <div class="ai-result" id="manualResult"></div>
@@ -2401,6 +2411,8 @@
 
     // Push initial state so back gesture has somewhere to go
     history.replaceState({ root: true }, '');
+    // Seed the manual add-recipe ingredient/step fields
+    initManualEntry();
     // Check for showcase URL first
     const showcaseUser = checkShowcaseOnLoad();
     if (showcaseUser) {
@@ -4340,17 +4352,141 @@
       }
     }).catch(err => { clearInterval(interval); document.getElementById('aiStatus').style.display='none'; const el = document.getElementById('aiResult'); el.style.display='block'; el.className='ai-result error'; el.innerHTML='❌ '+err.message; btn.innerHTML='✨ Try Again'; btn.disabled=false; });
   }
+  // ═══ MANUAL ENTRY: PHOTO + DYNAMIC INGREDIENTS/STEPS ═══
+  let _manualPhotoData = null;
+
+  function handleManualPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      _manualPhotoData = e.target.result;
+      document.getElementById('manualPhotoPreview').style.display = 'block';
+      document.getElementById('manualPhotoImg').src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+    input.value = '';
+  }
+  function clearManualPhoto() {
+    _manualPhotoData = null;
+    document.getElementById('manualPhotoPreview').style.display = 'none';
+    document.getElementById('manualPhotoImg').removeAttribute('src');
+  }
+
+  function addManualIngredient(value, focus) {
+    value = value || '';
+    const list = document.getElementById('manualIngredientsList');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-field';
+    input.placeholder = 'e.g. 2 cups flour';
+    input.value = value;
+    input.style.cssText = 'flex:1;margin:0;padding:8px 12px;font-size:0.85em;min-height:34px;';
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addManualIngredient('', true); }
+    });
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.textContent = '✕';
+    rm.style.cssText = 'background:transparent;border:none;color:var(--text-faint);font-size:1em;cursor:pointer;padding:6px;flex-shrink:0;';
+    rm.onclick = () => row.remove();
+    row.appendChild(input);
+    row.appendChild(rm);
+    list.appendChild(row);
+    if (focus) input.focus();
+  }
+
+  function addManualStep(afterRow, value, focus) {
+    value = value || '';
+    const list = document.getElementById('manualInstructionsList');
+    const row = document.createElement('div');
+    row.className = 'manual-step-row';
+    row.style.cssText = 'margin-bottom:12px;';
+    const top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:flex-start;gap:8px;';
+    const num = document.createElement('div');
+    num.className = 'manual-step-num';
+    num.style.cssText = 'width:26px;height:26px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:8px;font-size:0.75em;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px;';
+    num.textContent = '0';
+    const ta = document.createElement('textarea');
+    ta.className = 'edit-field';
+    ta.rows = 1;
+    ta.placeholder = 'Describe this step...';
+    ta.value = value;
+    ta.style.cssText = 'flex:1;margin:0;resize:none;overflow:hidden;min-height:38px;padding:8px 12px;font-size:0.85em;line-height:1.4;';
+    ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; });
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addManualStep(row, '', true); }
+    });
+    setTimeout(() => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }, 0);
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.textContent = '✕';
+    rm.style.cssText = 'background:transparent;border:none;color:var(--text-faint);font-size:1em;cursor:pointer;padding:6px;flex-shrink:0;margin-top:4px;';
+    rm.onclick = () => { row.remove(); renumberManualSteps(); };
+    top.appendChild(num); top.appendChild(ta); top.appendChild(rm);
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.textContent = '＋ Add Step';
+    addBtn.style.cssText = 'margin:6px 0 0 34px;padding:5px 12px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:12px;font-size:0.75em;font-weight:600;cursor:pointer;font-family:inherit;';
+    addBtn.onclick = () => addManualStep(row, '', true);
+    row.appendChild(top);
+    row.appendChild(addBtn);
+    if (afterRow && afterRow.parentNode === list) afterRow.insertAdjacentElement('afterend', row);
+    else list.appendChild(row);
+    renumberManualSteps();
+    if (focus) ta.focus();
+  }
+
+  function renumberManualSteps() {
+    document.querySelectorAll('#manualInstructionsList .manual-step-row').forEach((row, i) => {
+      const num = row.querySelector('.manual-step-num');
+      if (num) num.textContent = i + 1;
+    });
+  }
+
+  function collectManualIngredients() {
+    const vals = [];
+    document.querySelectorAll('#manualIngredientsList input').forEach(i => { const v = i.value.trim(); if (v) vals.push(v); });
+    return vals.join('\n');
+  }
+  function collectManualInstructions() {
+    const vals = [];
+    document.querySelectorAll('#manualInstructionsList textarea').forEach(t => { const v = t.value.trim(); if (v) vals.push(v); });
+    return vals.join('\n');
+  }
+  function initManualEntry() {
+    _manualPhotoData = null;
+    const pv = document.getElementById('manualPhotoPreview');
+    if (pv) pv.style.display = 'none';
+    const pi = document.getElementById('manualPhotoImg');
+    if (pi) pi.removeAttribute('src');
+    const il = document.getElementById('manualIngredientsList');
+    if (il) il.innerHTML = '';
+    const sl = document.getElementById('manualInstructionsList');
+    if (sl) sl.innerHTML = '';
+    addManualIngredient('', false);
+    addManualStep(null, '', false);
+  }
+
   async function performManualAdd() {
-    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = document.getElementById('manualIngredients').value.trim(); const instructions = document.getElementById('manualInstructions').value.trim(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : ''; const tags = document.getElementById('manualTags') ? document.getElementById('manualTags').value.trim() : '';
+    const title = document.getElementById('manualTitle').value.trim(); const categoryRaw = document.getElementById('manualCategory').value; const category = categoryRaw === '__other__' ? (document.getElementById('manualCategoryCustom')?.value.trim() || 'General') : categoryRaw; const ingredients = collectManualIngredients(); const instructions = collectManualInstructions(); const notes = document.getElementById('manualNotes').value.trim(); const cookTime = document.getElementById('manualCookTime').value.trim(); const prepTime = document.getElementById('manualPrepTime') ? document.getElementById('manualPrepTime').value.trim() : ''; const servings = document.getElementById('manualServings') ? document.getElementById('manualServings').value.trim() : ''; const tags = document.getElementById('manualTags') ? document.getElementById('manualTags').value.trim() : '';
     const el = document.getElementById('manualResult'); const btn = document.getElementById('manualSaveBtn');
     if (!title) { await rcAlert('Please enter a recipe title.', {icon:'📝'}); return; } if (!ingredients) { await rcAlert('Please enter at least one ingredient.', {icon:'🥦'}); return; } if (!instructions) { await rcAlert('Please enter at least one instruction step.', {icon:'📋'}); return; }
     btn.disabled = true; btn.innerHTML = 'Saving...';
-    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings}).then(res => {
+    let imageUrl = '';
+    if (_manualPhotoData) {
+      const up = await uploadRecipePhoto(_manualPhotoData, currentUser);
+      if (up && up.status === 'Success') imageUrl = up.url;
+    }
+    addRecipe(currentUser, {title,category:category||'General',ingredients,instructions,notes,cookTime,prepTime,tags,servings,image_url:imageUrl}).then(res => {
       btn.disabled=false; btn.innerHTML='Add to Cookbook'; el.style.display='block';
-      if (res.status==='Success') { 
+      if (res.status==='Success') {
         el.className='ai-result success';
         el.innerHTML='✅ '+title+' added!';
-        ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualIngredients','manualInstructions','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; });
+        ['manualTitle','manualCategory','manualCookTime','manualPrepTime','manualServings','manualTags','manualNotes'].forEach(id => { const el2 = document.getElementById(id); if(el2) el2.value=''; });
+        initManualEntry();
 
         // Track achievement for saving recipes
         const userData = JSON.parse(localStorage.getItem('rc_user_achievement_data_' + currentUser) || '{}');
