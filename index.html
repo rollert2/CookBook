@@ -2349,6 +2349,21 @@
     </div>
   </div>
 
+  <!-- Chat Room Members (admin) -->
+  <div id="chatRoomMembersModal" class="modal-overlay" style="z-index:280;">
+    <div class="modal-header">
+      <button class="modal-back" onclick="closeChatRoomMembers()">← Back</button>
+      <h2 id="chatRoomMembersTitle">Members</h2>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <input id="chatMemberInput" placeholder="Username" maxlength="30" style="flex:1;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:0.88em;font-family:inherit;">
+        <button onclick="addChatRoomMemberUI()" style="background:var(--gold);border:none;color:var(--bg);padding:10px 16px;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;font-family:inherit;">+ Add</button>
+      </div>
+      <div id="chatRoomMembersList"></div>
+    </div>
+  </div>
+
   <!-- Planner Day Panel -->
   <div id="plannerDayModal" class="modal-overlay" style="z-index:250;">
     <div class="modal-header">
@@ -2507,7 +2522,7 @@
     const modals = [
       'communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal',
       'communityPostModal','adminModal','settingsModal','cookModeModal',
-      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal','chatModal','whatsNewModal'
+      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal','chatModal','whatsNewModal','chatRoomMembersModal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -6061,7 +6076,9 @@
   }
 
   async function loadChatRooms() {
-    chatRooms = await getChatRooms().catch(() => []);
+    const all = await getChatRooms().catch(() => []);
+    const isAdmin = currentUser === 'rollert2';
+    chatRooms = all.filter(r => !r.is_private || isAdmin || ((r.members || []).includes(currentUser)));
     renderChatRooms();
     if (chatRooms.length === 0) {
       activeChatRoomId = null;
@@ -6076,10 +6093,15 @@
     if (!row) return;
     const isAdmin = currentUser === 'rollert2';
     row.innerHTML = chatRooms.map(r => {
-      const del = (chatAdminOpen && isAdmin)
-        ? '<span onclick="event.stopPropagation();deleteChatRoomPrompt(\'' + r.id + '\',\'' + escapeAttr(r.name) + '\')" style="margin-left:4px;opacity:0.7;cursor:pointer;" title="Delete room">✕</span>'
-        : '';
-      return '<div class="chat-room-chip' + (r.id === activeChatRoomId ? ' active' : '') + '" onclick="selectChatRoom(\'' + r.id + '\')">' + (r.emoji || '💬') + ' ' + escapeHtml(r.name) + del + '</div>';
+      let controls = '';
+      if (chatAdminOpen && isAdmin) {
+        controls += '<span onclick="event.stopPropagation();toggleChatRoomPrivate(\'' + r.id + '\')" style="margin-left:4px;cursor:pointer;" title="' + (r.is_private ? 'Make public' : 'Make private') + '">' + (r.is_private ? '🔒' : '🔓') + '</span>';
+        if (r.is_private) {
+          controls += '<span onclick="event.stopPropagation();openChatRoomMembers(\'' + r.id + '\',\'' + escapeAttr(r.name) + '\')" style="margin-left:3px;cursor:pointer;" title="Manage members">👥</span>';
+        }
+        controls += '<span onclick="event.stopPropagation();deleteChatRoomPrompt(\'' + r.id + '\',\'' + escapeAttr(r.name) + '\')" style="margin-left:4px;cursor:pointer;opacity:0.7;" title="Delete room">✕</span>';
+      }
+      return '<div class="chat-room-chip' + (r.id === activeChatRoomId ? ' active' : '') + '" onclick="selectChatRoom(\'' + r.id + '\')">' + (r.emoji || '💬') + ' ' + escapeHtml(r.name) + controls + '</div>';
     }).join('');
   }
 
@@ -6171,6 +6193,56 @@
     await deleteChatRoom(roomId).catch(() => {});
     if (activeChatRoomId === roomId) { activeChatRoomId = null; clearChatPoll(); }
     await loadChatRooms();
+  }
+
+  // ── Private rooms (admin) ──
+  async function toggleChatRoomPrivate(roomId) {
+    const room = chatRooms.find(r => r.id === roomId);
+    if (!room) return;
+    await updateChatRoom(roomId, { is_private: !room.is_private }).catch(() => {});
+    await loadChatRooms();
+  }
+
+  let managingChatRoomId = null;
+  function openChatRoomMembers(roomId, name) {
+    managingChatRoomId = roomId;
+    document.getElementById('chatRoomMembersTitle').textContent = '👥 ' + name;
+    openModalAnimated('chatRoomMembersModal');
+    renderChatRoomMembers();
+  }
+  function closeChatRoomMembers() {
+    managingChatRoomId = null;
+    closeModalAnimated('chatRoomMembersModal');
+  }
+  async function renderChatRoomMembers() {
+    const list = document.getElementById('chatRoomMembersList');
+    if (!list) return;
+    const room = chatRooms.find(r => r.id === managingChatRoomId);
+    const members = (room && room.members) || [];
+    if (members.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:0.85em;">No members yet. Add usernames below.</div>';
+      return;
+    }
+    list.innerHTML = members.map(m =>
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--glass-border);">' +
+      '<span style="font-size:0.9em;">@' + escapeHtml(m) + '</span>' +
+      '<button onclick="removeChatRoomMemberUI(\'' + escapeAttr(m) + '\')" style="background:none;border:none;color:var(--red);font-size:0.85em;cursor:pointer;">✕</button>' +
+      '</div>'
+    ).join('');
+  }
+  async function addChatRoomMemberUI() {
+    const input = document.getElementById('chatMemberInput');
+    const name = (input.value || '').trim().toLowerCase();
+    if (!name) return;
+    await addChatRoomMember(managingChatRoomId, name).catch(() => {});
+    input.value = '';
+    await loadChatRooms();
+    renderChatRoomMembers();
+  }
+  async function removeChatRoomMemberUI(name) {
+    await removeChatRoomMember(managingChatRoomId, name).catch(() => {});
+    await loadChatRooms();
+    renderChatRoomMembers();
   }
 
   // ── Unread badge ──

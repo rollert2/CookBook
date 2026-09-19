@@ -36,3 +36,25 @@ async function deleteChatRoom(roomId) {
   await sbFetch('DELETE', `chat_rooms?id=eq.${roomId}`, null);
   return { status: 'Success' };
 }
+
+async function updateChatRoom(roomId, updates) {
+  await sbFetch('PATCH', `chat_rooms?id=eq.${roomId}`, updates);
+  return { status: 'Success' };
+}
+
+async function addChatRoomMember(roomId, username) {
+  const room = await sbFetch('GET', 'chat_rooms', null, `id=eq.${roomId}&select=members`);
+  const members = (room && room[0] && room[0].members) || [];
+  if (!members.includes(username)) {
+    members.push(username);
+    await sbFetch('PATCH', `chat_rooms?id=eq.${roomId}`, { members });
+  }
+  return { status: 'Success' };
+}
+
+async function removeChatRoomMember(roomId, username) {
+  const room = await sbFetch('GET', 'chat_rooms', null, `id=eq.${roomId}&select=members`);
+  const members = ((room && room[0] && room[0].members) || []).filter(m => m !== username);
+  await sbFetch('PATCH', `chat_rooms?id=eq.${roomId}`, { members });
+  return { status: 'Success' };
+}
