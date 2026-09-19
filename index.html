@@ -2356,10 +2356,11 @@
       <h2 id="chatRoomMembersTitle">Members</h2>
     </div>
     <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
         <input id="chatMemberInput" placeholder="Username" maxlength="30" style="flex:1;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:10px;padding:10px 12px;font-size:0.88em;font-family:inherit;">
         <button onclick="addChatRoomMemberUI()" style="background:var(--gold);border:none;color:var(--bg);padding:10px 16px;border-radius:10px;font-size:0.85em;font-weight:700;cursor:pointer;font-family:inherit;">+ Add</button>
       </div>
+      <button onclick="openChatFriendPicker()" style="width:100%;padding:11px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-dim);font-size:0.85em;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:16px;">👥 Select from your friends</button>
       <div id="chatRoomMembersList"></div>
     </div>
   </div>
@@ -6241,6 +6242,43 @@
   }
   async function removeChatRoomMemberUI(name) {
     await removeChatRoomMember(managingChatRoomId, name).catch(() => {});
+    await loadChatRooms();
+    renderChatRoomMembers();
+  }
+
+  async function openChatFriendPicker() {
+    try {
+      const friendsRes = await getFriends(currentUser).catch(() => ({ following: [] }));
+      const following = friendsRes.following || [];
+      if (following.length === 0) { rcAlert('Follow some users first to add them.', {icon:'👥'}); return; }
+      const room = chatRooms.find(r => r.id === managingChatRoomId);
+      const members = (room && room.members) || [];
+      document.getElementById('chatFriendOverlay')?.remove();
+      document.getElementById('chatFriendSheet')?.remove();
+      const ov = document.createElement('div');
+      ov.id = 'chatFriendOverlay';
+      ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:749;';
+      ov.onclick = () => { ov.remove(); document.getElementById('chatFriendSheet')?.remove(); };
+      const sheet = document.createElement('div');
+      sheet.id = 'chatFriendSheet';
+      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;z-index:750;padding:20px 20px 50px;animation:slideUp 0.25s ease;max-height:60vh;overflow-y:auto;';
+      sheet.innerHTML = '<div style="font-weight:800;font-size:0.95em;margin-bottom:14px;">👥 Add to Private Room</div>' +
+        following.map(u => {
+          const isMember = members.includes(u);
+          return '<div onclick="' + (isMember ? 'void(0)' : 'addChatRoomMemberFromPicker(\'' + u + '\')') + '" style="padding:10px 12px;margin-bottom:6px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;gap:10px;' + (isMember ? 'opacity:0.5;' : '') + '">' +
+            '<div style="width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:var(--bg);">' + u.charAt(0).toUpperCase() + '</div>' +
+            '<span style="font-weight:600;font-size:0.88em;">' + escapeHtml(u) + (isMember ? ' · added' : '') + '</span></div>';
+        }).join('') +
+        '<button onclick="document.getElementById(\'chatFriendSheet\')?.remove();document.getElementById(\'chatFriendOverlay\')?.remove();" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:none;color:var(--text-faint);font-size:0.85em;cursor:pointer;font-family:inherit;">Cancel</button>';
+      document.body.appendChild(ov);
+      document.body.appendChild(sheet);
+    } catch(e) { rcAlert(e.message, {icon:'❌'}); }
+  }
+
+  async function addChatRoomMemberFromPicker(username) {
+    await addChatRoomMember(managingChatRoomId, username).catch(() => {});
+    document.getElementById('chatFriendSheet')?.remove();
+    document.getElementById('chatFriendOverlay')?.remove();
     await loadChatRooms();
     renderChatRoomMembers();
   }
