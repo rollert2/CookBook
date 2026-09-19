@@ -15,6 +15,7 @@
   <script src="sb-community.js"></script>
   <script src="sb-shop.js"></script>
   <script src="sb-pantry.js"></script>
+  <script src="sb-chat.js"></script>
   <script src="utils.js"></script>
   <script src="ui-interactions.js"></script>
   <script src="profile-management.js"></script>
@@ -237,6 +238,22 @@
     .msg-input { flex:1; background:var(--glass); border:1px solid var(--glass-border); color:var(--text); border-radius:20px; padding:10px 16px; font-size:0.9em; font-family:inherit; resize:none; }
     .msg-input:focus { outline:none; border-color:var(--gold); }
     .msg-send-btn { background:var(--gold); color:var(--bg); border:none; border-radius:50%; width:38px; height:38px; font-size:1.1em; cursor:pointer; flex-shrink:0; }
+
+    /* ── CHATROOM ── */
+    .chat-rooms-row { display:flex; gap:8px; overflow-x:auto; padding:10px 16px; border-bottom:1px solid var(--glass-border); scrollbar-width:none; }
+    .chat-room-chip { padding:6px 13px; border-radius:20px; background:var(--glass); border:1px solid var(--glass-border); font-size:0.78em; white-space:nowrap; color:var(--text-dim); cursor:pointer; flex-shrink:0; }
+    .chat-room-chip.active { background:var(--gold); color:var(--bg); border-color:var(--gold); font-weight:700; }
+    .chat-feed { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; min-height:0; }
+    .chat-msg-row { display:flex; gap:8px; margin-bottom:12px; align-items:flex-end; }
+    .chat-msg-row.mine { flex-direction:row-reverse; }
+    .chat-msg-avatar { width:30px; height:30px; border-radius:50%; background:var(--gold-dim); border:1px solid var(--gold); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.72em; color:var(--gold); flex-shrink:0; overflow:hidden; text-transform:uppercase; }
+    .chat-msg-avatar img { width:100%; height:100%; object-fit:cover; }
+    .chat-msg-body { max-width:76%; display:flex; flex-direction:column; }
+    .chat-msg-row.mine .chat-msg-body { align-items:flex-end; }
+    .chat-msg-meta { font-size:0.66em; color:var(--text-faint); margin-bottom:2px; }
+    .chat-msg-body .msg-bubble { max-width:100%; }
+    .chat-empty { text-align:center; padding:30px 10px; color:var(--text-faint); font-size:0.85em; }
+    .chat-admin-bar { display:none; padding:8px 16px; border-bottom:1px solid var(--glass-border); gap:8px; align-items:center; }
 
     /* ── PROFILE PICTURE ── */
     .profile-avatar-large { width:80px; height:80px; border-radius:50%; background:var(--gold-dim); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:2em; font-weight:700; color:var(--gold); overflow:hidden; margin:0 auto 10px; cursor:pointer; position:relative; }
@@ -1025,6 +1042,7 @@
     <div style="padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between; background:var(--bg); border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <button onclick="openChat()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">💬 Chat</button>
         <button onclick="openCommunityPost()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Share Recipe</button>
         <button id="communityApprovedBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openApprovedPosters()">👥 Posters</button>
         <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;position:relative;" onclick="toggleCommunityAdminMode()">🛡 Admin<span id="communityPendingBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.7em;font-weight:800;line-height:18px;text-align:center;padding:0 5px;"></span></button>
@@ -2286,6 +2304,29 @@
     <div class="modal-body" id="communityDetailBody"></div>
   </div>
 
+  <!-- Chatroom Modal -->
+  <div id="chatModal" class="modal-overlay" style="z-index:270;">
+    <div style="display:flex;flex-direction:column;height:100vh;">
+      <div class="modal-header">
+        <button class="modal-back" onclick="closeChat()">← Back</button>
+        <h2 id="chatRoomTitle">💬 Chat</h2>
+        <button id="chatAdminBtn" onclick="toggleChatAdmin()" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">🛠 Rooms</button>
+      </div>
+      <div class="chat-rooms-row" id="chatRoomsRow"></div>
+      <div class="chat-admin-bar" id="chatAdminBar">
+        <input id="chatNewRoomName" placeholder="Room name" maxlength="40" style="flex:1;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:10px;padding:8px 12px;font-size:0.82em;font-family:inherit;">
+        <input id="chatNewRoomEmoji" placeholder="💬" maxlength="2" style="width:46px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:10px;padding:8px;font-size:0.82em;font-family:inherit;text-align:center;">
+        <button onclick="addChatRoom()" style="background:var(--gold);border:none;color:var(--bg);padding:8px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Add</button>
+      </div>
+      <div class="chat-feed" id="chatFeed"></div>
+      <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--glass-border);background:var(--surface);">
+        <textarea class="msg-input" id="chatInput" placeholder="Message..." rows="1" maxlength="500" oninput="updateChatCharCount()" onkeydown="chatKeydown(event)"></textarea>
+        <button class="msg-send-btn" onclick="sendChat()">➤</button>
+      </div>
+      <div style="font-size:0.65em;color:var(--text-faint);text-align:right;padding:0 16px 6px;" id="chatCharCount">0 / 500</div>
+    </div>
+  </div>
+
   <!-- Planner Day Panel -->
   <div id="plannerDayModal" class="modal-overlay" style="z-index:250;">
     <div class="modal-header">
@@ -2444,7 +2485,7 @@
     const modals = [
       'communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal',
       'communityPostModal','adminModal','settingsModal','cookModeModal',
-      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal'
+      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal','chatModal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -5978,6 +6019,134 @@
   }
   function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+  // ═══ CHATROOM ═══
+  let chatRooms = [];
+  let activeChatRoomId = null;
+  let chatPollInterval = null;
+  let chatAdminOpen = false;
+
+  async function openChat() {
+    if (!currentUser) return;
+    getUserId(currentUser).then(id => { myUserId = id; });
+    openModalAnimated('chatModal');
+    const adminBtn = document.getElementById('chatAdminBtn');
+    if (adminBtn) adminBtn.style.display = currentUser === 'rollert2' ? 'inline-block' : 'none';
+    await loadChatRooms();
+  }
+
+  async function loadChatRooms() {
+    chatRooms = await getChatRooms().catch(() => []);
+    renderChatRooms();
+    if (chatRooms.length === 0) {
+      activeChatRoomId = null;
+      document.getElementById('chatFeed').innerHTML = '<div class="chat-empty">No rooms yet.</div>';
+    } else if (!activeChatRoomId || !chatRooms.some(r => r.id === activeChatRoomId)) {
+      selectChatRoom(chatRooms[0].id);
+    }
+  }
+
+  function renderChatRooms() {
+    const row = document.getElementById('chatRoomsRow');
+    if (!row) return;
+    const isAdmin = currentUser === 'rollert2';
+    row.innerHTML = chatRooms.map(r => {
+      const del = (chatAdminOpen && isAdmin)
+        ? '<span onclick="event.stopPropagation();deleteChatRoomPrompt(\'' + r.id + '\',\'' + escapeAttr(r.name) + '\')" style="margin-left:4px;opacity:0.7;cursor:pointer;" title="Delete room">✕</span>'
+        : '';
+      return '<div class="chat-room-chip' + (r.id === activeChatRoomId ? ' active' : '') + '" onclick="selectChatRoom(\'' + r.id + '\')">' + (r.emoji || '💬') + ' ' + escapeHtml(r.name) + del + '</div>';
+    }).join('');
+  }
+
+  function selectChatRoom(roomId) {
+    activeChatRoomId = roomId;
+    renderChatRooms();
+    const room = chatRooms.find(r => r.id === roomId);
+    const title = document.getElementById('chatRoomTitle');
+    if (title && room) title.textContent = (room.emoji || '💬') + ' ' + room.name;
+    loadChatMessages(roomId);
+    clearChatPoll();
+    chatPollInterval = setInterval(() => {
+      if (activeChatRoomId === roomId) loadChatMessages(roomId);
+      else clearChatPoll();
+    }, 2500);
+  }
+
+  async function loadChatMessages(roomId) {
+    const msgs = await getChatMessages(roomId).catch(() => []);
+    const feed = document.getElementById('chatFeed');
+    if (!feed || activeChatRoomId !== roomId) return;
+    const wasAtBottom = feed.scrollHeight - feed.scrollTop <= feed.clientHeight + 80;
+    if (msgs.length === 0) {
+      feed.innerHTML = '<div class="chat-empty">Be the first to say something 👋</div>';
+      return;
+    }
+    feed.innerHTML = msgs.map(m => {
+      const mine = myUserId && m.user_id === myUserId;
+      const avatar = (m.users && m.users.avatar_url) ? '<img src="' + m.users.avatar_url + '">' : ((m.username || '?').charAt(0).toUpperCase());
+      const name = (m.users && m.users.username) || m.username || 'Unknown';
+      return '<div class="chat-msg-row' + (mine ? ' mine' : '') + '">' +
+        '<div class="chat-msg-avatar">' + avatar + '</div>' +
+        '<div class="chat-msg-body">' +
+          '<div class="chat-msg-meta">' + escapeHtml(name) + ' · ' + formatMsgTime(m.created_at) + '</div>' +
+          '<div class="msg-bubble ' + (mine ? 'mine' : 'theirs') + '">' + escapeHtml(m.message) + '</div>' +
+        '</div></div>';
+    }).join('');
+    if (wasAtBottom) feed.scrollTop = feed.scrollHeight;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const content = (input.value || '').trim();
+    if (!content || !activeChatRoomId) return;
+    input.value = '';
+    document.getElementById('chatCharCount').textContent = '0 / 500';
+    await sendChatMessage(activeChatRoomId, currentUser, content).catch(() => {});
+    loadChatMessages(activeChatRoomId);
+  }
+
+  function updateChatCharCount() {
+    const input = document.getElementById('chatInput');
+    const counter = document.getElementById('chatCharCount');
+    if (counter) counter.textContent = (input.value.length || 0) + ' / 500';
+  }
+
+  function chatKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  }
+
+  function clearChatPoll() {
+    if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  }
+
+  function closeChat() {
+    clearChatPoll();
+    closeModalAnimated('chatModal');
+  }
+
+  function toggleChatAdmin() {
+    chatAdminOpen = !chatAdminOpen;
+    document.getElementById('chatAdminBar').style.display = chatAdminOpen ? 'flex' : 'none';
+    renderChatRooms();
+  }
+
+  async function addChatRoom() {
+    const nameInput = document.getElementById('chatNewRoomName');
+    const emojiInput = document.getElementById('chatNewRoomEmoji');
+    const name = (nameInput.value || '').trim();
+    const emoji = (emojiInput.value || '').trim() || '💬';
+    if (!name) { rcAlert('Enter a room name.', {icon:'💬', title:'New room'}); return; }
+    await createChatRoom(name, emoji, '').catch(() => {});
+    nameInput.value = ''; emojiInput.value = '';
+    await loadChatRooms();
+  }
+
+  async function deleteChatRoomPrompt(roomId, name) {
+    if (!await rcConfirm('Delete room "' + name + '" and all its messages?', {icon:'🗑', title:'Delete room', confirmText:'Delete', danger:true})) return;
+    await deleteChatRoom(roomId).catch(() => {});
+    if (activeChatRoomId === roomId) { activeChatRoomId = null; clearChatPoll(); }
+    await loadChatRooms();
+  }
 
   // ═══ FRIEND COLLECTIONS ═══
   function viewFriendCollections(username) {

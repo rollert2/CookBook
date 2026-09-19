@@ -27,6 +27,7 @@ function closeModalAnimated(id, cb) {
   setTimeout(() => {
     el.style.display = 'none';
     if (id === 'messagingModal' && typeof clearMsgPoll === 'function') clearMsgPoll();
+    if (id === 'chatModal' && typeof clearChatPoll === 'function') clearChatPoll();
     if (cb) cb();
   }, 130);
 }
