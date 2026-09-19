@@ -16,11 +16,42 @@ async function getChatMessages(roomId, limit) {
   return (data || []).reverse();
 }
 
-async function sendChatMessage(roomId, username, message) {
+async function sendChatMessage(roomId, username, message, imageUrl) {
   const userId = await getUserId(username);
   if (!userId) return { status: 'Error', message: 'User not found' };
   await sbFetch('POST', 'chat_messages', {
-    room_id: roomId, user_id: userId, username, message
+    room_id: roomId, user_id: userId, username, message, image_url: imageUrl || null
+  });
+  return { status: 'Success' };
+}
+
+async function uploadChatPhoto(base64Data, username) {
+  try {
+    const parts = base64Data.split(',');
+    const byteString = atob(parts[1]);
+    const mimeString = parts[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mimeString });
+    const ext = (mimeString.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    const path = `chat/${username}/${Date.now()}.${ext}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/recipe-images/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': mimeString, 'x-upsert': 'true'
+      },
+      body: blob
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return { status: 'Success', url: `${SUPABASE_URL}/storage/v1/object/public/recipe-images/${path}` };
+  } catch(e) { return { status: 'Error', message: e.message }; }
+}
+
+async function removeChatMessage(messageId, removedBy) {
+  await sbFetch('PATCH', `chat_messages?id=eq.${messageId}`, {
+    removed_by: removedBy, message: '', image_url: null
   });
   return { status: 'Success' };
 }

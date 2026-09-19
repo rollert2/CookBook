@@ -254,6 +254,7 @@
     .chat-msg-body .msg-bubble { max-width:100%; }
     .chat-empty { text-align:center; padding:30px 10px; color:var(--text-faint); font-size:0.85em; }
     .chat-admin-bar { display:none; padding:8px 16px; border-bottom:1px solid var(--glass-border); gap:8px; align-items:center; }
+    .msg-bubble.removed { font-style:italic; opacity:0.65; }
     .chat-unread-dot { position:absolute; top:4px; right:10px; width:9px; height:9px; border-radius:50%; background:var(--red); border:1.5px solid var(--bg); display:none; }
 
     /* ── WHAT'S NEW ── */
@@ -2329,7 +2330,15 @@
         <button onclick="addChatRoom()" style="background:var(--gold);border:none;color:var(--bg);padding:8px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Add</button>
       </div>
       <div class="chat-feed" id="chatFeed"></div>
-      <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--glass-border);background:var(--surface);">
+      <div id="chatImagePreviewWrap" style="display:none;padding:8px 16px 0;">
+        <div style="position:relative;display:inline-block;">
+          <img id="chatImagePreview" style="max-width:120px;max-height:120px;border-radius:10px;display:block;">
+          <button onclick="clearChatImage()" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:0.7em;cursor:pointer;line-height:1;font-family:inherit;">✕</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--glass-border);background:var(--surface);align-items:flex-end;">
+        <button id="chatImageBtn" onclick="document.getElementById('chatFileInput').click()" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);border-radius:50%;width:38px;height:38px;font-size:1.1em;cursor:pointer;flex-shrink:0;font-family:inherit;align-items:center;justify-content:center;" title="Add image">📷</button>
+        <input type="file" id="chatFileInput" accept="image/*" style="display:none;" onchange="handleChatImage(this)">
         <textarea class="msg-input" id="chatInput" placeholder="Message..." rows="1" maxlength="500" oninput="updateChatCharCount()" onkeydown="chatKeydown(event)"></textarea>
         <button class="msg-send-btn" onclick="sendChat()">➤</button>
       </div>
@@ -6097,6 +6106,7 @@
       let controls = '';
       if (chatAdminOpen && isAdmin) {
         controls += '<span onclick="event.stopPropagation();toggleChatRoomPrivate(\'' + r.id + '\')" style="margin-left:4px;cursor:pointer;" title="' + (r.is_private ? 'Make public' : 'Make private') + '">' + (r.is_private ? '🔒' : '🔓') + '</span>';
+        controls += '<span onclick="event.stopPropagation();toggleChatRoomImages(\'' + r.id + '\')" style="margin-left:4px;cursor:pointer;' + (r.allow_images ? '' : 'opacity:0.4;') + '" title="' + (r.allow_images ? 'Disable images' : 'Enable images') + '">🖼️</span>';
         if (r.is_private) {
           controls += '<span onclick="event.stopPropagation();openChatRoomMembers(\'' + r.id + '\',\'' + escapeAttr(r.name) + '\')" style="margin-left:3px;cursor:pointer;" title="Manage members">👥</span>';
         }
@@ -6112,6 +6122,7 @@
     const room = chatRooms.find(r => r.id === roomId);
     const title = document.getElementById('chatRoomTitle');
     if (title && room) title.textContent = (room.emoji || '💬') + ' ' + room.name;
+    updateChatImageButton();
     loadChatMessages(roomId);
     clearChatPoll();
     chatPollInterval = setInterval(() => {
@@ -6133,11 +6144,26 @@
       const mine = myUserId && m.user_id === myUserId;
       const avatar = (m.users && m.users.avatar_url) ? '<img src="' + m.users.avatar_url + '">' : ((m.username || '?').charAt(0).toUpperCase());
       const name = (m.users && m.users.username) || m.username || 'Unknown';
+      const side = mine ? 'mine' : 'theirs';
+      const removable = (name === currentUser) || (currentUser === 'rollert2');
+      let bubble;
+      if (m.removed_by) {
+        const removedText = m.removed_by === 'mod' ? 'This message has been removed by a mod' : 'This message has been removed by the user';
+        bubble = '<div class="msg-bubble ' + side + ' removed">' + removedText + '</div>';
+      } else {
+        const imgHtml = m.image_url
+          ? '<a href="' + m.image_url + '" target="_blank"><img src="' + m.image_url + '" style="max-width:220px;max-height:220px;border-radius:12px;display:block;margin-top:8px;"></a>'
+          : '';
+        bubble = '<div class="msg-bubble ' + side + '">' + escapeHtml(m.message) + imgHtml + '</div>';
+      }
+      const removeAttrs = removable
+        ? ' ontouchstart="startChatRemovePress(\'' + m.id + '\',\'' + escapeAttr(name) + '\')" ontouchend="cancelChatRemovePress()" ontouchmove="cancelChatRemovePress()" oncontextmenu="event.preventDefault();promptRemoveChatMessage(\'' + m.id + '\',\'' + escapeAttr(name) + '\')"'
+        : '';
       return '<div class="chat-msg-row' + (mine ? ' mine' : '') + '">' +
-        '<div class="chat-msg-avatar">' + avatar + '</div>' +
-        '<div class="chat-msg-body">' +
+        '<div class="chat-msg-avatar" onclick="event.stopPropagation();openPublicProfile(\'' + escapeAttr(name) + '\')" style="cursor:pointer;">' + avatar + '</div>' +
+        '<div class="chat-msg-body"' + removeAttrs + '>' +
           '<div class="chat-msg-meta">' + escapeHtml(name) + ' · ' + formatMsgTime(m.created_at) + '</div>' +
-          '<div class="msg-bubble ' + (mine ? 'mine' : 'theirs') + '">' + escapeHtml(m.message) + '</div>' +
+          bubble +
         '</div></div>';
     }).join('');
     if (wasAtBottom) feed.scrollTop = feed.scrollHeight;
@@ -6146,10 +6172,17 @@
   async function sendChat() {
     const input = document.getElementById('chatInput');
     const content = (input.value || '').trim();
-    if (!content || !activeChatRoomId) return;
+    if ((!content && !chatImageData) || !activeChatRoomId) return;
+    const room = chatRooms.find(r => r.id === activeChatRoomId);
+    let imageUrl = null;
+    if (chatImageData && room && room.allow_images) {
+      const up = await uploadChatPhoto(chatImageData, currentUser).catch(() => ({ status: 'Error' }));
+      if (up.status === 'Success') imageUrl = up.url;
+    }
     input.value = '';
     document.getElementById('chatCharCount').textContent = '0 / 500';
-    await sendChatMessage(activeChatRoomId, currentUser, content).catch(() => {});
+    clearChatImage();
+    await sendChatMessage(activeChatRoomId, currentUser, content || '', imageUrl).catch(() => {});
     loadChatMessages(activeChatRoomId);
   }
 
@@ -6161,6 +6194,72 @@
 
   function chatKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  }
+
+  // ── Chat images ──
+  let chatImageData = null;
+
+  function handleChatImage(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) { rcAlert('Image too large (max 4MB).', {icon:'📷'}); input.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      chatImageData = reader.result;
+      const preview = document.getElementById('chatImagePreview');
+      if (preview) preview.src = chatImageData;
+      const wrap = document.getElementById('chatImagePreviewWrap');
+      if (wrap) wrap.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  function clearChatImage() {
+    chatImageData = null;
+    const wrap = document.getElementById('chatImagePreviewWrap');
+    if (wrap) wrap.style.display = 'none';
+    const preview = document.getElementById('chatImagePreview');
+    if (preview) preview.src = '';
+  }
+
+  function updateChatImageButton() {
+    const btn = document.getElementById('chatImageBtn');
+    if (!btn) return;
+    const room = chatRooms.find(r => r.id === activeChatRoomId);
+    const show = !!(room && room.allow_images);
+    btn.style.display = show ? 'flex' : 'none';
+    if (!show) clearChatImage();
+  }
+
+  async function toggleChatRoomImages(roomId) {
+    const room = chatRooms.find(r => r.id === roomId);
+    if (!room) return;
+    await updateChatRoom(roomId, { allow_images: !room.allow_images }).catch(() => {});
+    await loadChatRooms();
+    updateChatImageButton();
+  }
+
+  // ── Message removal ──
+  let chatRemoveTimer = null;
+  function startChatRemovePress(messageId, author) {
+    cancelChatRemovePress();
+    chatRemoveTimer = setTimeout(() => promptRemoveChatMessage(messageId, author), 500);
+  }
+  function cancelChatRemovePress() {
+    if (chatRemoveTimer) { clearTimeout(chatRemoveTimer); chatRemoveTimer = null; }
+  }
+  async function promptRemoveChatMessage(messageId, author) {
+    cancelChatRemovePress();
+    const isAdmin = currentUser === 'rollert2';
+    const isMine = author === currentUser;
+    if (!isMine && !isAdmin) return;
+    const label = isAdmin ? 'Remove this message as a mod?' : 'Remove your message?';
+    const ok = await rcConfirm(label, {icon:'🗑', title:'Remove message', confirmText:'Remove', danger:true});
+    if (!ok) return;
+    const removedBy = isAdmin ? 'mod' : 'user';
+    await removeChatMessage(messageId, removedBy).catch(() => {});
+    loadChatMessages(activeChatRoomId);
   }
 
   function clearChatPoll() {
