@@ -254,6 +254,16 @@
     .chat-msg-body .msg-bubble { max-width:100%; }
     .chat-empty { text-align:center; padding:30px 10px; color:var(--text-faint); font-size:0.85em; }
     .chat-admin-bar { display:none; padding:8px 16px; border-bottom:1px solid var(--glass-border); gap:8px; align-items:center; }
+    .chat-unread-dot { position:absolute; top:4px; right:10px; width:9px; height:9px; border-radius:50%; background:var(--red); border:1.5px solid var(--bg); display:none; }
+
+    /* ── WHAT'S NEW ── */
+    .whatsnew-card { background:var(--surface); border:1px solid var(--glass-border); border-radius:var(--radius); padding:32px 24px; max-width:340px; width:calc(100% - 40px); text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+    .whatsnew-icon { font-size:3em; margin-bottom:12px; }
+    .whatsnew-title { font-size:1.3em; font-weight:800; margin-bottom:10px; color:var(--text); }
+    .whatsnew-desc { font-size:0.9em; color:var(--text-dim); line-height:1.6; margin-bottom:16px; }
+    .whatsnew-badge { font-size:0.78em; color:var(--gold); background:var(--gold-dim); border:1px solid var(--gold); border-radius:12px; padding:10px 12px; margin-bottom:20px; }
+    .whatsnew-primary { width:100%; padding:13px; background:var(--gold); color:var(--bg); border:none; border-radius:var(--radius-sm); font-weight:700; font-size:0.95em; cursor:pointer; margin-bottom:8px; font-family:inherit; }
+    .whatsnew-secondary { width:100%; padding:11px; background:none; border:none; color:var(--text-faint); font-size:0.85em; cursor:pointer; font-family:inherit; }
 
     /* ── PROFILE PICTURE ── */
     .profile-avatar-large { width:80px; height:80px; border-radius:50%; background:var(--gold-dim); border:2px solid var(--gold); display:flex; align-items:center; justify-content:center; font-size:2em; font-weight:700; color:var(--gold); overflow:hidden; margin:0 auto 10px; cursor:pointer; position:relative; }
@@ -1042,7 +1052,7 @@
     <div style="padding:14px 16px 10px; display:flex; align-items:center; justify-content:space-between; background:var(--bg); border-bottom:1px solid var(--glass-border);">
       <div style="font-size:1em;font-weight:800;letter-spacing:-0.3px;">🌍 Community</div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button onclick="openChat()" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">💬 Chat</button>
+        <button onclick="openChat()" style="position:relative;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;">💬 Chat<span id="chatBtnDot" class="chat-unread-dot" style="top:-4px;right:-4px;"></span></button>
         <button onclick="openCommunityPost()" style="background:var(--gold);border:none;color:var(--bg);padding:7px 14px;border-radius:20px;font-size:0.8em;font-weight:700;cursor:pointer;font-family:inherit;">+ Share Recipe</button>
         <button id="communityApprovedBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openApprovedPosters()">👥 Posters</button>
         <button id="communityAdminBtn" style="display:none;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-dim);padding:7px 12px;border-radius:20px;font-size:0.78em;font-weight:600;cursor:pointer;font-family:inherit;position:relative;" onclick="toggleCommunityAdminMode()">🛡 Admin<span id="communityPendingBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.7em;font-weight:800;line-height:18px;text-align:center;padding:0 5px;"></span></button>
@@ -1105,7 +1115,7 @@
   <!-- Bottom Nav -->
   <div class="bottom-nav">
     <button class="nav-tab active" id="navRecipes" onclick="switchTab('recipes')"><span class="nav-icon">🍽️</span>Recipes</button>
-    <button class="nav-tab" id="navFeatured" onclick="switchTab('featured')"><span class="nav-icon">🌍</span>Community<span id="featuredBadge" style="display:none;background:var(--gold);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:0.9em;margin-left:2px;"></span></button>
+    <button class="nav-tab" id="navFeatured" onclick="switchTab('featured')" style="position:relative;"><span class="nav-icon">🌍</span>Community<span id="featuredBadge" style="display:none;background:var(--gold);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:0.9em;margin-left:2px;"></span><span id="chatUnreadDot" class="chat-unread-dot"></span></button>
     <button class="nav-tab" id="navPantry" onclick="switchTab('pantry')"><span class="nav-icon">🧊</span>Pantry</button>
     <button class="nav-tab" id="navDiscover" onclick="switchTab('discover')"><span class="nav-icon">🔎</span>Discover</button>
     <button class="nav-tab" id="navPlanner" onclick="switchTab('planner')"><span class="nav-icon">📅</span>Planner</button>
@@ -2327,6 +2337,18 @@
     </div>
   </div>
 
+  <!-- What's New Announcement -->
+  <div id="whatsNewModal" class="modal-overlay" style="z-index:400;align-items:center;justify-content:center;">
+    <div class="whatsnew-card">
+      <div class="whatsnew-icon">💬</div>
+      <div class="whatsnew-title">New: Community Chatroom</div>
+      <div class="whatsnew-desc">Chat with other cooks in real time. Jump into topic rooms like General, Recipe Help, and Show Your Dish.</div>
+      <div class="whatsnew-badge">🚧 Under construction — more rooms and features coming soon</div>
+      <button class="whatsnew-primary" onclick="startChatFromAnnouncement()">Start chatting</button>
+      <button class="whatsnew-secondary" onclick="dismissChatAnnouncement()">Maybe later</button>
+    </div>
+  </div>
+
   <!-- Planner Day Panel -->
   <div id="plannerDayModal" class="modal-overlay" style="z-index:250;">
     <div class="modal-header">
@@ -2485,7 +2507,7 @@
     const modals = [
       'communityDetailModal','messagingModal','mealPrepModal','addMealPrepModal',
       'communityPostModal','adminModal','settingsModal','cookModeModal',
-      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal','chatModal'
+      'detailModal','syncModal','profileModal','friendRecipeModal','editProfileModal','approvedPostersModal','chatModal','whatsNewModal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -2931,6 +2953,7 @@
       return;
     }
     currentTab = tab;
+    updateChatBadges();
     const tabIds = { recipes:'mainContent', featured:'featuredContent', discover:'discoverContent', planner:'plannerContent', pantry:'pantryContent' };
     const targetId = tabIds[tab];
     
@@ -2981,6 +3004,7 @@
     if (tab === 'pantry') { loadPantry(); findPantryMatches(); }
     if (tab === 'featured') {
       loadCommunity();
+      checkChatUnread();
       localStorage.setItem('featuredLastSeen_' + currentUser, Date.now().toString());
       document.getElementById('featuredBadge').style.display = 'none';
       const adminBtn = document.getElementById('communityAdminBtn');
@@ -6028,6 +6052,7 @@
 
   async function openChat() {
     if (!currentUser) return;
+    markChatRead();
     getUserId(currentUser).then(id => { myUserId = id; });
     openModalAnimated('chatModal');
     const adminBtn = document.getElementById('chatAdminBtn');
@@ -6146,6 +6171,48 @@
     await deleteChatRoom(roomId).catch(() => {});
     if (activeChatRoomId === roomId) { activeChatRoomId = null; clearChatPoll(); }
     await loadChatRooms();
+  }
+
+  // ── Unread badge ──
+  let chatHasUnread = false;
+
+  function getChatLastRead() {
+    return parseInt(localStorage.getItem('rc_chat_last_read_' + currentUser) || '0', 10);
+  }
+  function markChatRead() {
+    localStorage.setItem('rc_chat_last_read_' + currentUser, String(Date.now()));
+    chatHasUnread = false;
+    updateChatBadges();
+  }
+  async function checkChatUnread() {
+    if (!currentUser) return;
+    try {
+      const latest = await sbFetch('GET', 'chat_messages', null, 'select=created_at&order=created_at.desc&limit=1');
+      chatHasUnread = !!(latest && latest[0] && new Date(latest[0].created_at).getTime() > getChatLastRead());
+    } catch(e) { chatHasUnread = false; }
+    updateChatBadges();
+  }
+  function updateChatBadges() {
+    const navDot = document.getElementById('chatUnreadDot');
+    const btnDot = document.getElementById('chatBtnDot');
+    const onCommunity = currentTab === 'featured';
+    if (navDot) navDot.style.display = (chatHasUnread && !onCommunity) ? 'block' : 'none';
+    if (btnDot) btnDot.style.display = (chatHasUnread && onCommunity) ? 'block' : 'none';
+  }
+
+  // ── What's New announcement ──
+  function maybeShowChatAnnouncement() {
+    if (!currentUser) return;
+    if (localStorage.getItem('rc_seen_chat_announce_' + currentUser)) return;
+    localStorage.setItem('rc_seen_chat_announce_' + currentUser, '1');
+    openModalAnimated('whatsNewModal');
+  }
+  function dismissChatAnnouncement() {
+    closeModalAnimated('whatsNewModal');
+  }
+  function startChatFromAnnouncement() {
+    closeModalAnimated('whatsNewModal');
+    openChat();
   }
 
   // ═══ FRIEND COLLECTIONS ═══
@@ -6273,7 +6340,7 @@
         }
       }
       if (currentUser === 'rollert2') checkExpiredDeletionsAdmin();
-      checkFeaturedBadge(); loadBlacklist(); checkBroadcast(); loadAdminTone();
+      checkFeaturedBadge(); checkChatUnread(); setTimeout(maybeShowChatAnnouncement, 1500); loadBlacklist(); checkBroadcast(); loadAdminTone();
       setTimeout(adjustHeaderPadding, 100);
     } catch(e) {
       console.error('Init error:', e);
